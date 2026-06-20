@@ -1,4 +1,5 @@
 import { makeFinding, type ExtractedField, type SourceFinding, type SourceType } from '../dossier.js';
+import { roleFromTitle } from '../staffCards.js';
 import type { ResearchContext } from './context.js';
 
 function categoryToSourceType(category: string): SourceType {
@@ -64,8 +65,20 @@ export async function collectWebsite(ctx: ResearchContext): Promise<SourceFindin
     for (const email of page.mailto ?? []) push('email', email, 88, 'mailto link on rendered site');
     for (const t of page.tel ?? []) push('phone', t, 85, 'tel link on rendered site');
 
-    // Append rendered staff-card blocks so the extractors/synthesis see staff.
-    const staffText = (page.staffBlocks ?? []).join(' • ');
+    // Staff cards (name + title) parsed from rendered staff/leadership pages →
+    // structured role fields + a staff_count. extractFacts folds these into the
+    // facts (text-derived facts still win on higher confidence).
+    const cards = page.staffCards ?? [];
+    for (const card of cards) {
+      const role = roleFromTitle(card.title);
+      if (role) push(role.field, card.name, role.confidence, `Staff card: ${card.name} — ${card.title}`);
+    }
+    if (cards.length) push('staff_count', cards.length, 70, `${cards.length} staff cards on ${page.category} page`);
+
+    // Append staff-card lines (and any card-block text) so synthesis/extractors
+    // also see the names + titles.
+    const cardLines = cards.map((c) => `${c.name} — ${c.title}`);
+    const staffText = [...cardLines, ...(page.staffBlocks ?? [])].join(' • ');
     const text = (page.text + (staffText ? `\n\nSTAFF CARDS: ${staffText}` : '')).slice(0, 5000);
 
     findings.push(makeFinding({

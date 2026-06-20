@@ -112,6 +112,17 @@ function officeEmail(text: string): { value: string; confidence: number; ev: str
   return { value: emails[0], confidence: 45, ev: emails[0] };
 }
 
+/** Structured finding.field names → fact keys folded in as fallback candidates. */
+const STRUCTURED_FACT_MAP: Record<string, string> = {
+  email: 'office_email',
+  phone: 'office_phone',
+  lead_pastor: 'lead_pastor',
+  executive_pastor: 'executive_pastor',
+  operations_leader: 'operations_leader',
+  communications_leader: 'communications_leader',
+  staff_count: 'staff_count',
+};
+
 const ROLE_RE: { field: string; source: string }[] = [
   { field: 'lead_pastor', source: `(?:lead|senior)\\s+pastor` },
   { field: 'executive_pastor', source: `executive\\s+pastor` },
@@ -163,16 +174,20 @@ export function extractFacts(findings: SourceFinding[]): Facts {
     const ph = text.match(PHONE);
     if (ph) consider(f, 'office_phone', ph[0], 55, text.slice(0, 120));
 
-    // Fallback: fold the crawler's STRUCTURED contact fields (mailto/tel links the
-    // collector captured) into office_email/office_phone. Many sites expose
-    // contacts only as mailto:/tel: hrefs, so the literal value never appears in
-    // visible text. consider() keeps the best reliability × confidence, so a
-    // higher-confidence text-derived fact is never overwritten (and the finding's
-    // source_url / access_level / confidence are preserved).
+    // Fallback: fold the crawler's STRUCTURED fields (mailto/tel links and
+    // rendered staff cards) into the corresponding facts. Many sites expose
+    // contacts only as mailto:/tel: hrefs, and staff names/titles only in the
+    // JS-rendered DOM, so the literal values never appear in the plain text.
+    // consider() keeps the best reliability × confidence, so a higher-confidence
+    // text-derived fact is never overwritten, and the finding's source_url /
+    // access_level / confidence are preserved.
     for (const field of f.fields) {
       if (field.value == null || field.value === '') continue;
-      if (field.field_name === 'email') consider(f, 'office_email', String(field.value), field.confidence, field.evidence_text || String(field.value));
-      else if (field.field_name === 'phone') consider(f, 'office_phone', String(field.value), field.confidence, field.evidence_text || String(field.value));
+      const target = STRUCTURED_FACT_MAP[field.field_name];
+      if (!target) continue;
+      const value = target === 'staff_count' ? Number(field.value) : String(field.value);
+      if (target === 'staff_count' && !Number.isFinite(value as number)) continue;
+      consider(f, target, value, field.confidence, field.evidence_text || String(field.value));
     }
   }
 

@@ -118,6 +118,10 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
       const probes = links.filter((d) => d.discovery === 'fallback_probe');
       if (probes.length) L.push(`- fallback staff/contact probes attempted: ${probes.map((p) => p.href).join(', ')}`);
       if (!links.some((d) => d.fetched && d.hasStaffContactSignal)) L.push('- ⚠️ no crawled page contained staff/contact data (email / phone / pastor title)');
+      // Staff-page render diagnostics (raw vs rendered text, names/roles detected).
+      for (const d of links.filter((x) => x.fetched && (x.category === 'staff' || x.category === 'leadership'))) {
+        L.push(`- staff render: ${d.resolvedUrl} — ${d.crawlMethod ?? '—'} · raw_text ${d.rawTextLength ?? '—'} → rendered_text ${d.textLength} (gain ×${d.gainRatio ?? '—'}) · staff_names ${d.staffNames ?? 0} · staff_roles ${d.staffRoles ?? 0}`);
+      }
     }
 
     L.push('### Contacts');

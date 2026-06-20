@@ -1,3 +1,5 @@
+import type { StaffCard } from './staffCards.js';
+
 export interface SearchResult {
   title: string;
   url: string;
@@ -20,9 +22,15 @@ export interface LinkDiagnostic {
   category: string | null;     // categorizeLink(path, anchorText) result
   selected: boolean;           // chosen for crawl
   fetched: boolean;            // actually fetched with HTTP 2xx
-  textLength: number;          // extracted visible text length (0 if not fetched)
+  textLength: number;          // extracted visible text length (rendered; 0 if not fetched)
   hasStaffContactSignal: boolean; // page text held email / phone / pastor-title
   discovery: 'homepage_link' | 'fallback_probe';
+  // staff-page render diagnostics (populated for staff/leadership pages)
+  crawlMethod?: CrawlMethod;
+  rawTextLength?: number;
+  gainRatio?: number;
+  staffNames?: number;
+  staffRoles?: number;
 }
 
 export interface PageContent {
@@ -42,6 +50,9 @@ export interface PageContent {
   tel?: string[];
   navLabels?: string[];
   staffBlocks?: string[];
+  staffCards?: StaffCard[];          // {name,title} pairs from staff/leadership pages
+  staffNamesDetected?: number;
+  staffRolesDetected?: number;
   error?: string;
   fetchedAt: string;
 }

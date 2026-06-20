@@ -2,6 +2,7 @@ import { config } from '../config.js';
 import { logger } from '../lib/logger.js';
 import { RobotsRules } from './robots.js';
 import { smartFetch } from './renderedFetch.js';
+import { rolesDetected } from './staffCards.js';
 import { categorizeLink, discoverOfficialSite, sleep, type Discovery } from './discover.js';
 import type {
   LinkDiagnostic,
@@ -92,7 +93,10 @@ export class FetchResearch implements ResearchProvider {
   async close(): Promise<void> {}
 
   private async fetchPage(url: string, category: string, allowRender: boolean): Promise<PageContent & { _linkPairs?: { href: string; text: string }[] }> {
-    const r = await smartFetch(url, allowRender);
+    // Staff/leadership pages hold their data in the JS-rendered DOM — force a
+    // browser render and run the staff-card heuristic on them.
+    const staffMode = category === 'staff' || category === 'leadership';
+    const r = await smartFetch(url, allowRender, { forceRender: staffMode, staffMode });
     const pc: PageContent & { _linkPairs?: { href: string; text: string }[] } = {
       url,
       finalUrl: r.finalUrl,
@@ -109,10 +113,16 @@ export class FetchResearch implements ResearchProvider {
       tel: r.tel,
       navLabels: r.navLabels,
       staffBlocks: r.staffBlocks,
+      staffCards: r.staffCards,
+      staffNamesDetected: r.staffCards.length,
+      staffRolesDetected: rolesDetected(r.staffCards),
       fetchedAt: new Date().toISOString(),
       _linkPairs: r.linkPairs,
     };
     if (!r.ok) pc.error = `HTTP ${r.status}`;
+    if (staffMode && r.ok) {
+      logger.info(`  staff render: ${url} — ${r.crawlMethod} · raw ${r.rawTextLength} → rendered ${r.renderedTextLength} (gain ×${r.gainRatio}) · names ${pc.staffNamesDetected} roles ${pc.staffRolesDetected}`);
+    }
     return pc;
   }
 
@@ -180,7 +190,11 @@ export class FetchResearch implements ResearchProvider {
         }
         const markFetched = (url: string, pc: PageContent | null) => {
           const d = linkDiagnostics.find((x) => x.resolvedUrl === url && x.discovery === 'homepage_link');
-          if (d) { d.fetched = !!pc?.ok; d.textLength = pc?.ok ? (pc.text?.length ?? 0) : 0; d.hasStaffContactSignal = pc?.ok ? hasStaffContactSignal(pageSignalText(pc)) : false; }
+          if (d) {
+            d.fetched = !!pc?.ok; d.textLength = pc?.ok ? (pc.text?.length ?? 0) : 0; d.hasStaffContactSignal = pc?.ok ? hasStaffContactSignal(pageSignalText(pc)) : false;
+            d.crawlMethod = pc?.crawlMethod; d.rawTextLength = pc?.rawTextLength; d.gainRatio = pc?.renderedGainRatio;
+            d.staffNames = pc?.staffNamesDetected; d.staffRoles = pc?.staffRolesDetected;
+          }
         };
         for (const { url, category } of ordered) {
           if (pages.length >= maxPages) break;
@@ -203,7 +217,7 @@ export class FetchResearch implements ResearchProvider {
           const category = categorizeLink(path, '') ?? 'contact';
           const pc = await visit(url, category, true); // bypass maxPages — bounded by FALLBACK_MAX_PROBES
           const signal = !!pc?.ok && hasStaffContactSignal(pageSignalText(pc));
-          linkDiagnostics.push({ anchorText: '(probe)', href: path, resolvedUrl: url, sameOrigin: true, category, selected: true, fetched: !!pc?.ok, textLength: pc?.ok ? (pc.text?.length ?? 0) : 0, hasStaffContactSignal: signal, discovery: 'fallback_probe' });
+          linkDiagnostics.push({ anchorText: '(probe)', href: path, resolvedUrl: url, sameOrigin: true, category, selected: true, fetched: !!pc?.ok, textLength: pc?.ok ? (pc.text?.length ?? 0) : 0, hasStaffContactSignal: signal, discovery: 'fallback_probe', crawlMethod: pc?.crawlMethod, rawTextLength: pc?.rawTextLength, gainRatio: pc?.renderedGainRatio, staffNames: pc?.staffNamesDetected, staffRoles: pc?.staffRolesDetected });
           if (signal) break; // found staff/contact data — stop probing
         }
       }

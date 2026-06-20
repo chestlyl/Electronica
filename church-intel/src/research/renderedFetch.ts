@@ -2,6 +2,7 @@ import { chromium, type Browser } from 'playwright';
 import { config } from '../config.js';
 import { logger } from '../lib/logger.js';
 import { chromiumInstalled } from './browser.js';
+import { extractStaffCards, type StaffCard } from './staffCards.js';
 import type { CrawlMethod } from './types.js';
 
 export interface RenderedResult {
@@ -24,6 +25,13 @@ export interface RenderedResult {
   buttons: string[];
   navLabels: string[];
   staffBlocks: string[];
+  staffCards: StaffCard[];        // {name,title} pairs parsed from rendered staff/leadership pages
+}
+
+/** Options for a fetch: force rendering and/or use staff-page rendering. */
+export interface SmartFetchOptions {
+  forceRender?: boolean;   // render even when the plain fetch is not thin
+  staffMode?: boolean;     // longer waits + slow scroll + staff-card extraction
 }
 
 // ── shared rendering browser (separate from the discovery crawler's) ─────────
@@ -100,20 +108,26 @@ export function isThin(html: string, text: string): boolean {
   return false;
 }
 
-async function render(url: string): Promise<Partial<RenderedResult> & { ok: boolean; status: number; finalUrl: string; text: string; title: string }> {
+async function render(url: string, staffMode = false): Promise<Partial<RenderedResult> & { ok: boolean; status: number; finalUrl: string; text: string; title: string; innerTextRaw: string }> {
   const ctx = await (await getBrowser()).newContext({ userAgent: config.crawl.userAgent, ignoreHTTPSErrors: true });
   const page = await ctx.newPage();
   page.setDefaultNavigationTimeout(config.crawl.pageTimeoutMs);
   try {
     const resp = await page.goto(url, { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle', { timeout: 6000 }).catch(() => {}); // network idle when possible
-    await page.evaluate(async () => {                                    // scroll to trigger lazy content
-      for (let y = 0; y < document.body.scrollHeight; y += 700) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 70)); }
+    await page.waitForLoadState('networkidle', { timeout: staffMode ? 9000 : 6000 }).catch(() => {}); // network idle when possible
+    // Staff pages lazy-load cards on scroll: scroll slower and to the very bottom.
+    const step = staffMode ? 400 : 700;
+    const pause = staffMode ? 140 : 70;
+    await page.evaluate(async ({ step, pause }) => {
+      for (let y = 0; y < document.body.scrollHeight; y += step) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, pause)); }
+      window.scrollTo(0, document.body.scrollHeight);
+      await new Promise((r) => setTimeout(r, 200));
       window.scrollTo(0, 0);
-    }).catch(() => {});
-    await page.waitForTimeout(300);
+    }, { step, pause }).catch(() => {});
+    await page.waitForTimeout(staffMode ? 2500 : 300); // extra settle time for staff cards
     const data = await page.evaluate(() => {
-      const text = (document.body?.innerText || '').replace(/\s+/g, ' ').trim();
+      const innerTextRaw = document.body?.innerText || '';            // keep newlines for staff-card parsing
+      const text = innerTextRaw.replace(/\s+/g, ' ').trim();
       const anchors = Array.from(document.querySelectorAll('a[href]')) as HTMLAnchorElement[];
       const links = anchors.map((a) => a.href);
       const linkPairs = anchors.map((a) => ({ href: a.href, text: (a.textContent || '').replace(/\s+/g, ' ').trim() }));
@@ -121,8 +135,10 @@ async function render(url: string): Promise<Partial<RenderedResult> & { ok: bool
       const tel = links.filter((h) => h.startsWith('tel:')).map((h) => h.replace(/^tel:/, ''));
       const buttons = Array.from(document.querySelectorAll('button,[role=button],a.button,.btn,.button')).map((b) => (b.textContent || '').trim()).filter(Boolean).slice(0, 40);
       const navLabels = Array.from(document.querySelectorAll('nav a, header a, [class*=nav i] a, [class*=menu i] a')).map((a) => (a.textContent || '').trim()).filter(Boolean).slice(0, 80);
-      const staffBlocks = Array.from(document.querySelectorAll('[class*=staff i],[class*=team i],[class*=leader i],[class*=person i],[class*=member i],[class*=pastor i]')).map((e) => (e.textContent || '').replace(/\s+/g, ' ').trim()).filter((t) => t.length > 4 && t.length < 220).slice(0, 40);
-      return { text, links, linkPairs, mailto, tel, buttons, navLabels, staffBlocks, title: document.title };
+      // Staff-card-like blocks: containers near images, or with staff/team/person classes.
+      const cardSel = '[class*=staff i],[class*=team i],[class*=leader i],[class*=person i],[class*=member i],[class*=pastor i],[class*=summary-item i],[class*=people i],[class*=card i]';
+      const staffBlocks = Array.from(document.querySelectorAll(cardSel)).map((e) => (e as HTMLElement).innerText || e.textContent || '').map((t) => t.replace(/\s+/g, ' ').trim()).filter((t) => t.length > 4 && t.length < 300).slice(0, 60);
+      return { text, innerTextRaw, links, linkPairs, mailto, tel, buttons, navLabels, staffBlocks, title: document.title };
     });
     return { ok: !!resp && resp.ok(), status: resp?.status() ?? 0, finalUrl: page.url(), ...data };
   } finally {
@@ -136,11 +152,11 @@ async function render(url: string): Promise<Partial<RenderedResult> & { ok: bool
  * a real browser (Playwright) and use the rendered DOM. Returns the text plus
  * link/contact/nav/staff extractions and crawl-method diagnostics.
  */
-export async function smartFetch(url: string, allowRender: boolean): Promise<RenderedResult> {
+export async function smartFetch(url: string, allowRender: boolean, opts: SmartFetchOptions = {}): Promise<RenderedResult> {
   const out: RenderedResult = {
     url, finalUrl: url, ok: false, status: 0, crawlMethod: 'fetch', title: '', identityText: '',
     text: '', rawHtml: '', rawTextLength: 0, renderedTextLength: 0, gainRatio: 1,
-    links: [], linkPairs: [], mailto: [], tel: [], buttons: [], navLabels: [], staffBlocks: [],
+    links: [], linkPairs: [], mailto: [], tel: [], buttons: [], navLabels: [], staffBlocks: [], staffCards: [],
   };
   let rawOk = false;
   try {
@@ -172,12 +188,13 @@ export async function smartFetch(url: string, allowRender: boolean): Promise<Ren
     out.tel = rawLinks.filter((h) => h.startsWith('tel:')).map((h) => h.replace(/^tel:/, ''));
   }
 
-  // Escalate when the fetch was thin OR blocked/empty (a real browser often
-  // bypasses bot blocks and renders JS content).
-  const needsRender = !rawOk || isThin(out.rawHtml, rawText);
+  // Escalate when the fetch was thin/blocked OR rendering is forced (staff/
+  // leadership pages: the data is in the JS-rendered DOM even when the plain
+  // fetch returns a non-thin navigation shell).
+  const needsRender = opts.forceRender || !rawOk || isThin(out.rawHtml, rawText);
   if (needsRender && allowRender && chromiumInstalled() && !config.research.forceFetchFallback) {
     try {
-      const r = await render(out.finalUrl);
+      const r = await render(out.finalUrl, opts.staffMode);
       out.crawlMethod = 'playwright_rendered';
       out.ok = r.ok || out.ok;
       out.status = r.status || out.status;
@@ -193,13 +210,18 @@ export async function smartFetch(url: string, allowRender: boolean): Promise<Ren
       out.buttons = r.buttons ?? [];
       out.navLabels = r.navLabels ?? [];
       out.staffBlocks = r.staffBlocks ?? [];
+      if (opts.staffMode) out.staffCards = extractStaffCards(r.innerTextRaw || out.text);
       return out;
     } catch (e) {
       logger.debug(`render escalation failed for ${url}: ${(e as Error).message}`);
-      out.crawlMethod = rawOk ? 'fetch_fallback' : 'fetch';
-      return out;
+      /* fall through to the fetch-fallback path below */
     }
   }
-  out.crawlMethod = !rawOk ? 'fetch' : isThin(out.rawHtml, rawText) ? 'fetch_fallback' : 'fetch';
+  // Render not performed (no Chromium / disabled / failed). For staff pages, still
+  // try card parsing on the raw text (recovers server-rendered staff lists; a
+  // JS-only list needs a browser and will simply yield no cards here).
+  if (opts.staffMode && !out.staffCards.length && rawText) out.staffCards = extractStaffCards(rawText);
+  // fetch_fallback = we wanted the rendered DOM but had to settle for plain fetch.
+  out.crawlMethod = !rawOk ? 'fetch' : needsRender ? 'fetch_fallback' : 'fetch';
   return out;
 }

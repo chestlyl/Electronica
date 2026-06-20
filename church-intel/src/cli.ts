@@ -268,7 +268,8 @@ program
           const links = build.crawl.links ?? [];
           logger.info(`  crawl: ${build.crawl.crawlMethod} · official DOM ${build.crawl.officialDomFetched ? 'yes' : 'no'} · ${links.length} homepage link(s) discovered`);
           for (const d of links) {
-            logger.info(`    ${d.selected ? '◉' : '○'}${d.fetched ? 'F' : ' '} [${d.category ?? '—'}] "${(d.anchorText || '').slice(0, 24)}" → ${d.resolvedUrl || d.href}${d.fetched ? ` (text ${d.textLength}${d.hasStaffContactSignal ? ', staff/contact✓' : ''})` : ''}${d.discovery === 'fallback_probe' ? ' [probe]' : ''}`);
+            const staff = d.staffNames != null && (d.category === 'staff' || d.category === 'leadership') ? ` names ${d.staffNames}/roles ${d.staffRoles ?? 0}` : '';
+            logger.info(`    ${d.selected ? '◉' : '○'}${d.fetched ? 'F' : ' '} [${d.category ?? '—'}] "${(d.anchorText || '').slice(0, 24)}" → ${d.resolvedUrl || d.href}${d.fetched ? ` (${d.crawlMethod ?? 'fetch'}, text ${d.textLength}${d.hasStaffContactSignal ? ', staff/contact✓' : ''}${staff})` : ''}${d.discovery === 'fallback_probe' ? ' [probe]' : ''}`);
           }
           if (links.length && !links.some((d) => d.fetched && d.hasStaffContactSignal)) logger.warn('    ⚠ no crawled page held staff/contact data');
           // TEMPORARY INSTRUMENTATION (DOSSIER_DEBUG): calibration-row contacts ==

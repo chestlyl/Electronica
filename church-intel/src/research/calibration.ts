@@ -222,7 +222,7 @@ export function toolFieldsFromBuild(target: ResearchTarget, build: DossierBuild)
     lifecycle_stage: { value: s.lifecycle_stage, confidence: capc(fe.lifecycle_stage?.confidence) },
     founded_year: fact('founded_year'),
     years_active: fact('years_active'),
-    avg_weekly_attendance: { value: s.attendance_estimate, confidence: st.attendance_confidence ?? null },
+    avg_weekly_attendance: { value: s.attendance_estimate, confidence: s.attendance_estimate == null ? null : capc(s.attendance_confidence) },
     online_attendance_estimate: { value: s.online_attendance_estimate, confidence: st.online_attendance_confidence ?? null },
     staff_count: fact('staff_count'),
     annual_budget: { value: null, confidence: null },

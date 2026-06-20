@@ -88,6 +88,22 @@ function mockResponder(opts: ExtractOptions<unknown>): unknown {
   const r = rng(name);
   const conf = (lo: number, hi: number) => Math.round(lo + r() * (hi - lo));
 
+  // Dossier synthesis (the dossier-driven enrich path).
+  if (sys.includes('building a DOSSIER')) {
+    return {
+      identity_summary: `${name} — research dossier.`, digital_summary: 'Website + livestream + social.',
+      staff_summary: 'Lead pastor identified.', growth_summary: 'Stable.', lifecycle_summary: 'Established church.',
+      research_summary: 'Mocked dossier for the offline demo.',
+      lifecycle_stage: 'established', growth_orientation_score: 50, digital_maturity_score: 50,
+      change_readiness_score: 45, staff_depth_score: 40, church_app_status: 'none_found', app_provider: null,
+      lead_pastor: `Pastor ${['John', 'David', 'Michael', 'Steven', 'Mark'][Math.floor(r() * 5)]} Smith`,
+      denomination: 'Non-denominational',
+      online_attendance_estimate: conf(50, 150), online_attendance_confidence: conf(40, 70),
+      attendance_estimate: conf(150, 450), attendance_min: 100, attendance_max: 600, attendance_confidence: conf(45, 80),
+      fields: [], known: ['Official site reachable'], uncertain: ['Exact attendance'],
+    };
+  }
+
   if (sys.includes('church verification analyst')) {
     const c = conf(72, 96);
     return {
@@ -188,6 +204,15 @@ function mockResponder(opts: ExtractOptions<unknown>): unknown {
 
 async function main() {
   rmSync(DB_PATH, { force: true });
+  // Generic offline mock fetch: empty search results + a generic church page,
+  // so the dossier-driven enrich path runs fast without real network.
+  const SEARCH = ['html.duckduckgo.com', 'lite.duckduckgo.com', 'www.bing.com', 'www.mojeek.com'];
+  (globalThis as any).fetch = async (input: any) => {
+    const url = typeof input === 'string' ? input : input.url;
+    const h = new URL(url).hostname;
+    if (SEARCH.includes(h)) return new Response('', { status: 200, headers: { 'content-type': 'text/html' } });
+    return new Response('<title>Church</title><nav><a href="/give">Give</a><a href="/sermons">Sermons</a><a href="/visit">Plan Your Visit</a></nav><p>We are a church. Worship Sunday 9 and 11am. Plan your visit. Give online. Ministries and small groups.</p>', { status: 200, headers: { 'content-type': 'text/html' } });
+  };
   const store = new JsonStore(DB_PATH);
 
   console.log('\n=== 1) Import 5 churches from the real spreadsheet ===');
@@ -200,7 +225,7 @@ async function main() {
     research: new MockResearch(),
   };
 
-  console.log('\n=== 2) Enrich each church (verify + contact + denom + size + score) ===');
+  console.log('\n=== 2) Enrich each church (dossier-driven: research → conservative apply → score) ===');
   const all = await store.listChurches({});
   for (const c of all) {
     await enrichChurch(ctx, c.id);

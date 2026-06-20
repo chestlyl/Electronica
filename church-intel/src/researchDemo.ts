@@ -58,7 +58,7 @@ export async function buildCornerstoneOffline() {
   return { target, build };
 }
 
-function installMockFetch() {
+export function installMockFetch() {
   (globalThis as any).fetch = async (input: any) => {
     const url = typeof input === 'string' ? input : input.url;
     const h = new URL(url).hostname;
@@ -70,7 +70,7 @@ function installMockFetch() {
 }
 
 // ── mocked Claude synthesis ─────────────────────────────────────────────────
-function synthesize(_opts: ExtractOptions<unknown>): DossierSynthesis {
+export function synthesize(_opts: ExtractOptions<unknown>): DossierSynthesis {
   return {
     identity_summary: 'Cornerstone Church, Akron OH (cornerstonechurch.info). Non-denominational, single site at 2445 S Arlington Rd. Founded ~1980; relaunched Aug 2020 under Jacob Young.',
     digital_summary: 'Website + YouTube livestream + Instagram (~1,098) + Facebook (~1K) + newsletter. No app found; giving/ChMS provider unknown.',

@@ -39,7 +39,12 @@ function applyFilter(q: any, f: ChurchFilter) {
 }
 
 export class SupabaseStore implements Store {
-  private db = supabase();
+  // Lazy: constructing a SupabaseStore must not require config (ad-hoc research
+  // commands build a context but may never touch the DB).
+  private _db: SupabaseClient | null = null;
+  private get db(): SupabaseClient {
+    return (this._db ??= supabase());
+  }
 
   async upsertImportRecord(rec: ImportRecord): Promise<UpsertResult> {
     // De-dupe on the stable original_row_id.

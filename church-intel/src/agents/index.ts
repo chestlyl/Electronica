@@ -1,12 +1,11 @@
 import { logger } from '../lib/logger.js';
-import type { ResearchBundle, ResearchInput } from '../research/types.js';
+import type { CrawlMethod, ResearchBundle, ResearchInput } from '../research/types.js';
 import type { Church, RunStatus } from '../types.js';
 import { newMeter, type AgentContext, type RunMeter } from './base.js';
 import { runVerification } from './verification.js';
-import { runContact } from './contact.js';
-import { runDenomination } from './denomination.js';
-import { runSize } from './size.js';
 import { runMultiplication } from './multiplication.js';
+import { buildDossier, type DossierBuild, type ResearchTarget } from '../research/researchAgent.js';
+import { applyDossierToChurch, writeResearchMetadata } from './dossierApply.js';
 
 export type { AgentContext } from './base.js';
 
@@ -112,32 +111,57 @@ export async function verifyChurch(ctx: AgentContext, churchId: string): Promise
   });
 }
 
+function toResearchTarget(c: Church): ResearchTarget {
+  return { name: c.name ?? '', city: c.city, state: c.state, originalWebsite: c.website_original, alternateName: extractAltName(c.notes) };
+}
+
+/** Reconstruct a ResearchBundle from the dossier's live pages (no re-fetch). */
+function bundleFromBuild(build: DossierBuild, target: ResearchTarget): ResearchBundle {
+  const pages = build.findings
+    .filter((f) => f.accessLevel === 'live_official_site' && f.fetched)
+    .map((f) => ({
+      url: f.url, finalUrl: f.url, ok: true, status: f.status || 200,
+      title: f.title ?? '', text: f.text ?? '', category: 'home',
+      crawlMethod: (build.officialCrawled ? 'playwright' : 'fetch_fallback') as CrawlMethod,
+      fetchedAt: f.fetchedAt,
+    }));
+  return {
+    query: [target.name, target.city, target.state].filter(Boolean).join(' '),
+    searchResults: [], officialSite: build.officialSite, originalSiteWorks: null,
+    pages, robotsBlockedUrls: [],
+    crawlMethod: build.officialCrawled ? 'playwright' : 'fetch_fallback',
+    jsRendered: build.officialCrawled, discoveryNote: build.dossier.identity_summary ?? undefined,
+  };
+}
+
 /**
- * enrich-church: ONE research pass shared across all agents:
- * verification → contact → denomination → size → multiplication/scoring.
+ * enrich-church (dossier-driven): build the multi-source research dossier, then
+ * CONSERVATIVELY apply its fields (thresholds, caps, no-overwrite-higher, contact
+ * fields → review), persist dossier + conflicts + research metadata, and score
+ * from the same crawl. Scoring formulas are unchanged.
  */
 export async function enrichChurch(ctx: AgentContext, churchId: string): Promise<void> {
   const church = await ctx.store.getChurch(churchId);
   if (!church) throw new Error(`church ${churchId} not found`);
-  logger.info(`▶ enrich: ${church.name} (${church.city}, ${church.state})`);
+  logger.info(`▶ enrich (dossier): ${church.name} (${church.city}, ${church.state})`);
   await withRun(ctx, churchId, 'enrich', async (meter) => {
-    const bundle: ResearchBundle = await ctx.research.research(toResearchInput(church));
-    logger.info(`  research: crawlMethod=${bundle.crawlMethod}, pages=${bundle.pages.filter((p) => p.ok).length}, site=${bundle.officialSite ?? '—'}`);
-    const researchable = await ensureResearchable(ctx, church, bundle);
+    const target = toResearchTarget(church);
+    const build = await buildDossier(target, { llm: ctx.llm, research: ctx.research });
+    meter.tokens += build.tokens;
+    meter.cost += build.cost;
+    logger.info(`  dossier: access=${build.accessLevel}, officialCrawled=${build.officialCrawled}, sources=${build.findings.length}, conflicts=${build.conflicts.length}`);
 
-    // Verification can use search snippets even without readable pages.
-    if (researchable || bundle.searchResults.length > 0) {
-      await safe('verification', () => runVerification(ctx, church, bundle, meter));
-    }
-    // Content-extraction agents need actual page text.
-    if (researchable) {
-      await safe('contact', () => runContact(ctx, church, bundle, meter));
-      await safe('denomination', () => runDenomination(ctx, church, bundle, meter));
-      await safe('size', () => runSize(ctx, church, bundle, meter));
-      await safe('scoring', () => runMultiplication(ctx, church, bundle, meter));
-    } else {
-      logger.warn('  skipping content agents (no readable pages)');
-    }
+    await ctx.store.upsertDossier({ ...build.dossier, church_id: churchId });
+    for (const c of build.conflicts) await ctx.store.addConflict({ ...c, church_id: churchId });
+    await writeResearchMetadata(ctx, churchId, build);
+
+    const summary = await applyDossierToChurch(ctx, church, build);
+    await safe('scoring', () => runMultiplication(ctx, church, bundleFromBuild(build, target), meter));
+
+    logger.info(`  ✓ updated: [${summary.updated.join(', ') || '—'}]`);
+    logger.info(`  ? review:  [${summary.review.join(', ') || '—'}]`);
+    logger.info(`  · evidence:[${summary.evidenceOnly.join(', ') || '—'}]`);
+    if (summary.skipped.length) logger.info(`  ⊘ skipped: [${summary.skipped.join(', ')}]`);
   });
 }
 

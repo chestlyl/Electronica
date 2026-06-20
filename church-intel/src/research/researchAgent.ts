@@ -198,7 +198,8 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     contamination_flags: contamination,
   };
 
-  // Strategic fields to persist onto churches.
+  // Strategic RESEARCH METADATA — safe to write directly (not church-fact claims
+  // subject to the conservative overwrite rules; those go via applyDossierToChurch).
   const strategic: Partial<Church> = {
     lifecycle_stage: synthesis.lifecycle_stage,
     growth_orientation_score: clamp(synthesis.growth_orientation_score),
@@ -213,15 +214,6 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     online_attendance_estimate: synthesis.online_attendance_estimate,
     online_attendance_confidence: capConfidence(synthesis.online_attendance_confidence, accessLevel),
   };
-  // Core fields: only persist when the capped confidence clears the review bar.
-  if (identity.officialSite && identity.identityVerdict === 'true_match') strategic.website_verified = identity.officialSite;
-  const attConf = capConfidence(synthesis.attendance_confidence, accessLevel);
-  if (synthesis.attendance_estimate != null && attConf >= 50) {
-    strategic.attendance_estimate = synthesis.attendance_estimate;
-    strategic.attendance_min = synthesis.attendance_min;
-    strategic.attendance_max = synthesis.attendance_max;
-    strategic.attendance_confidence = attConf;
-  }
 
   return {
     identity, findings, conflicts, contamination, synthesis, facts, dossier, strategic,

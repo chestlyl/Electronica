@@ -9,6 +9,7 @@ import { collectWebsite } from './sources/website.js';
 import { collectSnippets } from './sources/snippets.js';
 import { extractFacts, aggregateLeadership, debugExtractionTrace, type Facts, type LeaderCandidate } from './extractors.js';
 import { detectDigitalSignals, digitalEvidenceSummary, type DigitalSignals } from './digitalSignals.js';
+import { detectTechStack, type PlatformHit } from './techStack.js';
 import { computeCoverage, scoreConfidence, contactabilityConfidence, computeSourceCoverage, sourceCoverageSummary, type CoverageRow, type ScoreConfidence, type SourceCoverageRow } from './coverage.js';
 import { dossierSynthesisPrompt, type DossierSynthesis } from '../claude/dossierPrompt.js';
 import { logger } from '../lib/logger.js';
@@ -54,6 +55,7 @@ export interface DossierBuild {
   coverage: CoverageRow[];
   sourceCoverage: SourceCoverageRow[];
   digital: DigitalSignals;
+  techStack: PlatformHit[];
   scoreConfidence: Record<string, ScoreConfidence>;
   tokens: number;
   cost: number;
@@ -192,6 +194,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   // Minimum-evidence coverage + digital-maturity evidence (diagnostic; feeds
   // honest confidence + the synthesis prompt — does not change score formulas).
   const digital = detectDigitalSignals(findings);
+  const techStack = detectTechStack(findings); // deterministic hostname mapping
   const coverage = computeCoverage(findings, crawl.links, facts, digital);
   const sourceCoverage = computeSourceCoverage(findings, digital);
 
@@ -303,7 +306,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
 
   return {
     identity, findings, conflicts, contamination, synthesis, facts, leadership, dossier, strategic,
-    fieldEstimates, officialSite, accessLevel, officialCrawled, crawl, coverage, sourceCoverage, digital, scoreConfidence: scoreConf,
+    fieldEstimates, officialSite, accessLevel, officialCrawled, crawl, coverage, sourceCoverage, digital, techStack, scoreConfidence: scoreConf,
     tokens: usage.inputTokens + usage.outputTokens,
     cost: usage.costEstimate,
   };

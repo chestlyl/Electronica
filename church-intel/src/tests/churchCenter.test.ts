@@ -10,6 +10,7 @@
 import assert from 'node:assert';
 import { detectDigitalSignals, isChurchCenterUrl } from '../research/digitalSignals.js';
 import { extractFacts } from '../research/extractors.js';
+import { detectTechStack, technologyStack, classifyPlatform } from '../research/techStack.js';
 import { makeFinding, type SourceFinding } from '../research/dossier.js';
 
 let failures = 0;
@@ -66,6 +67,41 @@ async function main() {
     assert.strictEqual(bf.app_status?.value, 'active');
     assert.strictEqual(bf.app_provider?.value, 'Church Center / Planning Center');
   });
+
+  // ── Technology-stack layer (deterministic hostname mapping) ───────────────
+  check('classifyPlatform maps known hosts', () => {
+    assert.strictEqual(classifyPlatform('https://x.churchcenter.com/a')?.platform, 'Planning Center');
+    assert.strictEqual(classifyPlatform('https://planningcenteronline.com')?.platform, 'Planning Center');
+    assert.strictEqual(classifyPlatform('https://pushpay.com/g/abc')?.platform, 'Pushpay');
+    assert.strictEqual(classifyPlatform('https://subsplash.com/x')?.platform, 'Subsplash');
+    assert.strictEqual(classifyPlatform('https://tithe.ly/give')?.platform, 'Tithely');
+    assert.strictEqual(classifyPlatform('https://breezechms.com')?.platform, 'Breeze');
+    assert.strictEqual(classifyPlatform('https://flocknote.com')?.platform, 'Flocknote');
+    assert.strictEqual(classifyPlatform('https://static1.squarespace.com/x.css')?.platform, 'Squarespace');
+    assert.strictEqual(classifyPlatform('https://www.ofhchurch.com'), null);
+  });
+
+  // A dossier whose findings reference several platforms across URLs + links + text.
+  const home = makeFinding({
+    sourceType: 'official_site', accessLevel: 'live_official_site', url: 'https://www.ofhchurch.com/', fetched: true, status: 200,
+    title: 'Our Finest Hour', text: 'Give online at https://ofh.churchcenter.com/giving . Built with images.squarespace-cdn.com assets.',
+    linkDiagnostics: [{ anchorText: 'Give', href: '/give', resolvedUrl: 'https://pushpay.com/g/ofh', sameOrigin: false, category: 'contact', selected: false, fetched: false, textLength: 0, hasStaffContactSignal: false, discovery: 'homepage_link' }],
+  });
+  const snip = makeFinding({
+    sourceType: 'search', accessLevel: 'search_snippets', url: 'https://ofh.churchcenter.com/people/forms/929885', fetched: false, status: 200,
+    title: 'OFH', snippet: 'Donate via tithe.ly/give/ofh and flocknote.com signup.',
+  });
+  const stack = detectTechStack([home, snip]);
+  const names = technologyStack(stack);
+  check('tech stack detects Planning Center (Church Center host)', () => assert.ok(names.includes('Planning Center')));
+  check('tech stack detects Pushpay (outbound link)', () => assert.ok(names.includes('Pushpay')));
+  check('tech stack detects Tithely (text host)', () => assert.ok(names.includes('Tithely')));
+  check('tech stack detects Flocknote (text host)', () => assert.ok(names.includes('Flocknote')));
+  check('tech stack detects Squarespace (cdn host in text)', () => assert.ok(names.includes('Squarespace')));
+  check('every hit has platform_name, category, confidence, evidence_url', () => {
+    for (const t of stack) { assert.ok(t.platform_name && t.category && t.confidence > 0 && /^https?:\/\//.test(t.evidence_url)); }
+  });
+  check('no duplicate platforms', () => assert.strictEqual(new Set(names).size, names.length));
 
   console.log(failures ? `\nFAILED (${failures})` : '\nALL PASSED');
   process.exit(failures ? 1 : 0);

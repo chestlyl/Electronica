@@ -30,6 +30,7 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   const srcLine = (b.sourceCoverage ?? []).map((s) => `${s.category}${s.present ? '✓' : '✗'}`).join(' ');
   if (srcLine) L.push(`- Source breadth: ${srcLine}`);
   if (b.digital) L.push(`- Digital signals: ${digitalEvidenceSummary(b.digital)}`);
+  if (b.techStack?.length) L.push(`- Technology stack: ${b.techStack.map((t) => `${t.platform_name} (${t.category})`).join(', ')}`);
   L.push(`- Lead pastor: ${s.lead_pastor ?? '—'} · Denomination: ${s.denomination ?? '—'} · Lifecycle: **${s.lifecycle_stage}**`);
   L.push(`- ${s.identity_summary}`);
   if (!b.officialCrawled) {

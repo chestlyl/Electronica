@@ -152,6 +152,17 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
       L.push(`- breadth: ${beyond}/7 non-official source types present`);
     }
 
+    // ── Technology stack (deterministic hostname mapping) ─────────────────
+    const tech = r.techStack ?? [];
+    L.push('### Technology stack');
+    if (!tech.length) { L.push('- _(no known platform hosts detected)_'); }
+    else {
+      L.push(`- technology_stack: ${tech.map((t) => t.platform_name).join(', ')}`);
+      L.push('| platform | category | confidence | evidence_url |');
+      L.push('|---|---|---|---|');
+      for (const t of tech) L.push(`| ${t.platform_name} | ${t.category} | ${t.confidence} | ${(t.evidence_url || '—').slice(0, 80)} |`);
+    }
+
     L.push('### Contacts');
     // Lead pastor(s): aggregated, supports co-lead / multiple lead pastors.
     const leads = (r.leadership ?? []).filter((l) => l.isLead);

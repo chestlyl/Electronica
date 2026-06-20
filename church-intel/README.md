@@ -114,6 +114,11 @@ npm run dashboard      # http://localhost:4000  (mode: demo-json)
 
 ## Running for real
 
+> **First real run?** Follow the step-by-step
+> [Real Run Checklist](docs/REAL_RUN_CHECKLIST.md) — it lists exactly what to set
+> up locally (Supabase, Claude key, egress) and how to verify a single
+> end-to-end enrichment actually wrote real data, evidence, and review items.
+
 ### 1. Configure `.env`
 
 ```bash

@@ -147,6 +147,11 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     research: deps.research,
   };
 
+  // Always gather BOTH live-site and snippet evidence. Snippet findings are never
+  // discarded just because the homepage fetch succeeded: extractFacts ranks values
+  // by reliability × confidence and only considers NON-empty values, so live-site
+  // facts win when present, but snippet-sourced contacts survive as a fallback
+  // whenever the (possibly thin) official homepage lacks them.
   const [website, snippets] = await Promise.all([collectWebsite(ctx), collectSnippets(ctx)]);
   const findings = [...website, ...snippets];
 

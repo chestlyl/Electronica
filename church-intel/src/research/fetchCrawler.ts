@@ -77,9 +77,9 @@ function looksJsOnly(html: string, text: string): boolean {
 export class FetchResearch implements ResearchProvider {
   async close(): Promise<void> {}
 
-  private async fetchPage(url: string, category: string, allowRender: boolean): Promise<PageContent & { _links?: string[] }> {
+  private async fetchPage(url: string, category: string, allowRender: boolean): Promise<PageContent & { _linkPairs?: { href: string; text: string }[] }> {
     const r = await smartFetch(url, allowRender);
-    const pc: PageContent & { _links?: string[] } = {
+    const pc: PageContent & { _linkPairs?: { href: string; text: string }[] } = {
       url,
       finalUrl: r.finalUrl,
       ok: r.ok,
@@ -96,7 +96,7 @@ export class FetchResearch implements ResearchProvider {
       navLabels: r.navLabels,
       staffBlocks: r.staffBlocks,
       fetchedAt: new Date().toISOString(),
-      _links: r.links,
+      _linkPairs: r.linkPairs,
     };
     if (!r.ok) pc.error = `HTTP ${r.status}`;
     return pc;
@@ -118,7 +118,7 @@ export class FetchResearch implements ResearchProvider {
       const origin = new URL(officialSite).origin;
       const robots = await RobotsRules.forOrigin(origin);
 
-      const visit = async (url: string, category: string): Promise<(PageContent & { _links?: string[] }) | null> => {
+      const visit = async (url: string, category: string): Promise<(PageContent & { _linkPairs?: { href: string; text: string }[] }) | null> => {
         if (pages.length >= maxPages) return null;
         if (!robots.isAllowed(url)) {
           robotsBlockedUrls.push(url);
@@ -132,16 +132,19 @@ export class FetchResearch implements ResearchProvider {
 
       const home = await visit(officialSite, 'home');
       if (home?.ok) {
-        // Prioritize internal links by category (from the rendered/raw links).
+        // Prioritize internal links by category, using BOTH the URL path AND the
+        // visible anchor text. Many church sites use opaque paths (e.g. /o/abc123)
+        // with descriptive labels ("Staff", "Connect", "Our Team"), so dropping
+        // the anchor text would hide the staff/contact subpages entirely.
         const pickedCategories = new Set<string>();
         const ordered: { url: string; category: string }[] = [];
-        for (const href of home._links ?? []) {
+        for (const { href, text } of home._linkPairs ?? []) {
           if (/^(mailto:|tel:|javascript:|data:)/i.test(href)) continue;
           try {
             const abs = new URL(href, home.finalUrl);
             if (abs.origin !== origin) continue;
             abs.hash = '';
-            const cat = categorizeLink(abs.pathname, '');
+            const cat = categorizeLink(abs.pathname, text);
             if (!cat || pickedCategories.has(cat)) continue;
             pickedCategories.add(cat);
             ordered.push({ url: abs.toString(), category: cat });
@@ -152,7 +155,7 @@ export class FetchResearch implements ResearchProvider {
           await visit(url, category);
         }
       }
-      for (const p of pages) delete (p as PageContent & { _links?: string[] })._links;
+      for (const p of pages) delete (p as PageContent & { _linkPairs?: unknown })._linkPairs;
     } else {
       logger.warn(`no official site found for "${input.name}"`);
     }

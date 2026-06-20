@@ -6,6 +6,8 @@ import type {
   Evidence,
   EnrichmentRun,
   ImportRecord,
+  ResearchConflict,
+  ResearchDossier,
   ReviewItem,
   ReviewStatus,
   RunStatus,
@@ -195,5 +197,45 @@ export class SupabaseStore implements Store {
       .update({ ...patch, reviewed_at: new Date().toISOString() })
       .eq('id', id);
     if (error) throw error;
+  }
+
+  async upsertDossier(dossier: ResearchDossier): Promise<string> {
+    const { data, error } = await this.db
+      .from('church_research_dossiers')
+      .upsert(dossier, { onConflict: 'church_id' })
+      .select('id')
+      .single();
+    if (error) throw error;
+    return data.id;
+  }
+
+  async getDossier(churchId: string): Promise<ResearchDossier | null> {
+    const { data, error } = await this.db
+      .from('church_research_dossiers')
+      .select('*')
+      .eq('church_id', churchId)
+      .maybeSingle();
+    if (error) throw error;
+    return (data as ResearchDossier) ?? null;
+  }
+
+  async addConflict(conflict: ResearchConflict): Promise<string> {
+    const { data, error } = await this.db
+      .from('research_conflicts')
+      .insert(conflict)
+      .select('id')
+      .single();
+    if (error) throw error;
+    return data.id;
+  }
+
+  async listConflicts(churchId: string): Promise<ResearchConflict[]> {
+    const { data, error } = await this.db
+      .from('research_conflicts')
+      .select('*')
+      .eq('church_id', churchId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data as ResearchConflict[]) ?? [];
   }
 }

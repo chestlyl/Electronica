@@ -4,6 +4,8 @@ import type {
   Evidence,
   EnrichmentRun,
   ImportRecord,
+  ResearchConflict,
+  ResearchDossier,
   ReviewItem,
   ReviewStatus,
   RunStatus,
@@ -52,4 +54,10 @@ export interface Store {
     id: string,
     patch: { review_status: ReviewStatus; reviewer_notes?: string | null },
   ): Promise<void>;
+
+  // research dossiers (one current per church) + conflicts
+  upsertDossier(dossier: ResearchDossier): Promise<string>;
+  getDossier(churchId: string): Promise<ResearchDossier | null>;
+  addConflict(conflict: ResearchConflict): Promise<string>;
+  listConflicts(churchId: string): Promise<ResearchConflict[]>;
 }

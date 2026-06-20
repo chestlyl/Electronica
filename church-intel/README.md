@@ -212,6 +212,13 @@ npm run cli -- doctor
 # Prints search-provider diagnostics + ranked candidates with accept/reject reasons.
 npm run cli -- discover-church --id row-4
 
+# Multi-source RESEARCH DOSSIER (identity → website → snippets → social → staff →
+# jobs → directories → conflicts → contamination → synthesis). Confidence is
+# capped when the official site can't be fetched. See docs/RESEARCH_AGENT_DESIGN.md
+npm run cli -- research-church --url https://www.cornerstonechurch.info --name "Cornerstone Church" --city Akron --state OH
+npm run cli -- research-dossier --id row-2                      # persists dossier + conflicts + strategic fields
+npm run cli -- research-dossier --url https://example.org --name "X Church" --city Y --state OH --save
+
 # Import the seed spreadsheet (auto-detects columns, de-dupes, preserves originals)
 npm run cli -- import-spreadsheet --file data/Church_Data_v1.xlsx
 npm run cli -- import-spreadsheet --file data/Church_Data_v1.xlsx --limit 100

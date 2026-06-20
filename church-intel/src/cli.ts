@@ -10,8 +10,11 @@ import { processReviewQueue, setReviewStatus } from './review.js';
 import { exportResults } from './export.js';
 import { runDoctor, printDoctor } from './doctor.js';
 import { discoverWebsite } from './research/discovery.js';
+import { buildDossier, type DossierBuild, type ResearchTarget } from './research/researchAgent.js';
+import { renderDossierMarkdown } from './research/dossierMarkdown.js';
 import { extractAltName } from './agents/index.js';
 import type { Store } from './db/store.js';
+import type { Church } from './types.js';
 import type { ChurchFilter, ReviewStatus } from './types.js';
 
 const program = new Command();
@@ -113,6 +116,62 @@ program
     writeFileSync(opts.out, md);
     console.log(md);
     console.log(`\nWrote ${opts.out}`);
+  });
+
+// ── research-church / research-dossier ─────────────────────────────────────
+program
+  .command('research-church')
+  .description('Build a multi-source research dossier (ad-hoc; prints, no DB write)')
+  .requiredOption('--url <url>', 'official website (or best guess)')
+  .requiredOption('--name <name>', 'church name')
+  .option('--city <city>', 'city')
+  .option('--state <state>', 'state')
+  .action(async (opts) => {
+    const ctx = createLiveContext();
+    try {
+      const target: ResearchTarget = { name: opts.name, city: opts.city ?? null, state: opts.state ?? null, originalWebsite: opts.url, alternateName: null };
+      const build = await buildDossier(target, ctx);
+      await emitDossier(target, build);
+    } finally {
+      await ctx.close();
+    }
+  });
+
+program
+  .command('research-dossier')
+  .description('Research a stored church (--id) or ad-hoc (--url); persists with --id or --save')
+  .option('--id <id>', 'church id or original_row_id')
+  .option('--url <url>', 'official website (ad-hoc)')
+  .option('--name <name>', 'church name (ad-hoc)')
+  .option('--city <city>', 'city (ad-hoc)')
+  .option('--state <state>', 'state (ad-hoc)')
+  .option('--save', 'persist the dossier even in ad-hoc mode')
+  .action(async (opts) => {
+    const ctx = createLiveContext();
+    try {
+      let target: ResearchTarget;
+      let churchId: string | null = null;
+      if (opts.id) {
+        churchId = await resolveId(ctx.store, opts.id);
+        const c = await ctx.store.getChurch(churchId);
+        if (!c) throw new Error(`church ${churchId} not found`);
+        target = { name: c.name ?? '', city: c.city, state: c.state, originalWebsite: c.website_original, alternateName: extractAltName(c.notes) };
+      } else {
+        if (!opts.url || !opts.name) throw new Error('Provide --id, or --url and --name for ad-hoc mode');
+        target = { name: opts.name, city: opts.city ?? null, state: opts.state ?? null, originalWebsite: opts.url, alternateName: null };
+      }
+      const build = await buildDossier(target, ctx);
+      await emitDossier(target, build);
+      if (churchId || opts.save) {
+        if (!churchId && opts.save) churchId = await createAdhocChurch(ctx.store, target);
+        if (churchId) {
+          await persistDossier(ctx.store, churchId, build);
+          console.log(`\nPersisted dossier + ${build.conflicts.length} conflict(s) + strategic fields for church ${churchId}.`);
+        }
+      }
+    } finally {
+      await ctx.close();
+    }
   });
 
 // ── verify-church / verify-batch ───────────────────────────────────────────
@@ -277,6 +336,37 @@ async function buildDiscoveryReport(store: Store, ids: string[]): Promise<string
     lines.push('</details>', '');
   }
   return lines.join('\n');
+}
+
+function slugify(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'church';
+}
+
+async function emitDossier(target: ResearchTarget, build: DossierBuild): Promise<void> {
+  const md = renderDossierMarkdown(target, build);
+  console.log(md);
+  const { mkdirSync, writeFileSync } = await import('node:fs');
+  mkdirSync('data/output', { recursive: true });
+  const out = `data/output/dossier_${slugify(target.name)}.md`;
+  writeFileSync(out, md);
+  console.log(`\nWrote ${out}  (tokens ${build.tokens}, ~$${build.cost.toFixed(4)})`);
+}
+
+async function persistDossier(store: Store, churchId: string, build: DossierBuild): Promise<void> {
+  await store.upsertDossier({ ...build.dossier, church_id: churchId });
+  for (const c of build.conflicts) await store.addConflict({ ...c, church_id: churchId });
+  await store.updateChurch(churchId, build.strategic);
+}
+
+async function createAdhocChurch(store: Store, target: ResearchTarget): Promise<string> {
+  const { id } = await store.upsertImportRecord({
+    original_row_id: `adhoc-${slugify(target.name)}`,
+    name: target.name, address: null, city: target.city, state: target.state,
+    zip: null, country: 'United States', phone_original: null, email_original: null,
+    website_original: target.originalWebsite, language: null, network_affiliation: null,
+    notes: target.alternateName ? `Seed alt name: ${target.alternateName}` : null,
+  });
+  return id;
 }
 
 async function safeRun(fn: () => Promise<void>): Promise<void> {

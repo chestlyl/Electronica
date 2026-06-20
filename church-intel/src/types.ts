@@ -7,6 +7,29 @@ export type ActiveStatus =
 
 export type ConfidenceTier = 'High' | 'Medium' | 'Low' | 'Very Low';
 
+export type LifecycleStage =
+  | 'plant'
+  | 'growing'
+  | 'established'
+  | 'relaunch_revitalization'
+  | 'plateaued'
+  | 'declining'
+  | 'merged'
+  | 'closed'
+  | 'unknown';
+
+export type AppStatus = 'active' | 'planned' | 'none_found' | 'unknown';
+
+export type EvidenceAccessLevel =
+  | 'user_provided_ground_truth'
+  | 'live_official_site'
+  | 'staff_profile'
+  | 'social_profile'
+  | 'job_posting'
+  | 'third_party_directory'
+  | 'search_snippets'
+  | 'vendor_reference';
+
 export type ReviewStatus =
   | 'pending'
   | 'approved'
@@ -58,8 +81,57 @@ export interface Church {
   review_status: string | null;
   notes: string | null;
   last_checked_at: string | null;
+  // strategic fields (Research Agent)
+  lifecycle_stage?: LifecycleStage | null;
+  growth_orientation_score?: number | null;
+  digital_maturity_score?: number | null;
+  change_readiness_score?: number | null;
+  staff_depth_score?: number | null;
+  evidence_access_level?: EvidenceAccessLevel | null;
+  identity_contamination_flag?: boolean | null;
+  research_confidence?: number | null;
+  church_app_status?: AppStatus | null;
+  app_provider?: string | null;
+  online_attendance_estimate?: number | null;
+  online_attendance_confidence?: number | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface ResearchDossier {
+  id?: string;
+  church_id: string | null;
+  research_summary: string | null;
+  identity_summary: string | null;
+  digital_summary: string | null;
+  staff_summary: string | null;
+  growth_summary: string | null;
+  lifecycle_summary: string | null;
+  evidence_access_level: EvidenceAccessLevel | null;
+  identity_confidence: number | null;
+  research_confidence: number | null;
+  source_count: number;
+  official_source_count: number;
+  secondary_source_count: number;
+  conflict_count: number;
+  contamination_flags: string[] | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ResearchConflict {
+  id?: string;
+  church_id: string | null;
+  field_name: string;
+  value_a: string | null;
+  source_a: string | null;
+  value_b: string | null;
+  source_b: string | null;
+  conflict_summary: string | null;
+  recommended_value: string | null;
+  confidence: number | null;
+  status?: string;
+  created_at?: string;
 }
 
 /** Subset of fields that agents are allowed to write. */

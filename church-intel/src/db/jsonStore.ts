@@ -7,6 +7,8 @@ import type {
   Evidence,
   EnrichmentRun,
   ImportRecord,
+  ResearchConflict,
+  ResearchDossier,
   ReviewItem,
   ReviewStatus,
   RunStatus,
@@ -18,6 +20,8 @@ interface Db {
   evidence: Evidence[];
   runs: EnrichmentRun[];
   reviews: ReviewItem[];
+  dossiers?: ResearchDossier[];
+  conflicts?: ResearchConflict[];
 }
 
 /**
@@ -178,5 +182,36 @@ export class JsonStore implements Store {
     const r = this.db.reviews.find((x) => x.id === id);
     if (r) Object.assign(r, patch, { reviewed_at: new Date().toISOString() });
     this.flush();
+  }
+
+  async upsertDossier(dossier: ResearchDossier): Promise<string> {
+    this.db.dossiers ??= [];
+    const now = new Date().toISOString();
+    const existing = this.db.dossiers.find((d) => d.church_id && d.church_id === dossier.church_id);
+    if (existing) {
+      Object.assign(existing, dossier, { updated_at: now });
+      this.flush();
+      return existing.id!;
+    }
+    const id = randomUUID();
+    this.db.dossiers.push({ ...dossier, id, created_at: now, updated_at: now });
+    this.flush();
+    return id;
+  }
+
+  async getDossier(churchId: string): Promise<ResearchDossier | null> {
+    return (this.db.dossiers ?? []).find((d) => d.church_id === churchId) ?? null;
+  }
+
+  async addConflict(conflict: ResearchConflict): Promise<string> {
+    this.db.conflicts ??= [];
+    const id = randomUUID();
+    this.db.conflicts.push({ ...conflict, id, created_at: new Date().toISOString() });
+    this.flush();
+    return id;
+  }
+
+  async listConflicts(churchId: string): Promise<ResearchConflict[]> {
+    return (this.db.conflicts ?? []).filter((c) => c.church_id === churchId);
   }
 }

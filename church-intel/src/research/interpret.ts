@@ -148,6 +148,15 @@ export function interpretDossier(input: InterpretInput): Interpretation {
   const office_email = contactConclusion('email');
   const office_phone = contactConclusion('phone');
 
+  // staff_count — single conclusion: deterministic extractor first, synthesis
+  // estimate only as a labelled fallback (no longer mutated into facts upstream).
+  const staffFact = facts.staff_count;
+  const staff_count: Conclusion<number | null> = staffFact?.value != null
+    ? mk<number | null>(Number(staffFact.value), staffFact.confidence, [], 'Extracted staff_count from evidence.', staffFact.access_level)
+    : (synthesis.staff_count != null
+        ? mk<number | null>(synthesis.staff_count, synthesis.staff_count_confidence || 40, [], 'Estimated from indirect signals (synthesis).')
+        : mk<number | null>(null, 0, [], 'No staff-count evidence.'));
+
   // ── scores (kept from synthesis for now; referenced to external signals) ──
   const scoreConclusion = (key: keyof DossierSynthesis): Conclusion<number | null> => {
     const value = (synthesis[key] as number | null) ?? null;
@@ -191,6 +200,7 @@ export function interpretDossier(input: InterpretInput): Interpretation {
     communications_leader: roleConclusion('communications_leader'),
     office_email,
     office_phone,
+    staff_count,
     denomination: mk<string | null>(synthesis.denomination, synthesis.denomination ? 60 : 0, [], 'From synthesis (denomination).'),
     attendance_estimate: mk<number | null>(synthesis.attendance_estimate, synthesis.attendance_confidence, [], synthesis.lifecycle_summary || 'From synthesis (attendance).'),
     lifecycle_stage: mk<string>(synthesis.lifecycle_stage, 60, [], synthesis.lifecycle_summary || 'From synthesis (lifecycle).'),

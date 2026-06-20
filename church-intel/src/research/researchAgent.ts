@@ -228,12 +228,10 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     maxTokens: 2200,
   });
 
-  // Size fallback: when the deterministic extractors found no staff/campus count,
-  // use the synthesis estimate (lower precision, kept as a fact so all downstream
-  // consumers — report, enrich, markdown — pick it up).
-  if (!facts.staff_count && synthesis.staff_count != null) {
-    facts.staff_count = { value: synthesis.staff_count, confidence: synthesis.staff_count_confidence || 40, evidence: 'estimated from indirect signals (synthesis)', source_url: officialSite ?? '', access_level: accessLevel };
-  }
+  // Size fallback: the staff_count synthesis estimate is now applied in the
+  // INTERPRETATION layer (interpretation.staff_count), not folded into facts —
+  // facts stays a pure deterministic-extractor table (no interpreter writes).
+  // campus_count keeps its fallback here (consumed by archetype/report directly).
   if (!facts.campus_count && synthesis.campus_count != null) {
     facts.campus_count = { value: synthesis.campus_count, confidence: synthesis.campus_count_confidence || 40, evidence: 'estimated from indirect signals (synthesis)', source_url: officialSite ?? '', access_level: accessLevel };
   }
@@ -296,12 +294,14 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     online_attendance_confidence: capConfidence(synthesis.online_attendance_confidence, accessLevel),
   };
 
-  // Coverage-aware confidence for each strategic score (values unchanged).
+  // Coverage-aware confidence for each strategic score (values unchanged). Score
+  // reasons now ALSO account for strategic signals (no stale "0 digital signals"
+  // when strategic signals exist).
   const scoreConf: Record<string, ScoreConfidence> = {
-    growth_orientation_score: scoreConfidence('growth_orientation_score', coverage, digital),
-    digital_maturity_score: scoreConfidence('digital_maturity_score', coverage, digital),
-    change_readiness_score: scoreConfidence('change_readiness_score', coverage, digital),
-    staff_depth_score: scoreConfidence('staff_depth_score', coverage, digital),
+    growth_orientation_score: scoreConfidence('growth_orientation_score', coverage, digital, strategicDimensionCounts),
+    digital_maturity_score: scoreConfidence('digital_maturity_score', coverage, digital, strategicDimensionCounts),
+    change_readiness_score: scoreConfidence('change_readiness_score', coverage, digital, strategicDimensionCounts),
+    staff_depth_score: scoreConfidence('staff_depth_score', coverage, digital, strategicDimensionCounts),
     contactability: contactabilityConfidence(coverage),
   };
 
@@ -320,7 +320,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     logger.info(`\n══ DOSSIER_DEBUG: ${target.name} ══`);
     logger.info('— per-finding extraction trace (regex-over-text vs finding.fields) —');
     for (const l of debugExtractionTrace(findings)) logger.info(l);
-    logger.info('— build.facts (the ONLY source for report/enrich office_email & office_phone) —');
+    logger.info('— build.facts (normalization input; report/enrich now read interpretation, not facts) —');
     logger.info(`  facts.lead_pastor  = ${facts.lead_pastor?.value ?? '—'}`);
     logger.info(`  facts.office_email = ${facts.office_email?.value ?? '—'}`);
     logger.info(`  facts.office_phone = ${facts.office_phone?.value ?? '—'}`);

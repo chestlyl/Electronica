@@ -83,29 +83,45 @@ const conf = (tier: Tier, reason: string): ScoreConfidence => ({ confidence: TIE
  * still produced by synthesis). Confidence reflects whether the evidence the
  * score depends on was actually collected.
  */
-export function scoreConfidence(metric: string, coverage: CoverageRow[], digital: DigitalSignals): ScoreConfidence {
+export function scoreConfidence(
+  metric: string,
+  coverage: CoverageRow[],
+  digital: DigitalSignals,
+  strategic?: Partial<Record<'digital_maturity' | 'growth_orientation' | 'change_readiness' | 'organizational_capacity' | 'contactability', number>>,
+): ScoreConfidence {
   const cov = (c: string) => coverage.find((x) => x.category === c);
   const requiredFetched = coverage.filter((c) => c.required && c.fetched).length;
 
   switch (metric) {
     case 'staff_depth_score': {
+      const sn = strategic?.organizational_capacity ?? 0;
       const s = cov('staff');
-      if (s?.useful && s.rendered) return conf('High', `staff page rendered; ${s.note}`);
-      if (s?.useful) return conf('Medium', `staff page fetched; ${s.note}`);
-      if (s?.fetched) return conf('Low', 'staff page fetched but no roles extracted');
-      return conf('Low', 'staff page unavailable');
+      const tag = sn ? ` · ${sn} strategic signal(s)` : '';
+      if (s?.useful && s.rendered) return conf('High', `staff page rendered; ${s.note}${tag}`);
+      if (s?.useful) return conf('Medium', `staff page fetched; ${s.note}${tag}`);
+      if (s?.fetched) return conf('Low', `staff page fetched but no roles extracted${tag}`);
+      return conf('Low', `staff page unavailable${tag}`);
     }
     case 'digital_maturity_score': {
-      const n = digital.signalsDetected;
-      if (n >= 4) return conf('High', `${n} digital signals detected`);
-      if (n >= 2) return conf('Medium', `${n} digital signals detected`);
-      return conf('Low', `only ${n} digital signal(s) found`);
+      // Count BOTH deterministic digital signals AND strategic signals — strategic
+      // signals are real digital evidence, so the reason must never say "0 digital
+      // signals" when strategic signals exist.
+      const dn = digital.signalsDetected;
+      const sn = strategic?.digital_maturity ?? 0;
+      const n = dn + sn;
+      const detail = `${dn} digital + ${sn} strategic signal(s)`;
+      if (n >= 4) return conf('High', detail);
+      if (n >= 2) return conf('Medium', detail);
+      return conf('Low', n ? `only ${detail}` : 'no digital or strategic signals found');
     }
     case 'growth_orientation_score':
     case 'change_readiness_score': {
-      if (requiredFetched >= 3) return conf('High', `${requiredFetched}/4 required pages fetched`);
-      if (requiredFetched === 2) return conf('Medium', '2/4 required pages fetched');
-      return conf('Low', `${requiredFetched}/4 required pages fetched`);
+      const dim = metric === 'growth_orientation_score' ? 'growth_orientation' : 'change_readiness';
+      const sn = strategic?.[dim] ?? 0;
+      const tag = sn ? ` · ${sn} strategic signal(s)` : '';
+      if (requiredFetched >= 3 || sn >= 3) return conf('High', `${requiredFetched}/4 required pages fetched${tag}`);
+      if (requiredFetched === 2 || sn >= 1) return conf('Medium', `${requiredFetched}/4 required pages fetched${tag}`);
+      return conf('Low', `${requiredFetched}/4 required pages fetched${tag}`);
     }
     default:
       return conf('Medium', 'coverage not assessed');

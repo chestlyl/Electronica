@@ -134,9 +134,9 @@ export async function applyDossierToChurch(ctx: AgentContext, church: Church, bu
     I.office_phone.value ? I.office_phone.confidence : null, true,
     'Public office phone', sources([f.office_phone?.source_url]));
 
-  // structure (normal)
-  await applyField('staff_count', (f.staff_count?.value as number) ?? null,
-    f.staff_count ? confOf('staff_count') ?? f.staff_count.confidence : null, false,
+  // structure (normal) — staff_count is an INTERPRETATION conclusion.
+  await applyField('staff_count', I.staff_count.value,
+    I.staff_count.value != null ? I.staff_count.confidence : null, false,
     'Staff count', sources([f.staff_count?.source_url]));
   await applyField('campus_count', (f.campus_count?.value as number) ?? null,
     f.campus_count ? confOf('campus_count') ?? f.campus_count.confidence : null, false,

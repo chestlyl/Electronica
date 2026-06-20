@@ -75,6 +75,27 @@ export function normalizeEvidence(input: NormalizeInput): NormalizedEvidence {
     }
   }
 
+  // Merge the deterministic ROLE facts (extractFacts) INTO leaders so leadership
+  // has a SINGLE normalized source. A role fact naming a person not already in
+  // the leaders table is added (so facts can never disagree with the leaders the
+  // interpreter reads — facts becomes an input, not a competing conclusion).
+  const ROLE_FACT_CATEGORY: Record<string, string> = {
+    lead_pastor: 'lead_pastor', executive_pastor: 'executive_pastor',
+    operations_leader: 'operations_leader', communications_leader: 'communications_leader',
+  };
+  const haveLeader = (name: string) => ev.leaders.some((l) => l.value.toLowerCase() === name.toLowerCase());
+  let factLeaderN = 0;
+  for (const [factKey, category] of Object.entries(ROLE_FACT_CATEGORY)) {
+    const fact = facts[factKey];
+    const name = fact?.value == null ? '' : String(fact.value).trim();
+    if (!name || haveLeader(name)) continue;
+    ev.leaders.push({
+      id: `leader_fact_${++factLeaderN}`, value: name, category, detail: factKey.replace(/_/g, ' '),
+      source_url: fact!.source_url, evidence_text: fact!.evidence, confidence: fact!.confidence,
+      access_level: fact!.access_level, extractor_name: 'extractFacts',
+    });
+  }
+
   // contacts[] — office email / phone (from the deterministic facts).
   const contactFact = (key: string, category: string): void => {
     const fact = facts[key];

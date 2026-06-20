@@ -35,7 +35,7 @@ const PAGES: Record<string, { status: number; html: string }> = {
   // a DIFFERENT same-name church (Ames, IA) — should be flagged as contamination
   'cornerstonelife.com': {
     status: 200,
-    html: `<title>Cornerstone Church | Ames, IA</title><nav><a href="/give">Give</a><a href="/sermons">Sermons</a><a href="/visit">Plan a Visit</a><a href="/ministries">Ministries</a></nav><h1>Cornerstone Church</h1><p>We are a church in Ames, IA. Service times Sunday. Plan your visit. The Salt Network.</p>`,
+    html: `<title>Cornerstone Church | Ames, IA</title><nav><a href="/give">Give</a><a href="/sermons">Sermons</a><a href="/visit">Plan a Visit</a><a href="/ministries">Ministries</a></nav><h1>Cornerstone Church</h1><p>We are a church in Ames, IA. Service times Sunday. Plan your visit. The Salt Network. We gather each week for worship, teaching, prayer, and community across our campuses, sending planters and missionaries throughout the Midwest and around the world as we make disciples who make disciples for the glory of God in our city.</p>`,
   },
 };
 

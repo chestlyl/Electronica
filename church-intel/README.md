@@ -225,6 +225,14 @@ npm run cli -- research-dossier --url https://example.org --name "X Church" --ci
 npm run cli -- research-calibrate --url https://www.cornerstonechurch.info --name "Cornerstone Church" --city Akron --state OH --ground-truth docs/calibration/cornerstone_ground_truth.json
 # Offline sample (no network): npm run calibration-demo -> docs/calibration/SAMPLE_calibration_cornerstone.md
 
+# Calibration sprint: run the 10-church calibration set, then build the report.
+# (1) edit docs/calibration/calibration_set.json   (2) optionally scaffold expectations:
+npm run cli -- calibrate-template
+npm run cli -- calibrate-run                 # live research → data/output/calibration/*.{md,json} (+ Supabase)
+# fill docs/calibration/expectations/<id>.json with what you know, then:
+npm run cli -- calibrate-report              # → docs/CALIBRATION_REPORT.md (Tool / Human / Variance + analysis)
+# preview of the report shape: docs/calibration/SAMPLE_CALIBRATION_REPORT.md
+
 # Import the seed spreadsheet (auto-detects columns, de-dupes, preserves originals)
 npm run cli -- import-spreadsheet --file data/Church_Data_v1.xlsx
 npm run cli -- import-spreadsheet --file data/Church_Data_v1.xlsx --limit 100

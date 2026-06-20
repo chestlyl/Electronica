@@ -1,0 +1,12 @@
+[
+  { "id": "cornerstone-akron",            "name": "Cornerstone Church",        "city": "Akron",       "state": "OH", "url": "https://www.cornerstonechurch.info" },
+  { "id": "christs-community-glendale",   "name": "Christ's Community Church", "city": "Glendale",    "state": "AZ", "url": "https://cccaz.org" },
+  { "id": "pure-heart-glendale",          "name": "Pure Heart Church",         "city": "Glendale",    "state": "AZ", "url": "https://www.pureheart.org" },
+  { "id": "grace-bath",                   "name": "Grace Church",              "city": "Bath",        "state": "OH", "url": null },
+  { "id": "living-vine-stow",             "name": "Living Vine Church",        "city": "Stow",        "state": "OH", "url": null },
+  { "id": "our-finest-hour-coweta",       "name": "Our Finest Hour",           "city": "Coweta",      "state": "OK", "url": null },
+  { "id": "transformation-bixby",         "name": "Transformation Church",     "city": "Bixby",       "state": "OK", "url": null },
+  { "id": "king-of-kings-omaha",          "name": "King of Kings",             "city": "Omaha",       "state": "NE", "url": null },
+  { "id": "macedonia-baptist-springfield","name": "Macedonia Baptist Church",  "city": "Springfield", "state": "MO", "url": null },
+  { "id": "catalyst-springfield",         "name": "Catalyst Church",           "city": "Springfield", "state": "MO", "url": null }
+]

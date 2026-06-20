@@ -13,6 +13,9 @@ import { discoverWebsite } from './research/discovery.js';
 import { buildDossier, type DossierBuild, type ResearchTarget } from './research/researchAgent.js';
 import { renderDossierMarkdown } from './research/dossierMarkdown.js';
 import { extractAltName } from './agents/index.js';
+import { loadCalibrationSet, rowFromBuild, type CalibrationRow } from './research/calibrationSet.js';
+import { renderCalibrationReport } from './research/calibrationReport.js';
+import { loadFieldMap, FIELDS } from './research/calibration.js';
 import type { Store } from './db/store.js';
 import type { Church } from './types.js';
 import type { ChurchFilter, ReviewStatus } from './types.js';
@@ -220,6 +223,102 @@ program
       console.log(`\nWrote ${opts.out}`);
     } finally {
       await ctx.close();
+    }
+  });
+
+// ── calibrate-run / calibrate-report / calibrate-template ──────────────────
+const SET_DEFAULT = 'docs/calibration/calibration_set.json';
+const CALIB_DIR = 'data/output/calibration';
+
+program
+  .command('calibrate-run')
+  .description('Run research dossiers for the calibration set (live Claude/Playwright)')
+  .option('--set <file>', 'calibration set json', SET_DEFAULT)
+  .option('--id <id>', 'run only this calibration id')
+  .option('--out <dir>', 'output directory', CALIB_DIR)
+  .option('--no-save', 'do not persist to Supabase (files only)')
+  .option('--fetch-fallback', 'force the plain-HTTP fetch crawler')
+  .action(async (opts) => {
+    const set = loadCalibrationSet(opts.set);
+    const entries = opts.id ? set.filter((e) => e.id === opts.id) : set;
+    if (!entries.length) throw new Error(`no calibration entries match ${opts.id ?? ''}`);
+    const { mkdirSync, writeFileSync } = await import('node:fs');
+    mkdirSync(opts.out, { recursive: true });
+    const ctx = createLiveContext({ forceFetch: opts.fetchFallback });
+    let totTok = 0, totCost = 0;
+    try {
+      for (const e of entries) {
+        const target: ResearchTarget = { name: e.name, city: e.city, state: e.state, originalWebsite: e.url ?? null, alternateName: null };
+        logger.info(`▶ calibrate: ${e.name} (${e.city}, ${e.state})`);
+        try {
+          const build = await buildDossier(target, ctx);
+          totTok += build.tokens; totCost += build.cost;
+          writeFileSync(`${opts.out}/${e.id}.md`, renderDossierMarkdown(target, build));
+          writeFileSync(`${opts.out}/${e.id}.json`, JSON.stringify(rowFromBuild(e, build), null, 2));
+          if (opts.save !== false) {
+            try {
+              const cid = await createAdhocChurch(ctx.store, target);
+              await persistDossier(ctx.store, cid, build);
+            } catch (err) {
+              logger.warn(`  persist skipped: ${(err as Error).message}`);
+            }
+          }
+          const row = rowFromBuild(e, build);
+          logger.info(`  → ${row.officialSite ?? 'NO MATCH'} · archetype ${row.archetype.value} · access ${build.accessLevel} · tokens ${build.tokens}`);
+        } catch (err) {
+          logger.error(`  ${e.id} failed: ${(err as Error).message}`);
+        }
+      }
+    } finally {
+      await ctx.close();
+    }
+    logger.info(`Calibration run: ${entries.length} churches · ${totTok} tokens · ~$${totCost.toFixed(2)} · files in ${opts.out}/`);
+    console.log('Next: fill docs/calibration/expectations/*.json (optional), then `npm run cli -- calibrate-report`');
+  });
+
+program
+  .command('calibrate-report')
+  .description('Generate docs/CALIBRATION_REPORT.md from cached calibration runs')
+  .option('--set <file>', 'calibration set json', SET_DEFAULT)
+  .option('--dir <dir>', 'calibration run directory', CALIB_DIR)
+  .option('-o, --out <file>', 'output markdown', 'docs/CALIBRATION_REPORT.md')
+  .action(async (opts) => {
+    const set = loadCalibrationSet(opts.set);
+    const { readFileSync, existsSync, mkdirSync, writeFileSync } = await import('node:fs');
+    const { dirname } = await import('node:path');
+    const rows: CalibrationRow[] = [];
+    for (const e of set) {
+      const p = `${opts.dir}/${e.id}.json`;
+      if (existsSync(p)) rows.push(JSON.parse(readFileSync(p, 'utf8')));
+      else logger.warn(`missing ${p} — run calibrate-run first`);
+    }
+    if (!rows.length) throw new Error('no calibration rows found; run calibrate-run first');
+    const expectations: Record<string, ReturnType<typeof loadFieldMap>> = {};
+    for (const e of set) {
+      const ep = `docs/calibration/expectations/${e.id}.json`;
+      if (existsSync(ep)) expectations[e.id] = loadFieldMap(ep);
+    }
+    const md = renderCalibrationReport(rows, expectations);
+    mkdirSync(dirname(opts.out) || '.', { recursive: true });
+    writeFileSync(opts.out, md);
+    console.log(`Wrote ${opts.out} (${rows.length} churches, ${Object.keys(expectations).length} with expectations)`);
+  });
+
+program
+  .command('calibrate-template')
+  .description('Scaffold blank expectations/<id>.json for the calibration set')
+  .option('--set <file>', 'calibration set json', SET_DEFAULT)
+  .action(async (opts) => {
+    const set = loadCalibrationSet(opts.set);
+    const { mkdirSync, writeFileSync, existsSync } = await import('node:fs');
+    mkdirSync('docs/calibration/expectations', { recursive: true });
+    for (const e of set) {
+      const p = `docs/calibration/expectations/${e.id}.json`;
+      if (existsSync(p)) { console.log(`skip ${p} (exists)`); continue; }
+      const obj: Record<string, unknown> = { _about: `Ground truth for ${e.name} (${e.city}, ${e.state}) — fill value for what you have verified.` };
+      for (const f of FIELDS) obj[f.key] = { value: null, confidence: 100, source: '' };
+      writeFileSync(p, JSON.stringify(obj, null, 2));
+      console.log(`wrote ${p}`);
     }
   });
 

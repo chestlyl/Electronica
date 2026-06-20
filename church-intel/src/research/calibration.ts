@@ -48,6 +48,7 @@ export const FIELDS: FieldSpec[] = [
   { key: 'change_readiness_score', label: 'Change readiness', type: 'number', tol: 0.25 },
   { key: 'digital_maturity_score', label: 'Digital maturity', type: 'number', tol: 0.25 },
   { key: 'growth_orientation_score', label: 'Growth orientation', type: 'number', tol: 0.25 },
+  { key: 'staff_depth_score', label: 'Staff depth', type: 'number', tol: 0.25 },
   { key: 'evidence_access_level', label: 'Evidence access level', type: 'string', meta: true },
   { key: 'identity_contamination_flag', label: 'Contamination flag', type: 'bool', meta: true },
 ];
@@ -238,6 +239,7 @@ export function toolFieldsFromBuild(target: ResearchTarget, build: DossierBuild)
     change_readiness_score: { value: st.change_readiness_score ?? null, confidence: build.dossier.research_confidence },
     digital_maturity_score: { value: st.digital_maturity_score ?? null, confidence: build.dossier.research_confidence },
     growth_orientation_score: { value: st.growth_orientation_score ?? null, confidence: build.dossier.research_confidence },
+    staff_depth_score: { value: st.staff_depth_score ?? null, confidence: build.dossier.research_confidence },
     evidence_access_level: { value: build.accessLevel, confidence: 90 },
     identity_contamination_flag: { value: st.identity_contamination_flag ?? false, confidence: 80 },
   };

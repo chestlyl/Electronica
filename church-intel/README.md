@@ -285,8 +285,20 @@ logged reasons:
    browser User-Agent (the bot UA is what made DuckDuckGo return HTTP 202) and
    per-provider diagnostics
 
-Directory/social hosts and parked domains are rejected with reasons. Use
-`discover-church --id <id>` to inspect the full candidate ranking for any church.
+Candidates are then ranked by **identity verification** — "is this the website
+for *this* church?", not just "is this a church website?". Scoring rewards exact
+**name match**, **city match**, and **denominational-directory confirmation**, and
+penalizes name mismatches, city conflicts (a same-named church elsewhere),
+parachurch **resources**, and generic directories. Each candidate gets an
+`identity_confidence` (0–100); a site becomes the official match only at **≥65**,
+otherwise discovery returns **NO MATCH** (preferred over a confident false
+positive) and routes the church to review. See
+[docs/DISCOVERY_RANKING.md](docs/DISCOVERY_RANKING.md) for the full model and
+worked examples.
+
+Inspect any church's ranked candidates with `discover-church --id <id>`, or
+generate a multi-church markdown report with
+`discovery-report --ids row-2,row-3,row-4`.
 
 ### Confidence & auto-update rules (`src/lib/confidence.ts`)
 

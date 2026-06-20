@@ -79,20 +79,40 @@ program
       );
     }
 
-    console.log('\nCandidates (ranked):');
+    console.log('\nCandidates (ranked by identity confidence):');
     if (result.candidates.length === 0) console.log('  (none)');
     for (const cand of result.candidates) {
       console.log(
-        `  ${cand.accepted ? '✓' : '✗'} [${String(cand.score).padStart(3)}] ${cand.source.padEnd(12)}${cand.provider ? `(${cand.provider})` : ''} ${cand.url}`,
+        `  ${cand.accepted ? '✓' : '✗'} [id ${String(cand.identity_confidence).padStart(3)}] ${cand.identityVerdict.padEnd(11)} ${cand.source}/${cand.kind}${cand.provider ? `(${cand.provider})` : ''} ${cand.url}`,
       );
       console.log(
-        `        reachable=${cand.reachable} churchLike=${cand.churchLike} directory=${cand.isDirectory} parked=${cand.parked}`,
+        `        name=${cand.nameMatch}${cand.nameFull ? '(full)' : ''} city=${cand.cityStatus} reachable=${cand.reachable} churchLike=${cand.churchLike} parked=${cand.parked}`,
       );
       console.log(`        ↳ ${cand.reason}`);
     }
 
-    console.log(`\n→ Chosen: ${result.officialSite ?? 'NONE'}   via ${result.method}`);
+    const verdict = result.officialSite ? 'TRUE MATCH' : result.identityVerdict === 'uncertain' ? 'UNCERTAIN → NO MATCH' : 'NO MATCH';
+    console.log(`\n→ ${verdict}: ${result.officialSite ?? '(none)'}   via ${result.method}`);
+    console.log(`  identity_confidence=${result.identity_confidence}`);
     console.log(`  ${result.note}\n`);
+  });
+
+// ── discovery-report ───────────────────────────────────────────────────────
+program
+  .command('discovery-report')
+  .description('Write a markdown identity-evaluation report for several churches')
+  .option('--ids <list>', 'comma-separated ids/row-ids', 'row-2,row-3,row-4')
+  .option('-o, --out <path>', 'output markdown file', 'data/output/discovery_report.md')
+  .action(async (opts) => {
+    const store = new SupabaseStore();
+    const ids: string[] = opts.ids.split(',').map((s: string) => s.trim()).filter(Boolean);
+    const md = await buildDiscoveryReport(store, ids);
+    const { mkdirSync, writeFileSync } = await import('node:fs');
+    const { dirname } = await import('node:path');
+    mkdirSync(dirname(opts.out), { recursive: true });
+    writeFileSync(opts.out, md);
+    console.log(md);
+    console.log(`\nWrote ${opts.out}`);
   });
 
 // ── verify-church / verify-batch ───────────────────────────────────────────
@@ -219,6 +239,44 @@ async function resolveId(store: Store, idOrRow: string): Promise<string> {
     return c.id;
   }
   return idOrRow;
+}
+
+async function buildDiscoveryReport(store: Store, ids: string[]): Promise<string> {
+  const lines: string[] = ['# Discovery evaluation report', ''];
+  lines.push(`_Generated ${new Date().toISOString()}_`, '');
+  for (const raw of ids) {
+    let id: string;
+    try {
+      id = await resolveId(store, raw);
+    } catch {
+      lines.push(`## ${raw}\n\n- not found\n`);
+      continue;
+    }
+    const c = await store.getChurch(id);
+    if (!c) { lines.push(`## ${raw}\n\n- not found\n`); continue; }
+    const altName = extractAltName(c.notes);
+    const r = await discoverWebsite({
+      name: c.name ?? '', city: c.city, state: c.state,
+      originalWebsite: c.website_original, originalPhone: c.phone_original,
+      originalEmail: c.email_original, alternateName: altName,
+    });
+    const verdict = r.officialSite ? '✅ TRUE MATCH' : r.identityVerdict === 'uncertain' ? '⚠️ UNCERTAIN → NO MATCH' : '🚫 NO MATCH';
+    lines.push(`## ${c.original_row_id} — ${c.name ?? '(no name)'} (${c.city ?? ''}, ${c.state ?? ''})`, '');
+    lines.push(`- Seed website: \`${c.website_original ?? '—'}\`  ·  alt name: \`${altName ?? '—'}\``);
+    lines.push(`- Result: **${verdict}** → \`${r.officialSite ?? '(none)'}\`  ·  identity_confidence **${r.identity_confidence}**`);
+    lines.push(`- ${r.note}`, '');
+    lines.push('| ✓ | identity | verdict | source/kind | name | city | URL |');
+    lines.push('|---|---|---|---|---|---|---|');
+    for (const cand of r.candidates.slice(0, 8)) {
+      lines.push(
+        `| ${cand.accepted ? '✓' : '✗'} | ${cand.identity_confidence} | ${cand.identityVerdict} | ${cand.source}/${cand.kind} | ${cand.nameMatch}${cand.nameFull ? '(full)' : ''} | ${cand.cityStatus} | ${cand.url} |`,
+      );
+    }
+    lines.push('', '<details><summary>scoring detail</summary>', '');
+    for (const cand of r.candidates.slice(0, 8)) lines.push(`- \`${cand.url}\` — ${cand.reason}`);
+    lines.push('</details>', '');
+  }
+  return lines.join('\n');
 }
 
 async function safeRun(fn: () => Promise<void>): Promise<void> {

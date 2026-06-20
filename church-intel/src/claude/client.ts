@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { z, type ZodType } from 'zod';
 import { config, assertClaudeConfigured } from '../config.js';
 
@@ -29,34 +30,105 @@ export interface LlmProvider {
   extractJson<T>(opts: ExtractOptions<T>): Promise<LlmResult<T>>;
 }
 
-/** Pull the first balanced JSON object/array out of a model response. */
-export function parseJsonLoose(text: string): unknown {
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const candidate = fenced ? fenced[1] : text;
-  const start = candidate.search(/[[{]/);
-  if (start === -1) throw new Error(`No JSON found in model output: ${text.slice(0, 200)}`);
-  // Walk to the matching close brace/bracket.
-  const open = candidate[start];
+/** Strip a markdown code fence (handles a fence with no closing ```). */
+export function stripFences(text: string): string {
+  const open = text.indexOf('```');
+  if (open === -1) return text;
+  let s = text.slice(open + 3).replace(/^[a-zA-Z]*\r?\n/, ''); // drop ```json language tag
+  const close = s.indexOf('```');
+  return close === -1 ? s : s.slice(0, close);
+}
+
+/**
+ * Extract the first JSON object/array substring, ignoring leading/trailing prose
+ * and any text after the first complete value. If the value is truncated, return
+ * the slice from the opening brace to EOF (repairJson closes it).
+ */
+export function extractJsonCandidate(text: string): string {
+  const body = stripFences(text);
+  const start = body.search(/[[{]/);
+  if (start === -1) return body.trim();
+  const open = body[start];
   const close = open === '{' ? '}' : ']';
-  let depth = 0;
-  let inStr = false;
-  let esc = false;
-  for (let i = start; i < candidate.length; i++) {
-    const ch = candidate[i];
-    if (inStr) {
-      if (esc) esc = false;
-      else if (ch === '\\') esc = true;
-      else if (ch === '"') inStr = false;
-      continue;
-    }
+  let depth = 0, inStr = false, esc = false;
+  for (let i = start; i < body.length; i++) {
+    const ch = body[i];
+    if (inStr) { if (esc) esc = false; else if (ch === '\\') esc = true; else if (ch === '"') inStr = false; continue; }
     if (ch === '"') inStr = true;
     else if (ch === open) depth++;
-    else if (ch === close) {
-      depth--;
-      if (depth === 0) return JSON.parse(candidate.slice(start, i + 1));
-    }
+    else if (ch === close) { depth--; if (depth === 0) return body.slice(start, i + 1); }
   }
-  throw new Error('Unbalanced JSON in model output');
+  return body.slice(start); // truncated — closed by repairJson
+}
+
+/** Close dangling strings/keys/structures of a (possibly truncated) JSON string. */
+function closeJson(s: string): string {
+  const stack: string[] = [];
+  let inStr = false, esc = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (inStr) { if (esc) esc = false; else if (ch === '\\') esc = true; else if (ch === '"') inStr = false; continue; }
+    if (ch === '"') inStr = true;
+    else if (ch === '{' || ch === '[') stack.push(ch);
+    else if (ch === '}' || ch === ']') stack.pop();
+  }
+  let out = inStr ? s + '"' : s;     // close a dangling string
+  out = out.replace(/\\+$/, '');     // drop a trailing lone backslash
+  out = out.replace(/,\s*$/, '');    // drop a trailing comma
+  if (/:\s*$/.test(out)) out += 'null'; // a key with no value → null
+  for (let i = stack.length - 1; i >= 0; i--) out += stack[i] === '{' ? '}' : ']';
+  return out;
+}
+
+/**
+ * Best-effort repair of a truncated JSON string. Closes open structures and, if
+ * that still doesn't parse, trims back to the last complete element (comma /
+ * opening bracket) and retries — so a half-written final key/value is dropped
+ * rather than corrupting the whole object.
+ */
+export function repairJson(input: string): string {
+  let s = input.trim();
+  for (let attempt = 0; attempt < 500 && s.length > 0; attempt++) {
+    const candidate = closeJson(s);
+    try { JSON.parse(candidate); return candidate; } catch { /* trim & retry */ }
+    const cut = Math.max(s.lastIndexOf(','), s.lastIndexOf('{'), s.lastIndexOf('['));
+    if (cut <= 0) break;
+    s = s.slice(0, cut);
+  }
+  return closeJson(input.trim()); // last resort (may still be invalid → caller throws)
+}
+
+/**
+ * Resilient JSON extraction: tolerant of markdown fences, leading/trailing prose,
+ * multiple objects (first wins), and truncated output. Tries a single repair pass
+ * before throwing.
+ */
+export function parseJsonLoose(text: string): unknown {
+  const candidate = extractJsonCandidate(text);
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    /* fall through to repair */
+  }
+  const repaired = repairJson(candidate);
+  try {
+    return JSON.parse(repaired);
+  } catch (e) {
+    throw new Error(
+      `Could not parse JSON from model output after repair: ${(e as Error).message}. ` +
+        `First 200 chars of candidate: ${candidate.slice(0, 200)}`,
+    );
+  }
+}
+
+/** Write the raw model response for debugging (best-effort). */
+function writeClaudeDebug(raw: string): void {
+  try {
+    mkdirSync('data/debug', { recursive: true });
+    writeFileSync('data/debug/last-claude-response.txt', raw);
+  } catch {
+    /* ignore */
+  }
 }
 
 export class AnthropicProvider implements LlmProvider {
@@ -95,7 +167,17 @@ export class AnthropicProvider implements LlmProvider {
       .map((b) => b.text)
       .join('\n');
 
-    const parsed = parseJsonLoose(raw);
+    // Capture the raw model response before any JSON extraction (when enabled).
+    if (config.claude.debug) writeClaudeDebug(raw);
+
+    let parsed: unknown;
+    try {
+      parsed = parseJsonLoose(raw);
+    } catch (err) {
+      // Always capture the offending response so it can be inspected/replayed.
+      writeClaudeDebug(raw);
+      throw new Error(`${(err as Error).message} (raw response saved to data/debug/last-claude-response.txt)`);
+    }
     const data = (opts.schema ? opts.schema.parse(parsed) : parsed) as T;
     const inputTokens = res.usage.input_tokens;
     const outputTokens = res.usage.output_tokens;

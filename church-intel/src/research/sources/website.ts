@@ -34,6 +34,9 @@ export async function collectWebsite(ctx: ResearchContext): Promise<SourceFindin
     originalPhone: null,
     originalEmail: null,
     alternateName: ctx.alternateName,
+    // Discovery already ran in the dossier identity step; crawl this site
+    // directly instead of re-discovering it.
+    preResolvedOfficialSite: ctx.officialSite,
   });
 
   const findings: SourceFinding[] = [];

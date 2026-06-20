@@ -1,7 +1,7 @@
 import { config } from '../config.js';
 import { logger } from '../lib/logger.js';
 import { RobotsRules } from './robots.js';
-import { categorizeLink, discoverOfficialSite, sleep } from './discover.js';
+import { categorizeLink, discoverOfficialSite, sleep, type Discovery } from './discover.js';
 import type {
   PageContent,
   ResearchBundle,
@@ -114,8 +114,11 @@ export class FetchResearch implements ResearchProvider {
   }
 
   async research(input: ResearchInput): Promise<ResearchBundle> {
-    const { query, searchResults, officialSite, originalSiteWorks, discoveryNote } =
-      await discoverOfficialSite(input);
+    // Reuse an already-resolved official site (skip a redundant discovery pass).
+    const disc: Discovery = input.preResolvedOfficialSite
+      ? { query: [input.name, input.city, input.state].filter(Boolean).join(' '), searchResults: [], officialSite: input.preResolvedOfficialSite, originalSiteWorks: null, discoveryNote: 'official site reused from dossier identity (discovery skipped)' }
+      : await discoverOfficialSite(input);
+    const { query, searchResults, officialSite, originalSiteWorks, discoveryNote } = disc;
 
     const pages: PageContent[] = [];
     const robotsBlockedUrls: string[] = [];

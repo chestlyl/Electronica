@@ -23,6 +23,8 @@ export const config = {
     model: process.env.CLAUDE_MODEL ?? 'claude-sonnet-4-6',
     inputCostPerMTok: num('CLAUDE_INPUT_COST_PER_MTOK', 3),
     outputCostPerMTok: num('CLAUDE_OUTPUT_COST_PER_MTOK', 15),
+    // Write each raw Claude response to data/debug/last-claude-response.txt.
+    debug: bool('CLAUDE_DEBUG', false),
   },
   crawl: {
     userAgent:

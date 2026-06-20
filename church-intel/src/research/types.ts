@@ -48,6 +48,12 @@ export interface ResearchInput {
   originalEmail: string | null;
   /** Alternate church name / "Url Name" seed value, used to aid discovery. */
   alternateName: string | null;
+  /**
+   * When set, the crawler skips its own discovery pass and crawls this site
+   * directly. Used during enrich so discovery runs once (in the dossier
+   * identity step) instead of twice.
+   */
+  preResolvedOfficialSite?: string | null;
 }
 
 export interface ResearchProvider {

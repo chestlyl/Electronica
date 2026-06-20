@@ -5,6 +5,7 @@ import { digitalEvidenceSummary } from './digitalSignals.js';
 import type { DossierBuild, ResearchTarget } from './researchAgent.js';
 import type { LinkDiagnostic } from './types.js';
 import type { CoverageRow, SourceCoverageRow } from './coverage.js';
+import type { LeaderCandidate } from './extractors.js';
 
 export interface CalibrationEntry {
   id: string;
@@ -143,6 +144,7 @@ export interface CalibrationRow {
   crawl: { officialDomFetched: boolean; renderedDomUsed: boolean; crawlMethod: string; rawTextLength: number; renderedTextLength: number; renderedGainRatio: number; links: LinkDiagnostic[] };
   coverage: CoverageRow[];
   sourceCoverage: SourceCoverageRow[];
+  leadership: LeaderCandidate[];
   digitalSummary: string;
   scoreNotes: Record<string, { confidence: number; tier: string; reason: string }>;
   generatedAt: string;
@@ -173,6 +175,7 @@ export function rowFromBuild(entry: CalibrationEntry, build: DossierBuild): Cali
     crawl: build.crawl,
     coverage: build.coverage,
     sourceCoverage: build.sourceCoverage,
+    leadership: build.leadership.map((l) => ({ ...l, confidence: Math.min(l.confidence, capForAccess(build.accessLevel as any)) })),
     digitalSummary: digitalEvidenceSummary(build.digital),
     scoreNotes: Object.fromEntries(Object.entries(build.scoreConfidence).map(([k, v]) => [k, { confidence: v.confidence, tier: v.tier, reason: v.reason }])),
     generatedAt: new Date().toISOString(),

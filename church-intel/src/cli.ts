@@ -297,10 +297,12 @@ program
   .command('calibrate-report')
   .description('Generate docs/CALIBRATION_REPORT.md from cached calibration runs')
   .option('--set <file>', 'calibration set json', SET_DEFAULT)
+  .option('--id <id>', 'report only this calibration id (one church, not all 10)')
   .option('--dir <dir>', 'calibration run directory', CALIB_DIR)
   .option('-o, --out <file>', 'output markdown', 'docs/CALIBRATION_REPORT.md')
   .action(async (opts) => {
-    const set = loadCalibrationSet(opts.set);
+    const set = loadCalibrationSet(opts.set).filter((e) => !opts.id || e.id === opts.id);
+    if (!set.length) throw new Error(`no calibration entries match ${opts.id ?? ''}`);
     const { readFileSync, existsSync, mkdirSync, writeFileSync } = await import('node:fs');
     const { dirname } = await import('node:path');
     const rows: CalibrationRow[] = [];
@@ -309,16 +311,18 @@ program
       if (existsSync(p)) rows.push(JSON.parse(readFileSync(p, 'utf8')));
       else logger.warn(`missing ${p} — run calibrate-run first`);
     }
-    if (!rows.length) throw new Error('no calibration rows found; run calibrate-run first');
+    if (!rows.length) throw new Error(`no calibration rows found${opts.id ? ` for ${opts.id}` : ''}; run calibrate-run first`);
     const expectations: Record<string, ReturnType<typeof loadFieldMap>> = {};
     for (const e of set) {
       const ep = `docs/calibration/expectations/${e.id}.json`;
       if (existsSync(ep)) expectations[e.id] = loadFieldMap(ep);
     }
     const md = renderCalibrationReport(rows, expectations);
-    mkdirSync(dirname(opts.out) || '.', { recursive: true });
-    writeFileSync(opts.out, md);
-    console.log(`Wrote ${opts.out} (${rows.length} churches, ${Object.keys(expectations).length} with expectations)`);
+    // When reporting a single church, don't clobber the full report by default.
+    const out = opts.id && opts.out === 'docs/CALIBRATION_REPORT.md' ? `docs/calibration/report_${opts.id}.md` : opts.out;
+    mkdirSync(dirname(out) || '.', { recursive: true });
+    writeFileSync(out, md);
+    console.log(`Wrote ${out} (${rows.length} church${rows.length === 1 ? '' : 'es'}, ${Object.keys(expectations).length} with expectations)`);
   });
 
 program

@@ -1,3 +1,4 @@
+import { roleFromTitle } from './staffCards.js';
 import type { SourceFinding } from './dossier.js';
 import type { EvidenceAccessLevel } from '../types.js';
 
@@ -217,4 +218,79 @@ export function debugExtractionTrace(findings: SourceFinding[]): string[] {
     lines.push(`      finding.fields: [${f.fields.map((x) => x.field_name).join(', ') || 'none'}]  mailto-field=${structuredEmail.join('|') || '—'}  tel-field=${structuredPhone.join('|') || '—'}`);
   }
   return lines;
+}
+
+// ── leadership evidence aggregation ──────────────────────────────────────────
+/**
+ * A single leader candidate, with full provenance. Unlike the single-valued
+ * `lead_pastor` fact, this preserves EVERY pastor/leader found across staff pages
+ * and snippets, supporting co-lead pastors and multiple lead pastors.
+ */
+export interface LeaderCandidate {
+  name: string;
+  title: string;
+  role: string;       // lead_pastor | executive_pastor | operations_leader | communications_leader | pastor | leader
+  isLead: boolean;    // lead / senior / co-lead / co-pastor (a senior leader of the church)
+  sourceUrl: string;
+  confidence: number;
+  evidence: string;
+}
+
+// Titles that denote a (co-)lead pastor of the church.
+const LEAD_TITLE_RE = /\b(?:co[\s-]?lead|lead|senior)\s+pastors?\b|\bco[\s-]?pastors?\b/i;
+const PASTOR_TITLE_TXT = '((?:co[ -]?)?(?:lead|senior|associate|executive|founding)\\s+pastors?|co[ -]?pastors?)';
+
+/** Find "Name — Lead Pastor" / "Lead Pastor: Name" style mentions (all matches). */
+function findLeadersInText(text: string): { name: string; title: string }[] {
+  const out: { name: string; title: string }[] = [];
+  // Separator is a comma/dash/pipe/colon or " is/serves as " — a SPACED dash only,
+  // so an intra-word hyphen (e.g. the "-" in "Co-Lead") is never split off a name.
+  const nameThenTitle = new RegExp(`${NAME}\\s*(?:[—–,|:]|\\s-\\s|\\s+(?:is|are|serves?\\s+as)\\s+(?:the|our|a|co-?)?\\s*)\\s*${PASTOR_TITLE_TXT}`, 'gi');
+  const titleThenName = new RegExp(`${PASTOR_TITLE_TXT}[\\s:—–|]+${NAME}`, 'gi');
+  let m: RegExpExecArray | null;
+  while ((m = nameThenTitle.exec(text)) !== null) out.push({ name: m[1].trim(), title: m[2].trim() });
+  while ((m = titleThenName.exec(text)) !== null) out.push({ name: m[2].trim(), title: m[1].trim() });
+  return out;
+}
+
+/**
+ * Aggregate ALL pastor/leader candidates across the dossier (staff cards first,
+ * then text mentions), deduped by person. Does NOT let the first match win —
+ * returns every leader, with co-lead/lead pastors flagged. Leads sorted first.
+ */
+export function aggregateLeadership(findings: SourceFinding[]): LeaderCandidate[] {
+  const byName = new Map<string, LeaderCandidate>();
+  const consider = (rawName: string, title: string, sourceUrl: string, baseConf: number, evidence: string) => {
+    const name = rawName.replace(/\s+/g, ' ').trim();
+    if (name.length < 3) return;
+    const isLead = LEAD_TITLE_RE.test(title);
+    const role = roleFromTitle(title)?.field ?? (/pastor/i.test(title) ? 'pastor' : 'leader');
+    const conf = isLead ? Math.max(baseConf, 70) : baseConf;
+    const key = name.toLowerCase();
+    const ex = byName.get(key);
+    if (!ex) {
+      byName.set(key, { name, title: title.trim(), role, isLead, sourceUrl, confidence: conf, evidence });
+    } else {
+      ex.isLead = ex.isLead || isLead;
+      if (conf > ex.confidence) { ex.confidence = conf; ex.title = title.trim(); ex.role = role; ex.sourceUrl = sourceUrl; ex.evidence = evidence; }
+    }
+  };
+  for (const f of findings) {
+    const rel = f.reliability ?? 0.5;
+    const cards = f.staffCards ?? [];
+    for (const card of cards) {
+      consider(card.name, card.title, f.url, Math.round(rel * 80), `Staff card: ${card.name} — ${card.title}`);
+    }
+    // Staff cards are the clean, authoritative source for a page; only scan free
+    // text for findings that DON'T have cards (snippets, un-rendered pages).
+    if (cards.length) continue;
+    const text = `${f.title ?? ''} ${(f.fetched ? f.text : f.snippet) ?? ''}`.replace(/\s+/g, ' ').trim();
+    if (text) for (const lc of findLeadersInText(text)) consider(lc.name, lc.title, f.url, Math.round(rel * 70), lc.title);
+  }
+  return [...byName.values()].sort((a, b) => (Number(b.isLead) - Number(a.isLead)) || (b.confidence - a.confidence));
+}
+
+/** The (co-)lead pastors among aggregated leaders. */
+export function leadPastors(leaders: LeaderCandidate[]): LeaderCandidate[] {
+  return leaders.filter((l) => l.isLead);
 }

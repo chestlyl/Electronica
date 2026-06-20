@@ -152,14 +152,22 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
     }
 
     L.push('### Contacts');
+    // Lead pastor(s): aggregated, supports co-lead / multiple lead pastors.
+    const leads = (r.leadership ?? []).filter((l) => l.isLead);
+    const leadNames = leads.length ? leads.map((l) => l.name).join('; ') : (f.lead_pastor?.value != null ? String(f.lead_pastor.value) : '');
+    L.push(`- **Lead pastor(s):** ${leadNames || '—'}`);
     L.push('| role | name | email | phone | confidence |');
     L.push('|---|---|---|---|---|');
-    const contactRow = (role: string, label: string) => `| ${label} | ${val(f[role])} | ${role === 'lead_pastor' ? val(f.office_email) : '—'} | ${role === 'lead_pastor' ? val(f.office_phone) : '—'} | ${f[role]?.confidence != null ? Math.round(f[role]!.confidence!) : '—'} |`;
-    L.push(contactRow('lead_pastor', 'Lead pastor'));
+    const leadConf = leads.length ? Math.round(Math.max(...leads.map((l) => l.confidence))) : (f.lead_pastor?.confidence != null ? Math.round(f.lead_pastor.confidence) : '—');
+    L.push(`| Lead pastor(s) | ${leadNames || '—'} | ${val(f.office_email)} | ${val(f.office_phone)} | ${leadConf} |`);
+    const contactRow = (role: string, label: string) => `| ${label} | ${val(f[role])} | — | — | ${f[role]?.confidence != null ? Math.round(f[role]!.confidence!) : '—'} |`;
     L.push(contactRow('executive_pastor', 'Executive pastor'));
     L.push(contactRow('operations_leader', 'Operations leader'));
     L.push(contactRow('communications_leader', 'Communications leader'));
     L.push(`- office email: ${withConf(f.office_email)} · office phone: ${withConf(f.office_phone)} _(church-level, not person-specific)_`);
+    if (r.leadership && r.leadership.length) {
+      L.push('- all leaders found: ' + r.leadership.map((l) => `${l.name} (${l.title}${l.isLead ? ', LEAD' : ''})`).join('; '));
+    }
 
     L.push('### Size');
     L.push(`- attendance: **${val(f.avg_weekly_attendance)}** _(conf ${f.avg_weekly_attendance?.confidence != null ? Math.round(f.avg_weekly_attendance.confidence) : '—'})_`);

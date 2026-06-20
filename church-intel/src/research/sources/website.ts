@@ -98,6 +98,8 @@ export async function collectWebsite(ctx: ResearchContext): Promise<SourceFindin
       // Attach the per-link crawl trace to the homepage finding so the dossier /
       // calibration report can explain which links were (not) crawled.
       linkDiagnostics: page.category === 'home' ? bundle.linkDiagnostics : undefined,
+      // Carry parsed staff cards so leadership aggregation has clean name+title.
+      staffCards: cards.length ? cards : undefined,
     }));
   }
   return findings;

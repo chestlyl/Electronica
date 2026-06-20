@@ -7,7 +7,7 @@ import {
 } from './dossier.js';
 import { collectWebsite } from './sources/website.js';
 import { collectSnippets } from './sources/snippets.js';
-import { extractFacts, debugExtractionTrace, type Facts } from './extractors.js';
+import { extractFacts, aggregateLeadership, debugExtractionTrace, type Facts, type LeaderCandidate } from './extractors.js';
 import { detectDigitalSignals, digitalEvidenceSummary, type DigitalSignals } from './digitalSignals.js';
 import { computeCoverage, scoreConfidence, contactabilityConfidence, computeSourceCoverage, sourceCoverageSummary, type CoverageRow, type ScoreConfidence, type SourceCoverageRow } from './coverage.js';
 import { dossierSynthesisPrompt, type DossierSynthesis } from '../claude/dossierPrompt.js';
@@ -41,6 +41,7 @@ export interface DossierBuild {
   contamination: string[];
   synthesis: DossierSynthesis;
   facts: Facts;
+  leadership: LeaderCandidate[];
   dossier: ResearchDossier;
   strategic: Partial<Church>;
   fieldEstimates: { field_name: string; value: string | number | null; confidence: number; evidence: string; access_level: EvidenceAccessLevel }[];
@@ -169,6 +170,8 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   const officialCrawled = officialSiteWasCrawled(findings);
   const accessLevel = dossierAccessLevel(findings);
   const facts = extractFacts(findings);
+  // Aggregate ALL pastor/leader candidates (supports co-lead / multiple lead pastors).
+  const leadership = aggregateLeadership(findings);
 
   // Rendered-DOM crawl diagnostics (from the official homepage finding).
   const liveFindings = findings.filter((f) => f.accessLevel === 'live_official_site');
@@ -296,7 +299,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   }
 
   return {
-    identity, findings, conflicts, contamination, synthesis, facts, dossier, strategic,
+    identity, findings, conflicts, contamination, synthesis, facts, leadership, dossier, strategic,
     fieldEstimates, officialSite, accessLevel, officialCrawled, crawl, coverage, sourceCoverage, digital, scoreConfidence: scoreConf,
     tokens: usage.inputTokens + usage.outputTokens,
     cost: usage.costEstimate,

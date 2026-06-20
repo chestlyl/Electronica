@@ -1,5 +1,6 @@
 import type { EvidenceAccessLevel } from '../types.js';
 import type { LinkDiagnostic } from './types.js';
+import type { StaffCard } from './staffCards.js';
 
 export type SourceType =
   | 'official_site'
@@ -102,6 +103,8 @@ export interface SourceFinding {
   renderedGainRatio?: number;
   /** Per-link crawl decision trace (attached to the home finding only). */
   linkDiagnostics?: LinkDiagnostic[];
+  /** {name,title} staff cards parsed from a rendered staff/leadership page. */
+  staffCards?: StaffCard[];
 }
 
 export function makeFinding(partial: Partial<SourceFinding> & {

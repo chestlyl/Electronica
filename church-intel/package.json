@@ -14,6 +14,7 @@
     "research-demo": "tsx src/researchDemo.ts",
     "calibration-demo": "tsx src/calibrationDemo.ts",
     "enrich-demo": "tsx src/enrichDemo.ts",
+    "test": "tsx src/tests/enrichRegression.test.ts",
     "dashboard": "tsx web/server.ts",
     "postinstall": "playwright install chromium || true"
   },

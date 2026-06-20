@@ -7,15 +7,95 @@ export const LIFECYCLE_VALUES = [
   'declining', 'merged', 'closed', 'unknown',
 ] as const;
 
+const APP_STATUS_VALUES = ['active', 'planned', 'none_found', 'unknown'] as const;
+
+// ── tolerant coercion (real Claude output is not perfectly typed) ────────────
+function coerceNum(v: unknown, def: number | null): number | null {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : def;
+  if (typeof v === 'string') {
+    const t = v.trim().toLowerCase();
+    if (!t) return def;
+    if (/very\s*low/.test(t)) return 20;
+    if (/\blow\b/.test(t)) return 35;
+    if (/medium|moderate|mid/.test(t)) return 55;
+    if (/\bhigh\b/.test(t)) return 80;
+    const n = parseFloat(t.replace(/[^0-9.\-]/g, ''));
+    if (Number.isFinite(n)) return n;
+  }
+  return def;
+}
+function str(v: unknown, def = ''): string {
+  return typeof v === 'string' ? v : v == null ? def : String(v);
+}
+function strOrNull(v: unknown): string | null {
+  return v == null || v === '' ? null : String(v);
+}
+function arrStr(v: unknown): string[] {
+  return Array.isArray(v) ? v.map((x) => str(x)).filter(Boolean) : [];
+}
+function fieldVal(v: unknown): string | number | null {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  if (typeof v === 'string') return v;
+  if (v == null) return null;
+  return String(v);
+}
+function normField(x: unknown): { field_name: string; value: string | number | null; confidence: number; evidence: string; access_level?: string } | null {
+  if (!x || typeof x !== 'object') return null;
+  const o = x as Record<string, unknown>;
+  const fn = str(o.field_name ?? o.field ?? o.name).trim();
+  const value = fieldVal(o.value);
+  if (!fn && value == null) return null; // drop empty entries
+  return {
+    field_name: fn || 'unknown',
+    value,
+    confidence: coerceNum(o.confidence, 0) ?? 0,
+    evidence: str(o.evidence ?? o.evidence_text),
+    access_level: typeof o.access_level === 'string' ? o.access_level : undefined,
+  };
+}
+
+/** Normalize a raw (possibly malformed) Claude object into the expected shape. */
+function normalizeSynthesisRaw(input: unknown): unknown {
+  const o = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
+  const lifecycle = (LIFECYCLE_VALUES as readonly string[]).includes(str(o.lifecycle_stage)) ? o.lifecycle_stage : 'unknown';
+  const appStatus = (APP_STATUS_VALUES as readonly string[]).includes(str(o.church_app_status)) ? o.church_app_status : 'unknown';
+  return {
+    identity_summary: str(o.identity_summary),
+    digital_summary: str(o.digital_summary),
+    staff_summary: str(o.staff_summary),
+    growth_summary: str(o.growth_summary),
+    lifecycle_summary: str(o.lifecycle_summary),
+    research_summary: str(o.research_summary),
+    lifecycle_stage: lifecycle,
+    growth_orientation_score: coerceNum(o.growth_orientation_score, null),
+    digital_maturity_score: coerceNum(o.digital_maturity_score, null),
+    change_readiness_score: coerceNum(o.change_readiness_score, null),
+    staff_depth_score: coerceNum(o.staff_depth_score, null),
+    church_app_status: appStatus,
+    app_provider: strOrNull(o.app_provider),
+    lead_pastor: strOrNull(o.lead_pastor),
+    denomination: strOrNull(o.denomination),
+    online_attendance_estimate: coerceNum(o.online_attendance_estimate, null),
+    online_attendance_confidence: coerceNum(o.online_attendance_confidence, 0) ?? 0,
+    attendance_estimate: coerceNum(o.attendance_estimate, null),
+    attendance_min: coerceNum(o.attendance_min, null),
+    attendance_max: coerceNum(o.attendance_max, null),
+    attendance_confidence: coerceNum(o.attendance_confidence, 0) ?? 0,
+    fields: Array.isArray(o.fields) ? o.fields.map(normField).filter((f): f is NonNullable<typeof f> => f !== null) : [],
+    known: arrStr(o.known),
+    uncertain: arrStr(o.uncertain),
+  };
+}
+
 const synthField = z.object({
   field_name: z.string(),
   value: z.union([z.string(), z.number(), z.null()]),
-  confidence: z.number().min(0).max(100),
+  confidence: z.number(),
   evidence: z.string(),
   access_level: z.string().optional(),
 });
 
-export const dossierSynthesisSchema = z.object({
+const dossierSynthesisInner = z.object({
   identity_summary: z.string(),
   digital_summary: z.string(),
   staff_summary: z.string(),
@@ -23,25 +103,28 @@ export const dossierSynthesisSchema = z.object({
   lifecycle_summary: z.string(),
   research_summary: z.string(),
   lifecycle_stage: z.enum(LIFECYCLE_VALUES),
-  growth_orientation_score: z.number().min(0).max(100),
-  digital_maturity_score: z.number().min(0).max(100),
-  change_readiness_score: z.number().min(0).max(100),
-  staff_depth_score: z.number().min(0).max(100),
-  church_app_status: z.enum(['active', 'planned', 'none_found', 'unknown']),
+  growth_orientation_score: z.number().nullable(),
+  digital_maturity_score: z.number().nullable(),
+  change_readiness_score: z.number().nullable(),
+  staff_depth_score: z.number().nullable(),
+  church_app_status: z.enum(APP_STATUS_VALUES),
   app_provider: z.string().nullable(),
   lead_pastor: z.string().nullable(),
   denomination: z.string().nullable(),
   online_attendance_estimate: z.number().nullable(),
-  online_attendance_confidence: z.number().min(0).max(100),
+  online_attendance_confidence: z.number(),
   attendance_estimate: z.number().nullable(),
   attendance_min: z.number().nullable(),
   attendance_max: z.number().nullable(),
-  attendance_confidence: z.number().min(0).max(100),
+  attendance_confidence: z.number(),
   fields: z.array(synthField),
   known: z.array(z.string()),
   uncertain: z.array(z.string()),
 });
-export type DossierSynthesis = z.infer<typeof dossierSynthesisSchema>;
+
+/** Tolerant schema: normalizes malformed Claude output before validation. */
+export const dossierSynthesisSchema = z.preprocess(normalizeSynthesisRaw, dossierSynthesisInner);
+export type DossierSynthesis = z.infer<typeof dossierSynthesisInner>;
 
 export function renderFindings(findings: SourceFinding[], maxChars = 6000): string {
   const lines: string[] = [];

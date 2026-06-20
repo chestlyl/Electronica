@@ -216,7 +216,7 @@ npm run cli -- discover-church --id row-4
 # jobs → directories → conflicts → contamination → synthesis). Confidence is
 # capped when the official site can't be fetched. See docs/RESEARCH_AGENT_DESIGN.md
 npm run cli -- research-church --url https://www.cornerstonechurch.info --name "Cornerstone Church" --city Akron --state OH
-npm run cli -- research-dossier --id row-2                      # persists dossier + conflicts + strategic fields
+npm run cli -- research-dossier --id row-2 --out row-2-dossier.md   # persists dossier + conflicts + strategic fields; -o writes the markdown
 npm run cli -- research-dossier --url https://example.org --name "X Church" --city Y --state OH --save
 
 # Calibrate the tool against the Claude baseline + your verified ground truth.

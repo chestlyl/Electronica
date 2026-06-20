@@ -1,7 +1,7 @@
 <!-- ILLUSTRATIVE: ground truth is sample data, not verified with the church. -->
 
 # Calibration report — Cornerstone Church (SAMPLE / illustrative ground truth)
-_generated 2026-06-20T05:32:26.784Z · evidence access: **search_snippets** (confidence cap **65**)_
+_generated 2026-06-20T05:45:01.608Z · evidence access: **search_snippets** (confidence cap **65**)_
 
 ## Scorecard
 - correct: **28** · wrong: **1** · missing: **1** (of 30 ground-truthed)

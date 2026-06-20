@@ -126,12 +126,13 @@ program
   .requiredOption('--name <name>', 'church name')
   .option('--city <city>', 'city')
   .option('--state <state>', 'state')
+  .option('-o, --out <path>', 'write the dossier markdown to this path')
   .action(async (opts) => {
     const ctx = createLiveContext();
     try {
       const target: ResearchTarget = { name: opts.name, city: opts.city ?? null, state: opts.state ?? null, originalWebsite: opts.url, alternateName: null };
       const build = await buildDossier(target, ctx);
-      await emitDossier(target, build);
+      await emitDossier(target, build, opts.out);
     } finally {
       await ctx.close();
     }
@@ -146,6 +147,7 @@ program
   .option('--city <city>', 'city (ad-hoc)')
   .option('--state <state>', 'state (ad-hoc)')
   .option('--save', 'persist the dossier even in ad-hoc mode')
+  .option('-o, --out <path>', 'write the dossier markdown to this path')
   .action(async (opts) => {
     const ctx = createLiveContext();
     try {
@@ -161,7 +163,7 @@ program
         target = { name: opts.name, city: opts.city ?? null, state: opts.state ?? null, originalWebsite: opts.url, alternateName: null };
       }
       const build = await buildDossier(target, ctx);
-      await emitDossier(target, build);
+      await emitDossier(target, build, opts.out);
       if (churchId || opts.save) {
         if (!churchId && opts.save) churchId = await createAdhocChurch(ctx.store, target);
         if (churchId) {
@@ -389,12 +391,13 @@ function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'church';
 }
 
-async function emitDossier(target: ResearchTarget, build: DossierBuild): Promise<void> {
+async function emitDossier(target: ResearchTarget, build: DossierBuild, outPath?: string): Promise<void> {
   const md = renderDossierMarkdown(target, build);
   console.log(md);
   const { mkdirSync, writeFileSync } = await import('node:fs');
-  mkdirSync('data/output', { recursive: true });
-  const out = `data/output/dossier_${slugify(target.name)}.md`;
+  const { dirname } = await import('node:path');
+  const out = outPath || `data/output/dossier_${slugify(target.name)}.md`;
+  mkdirSync(dirname(out) || '.', { recursive: true });
   writeFileSync(out, md);
   console.log(`\nWrote ${out}  (tokens ${build.tokens}, ~$${build.cost.toFixed(4)})`);
 }

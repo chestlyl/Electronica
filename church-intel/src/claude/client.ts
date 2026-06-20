@@ -18,7 +18,8 @@ export interface LlmResult<T> {
 export interface ExtractOptions<T> {
   system: string;
   user: string;
-  schema?: ZodType<T>;
+  // ZodType<T, any, any> so preprocess/effects schemas (input type unknown) are allowed.
+  schema?: ZodType<T, z.ZodTypeDef, any>;
   maxTokens?: number;
 }
 

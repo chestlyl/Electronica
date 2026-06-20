@@ -202,10 +202,10 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   // subject to the conservative overwrite rules; those go via applyDossierToChurch).
   const strategic: Partial<Church> = {
     lifecycle_stage: synthesis.lifecycle_stage,
-    growth_orientation_score: clamp(synthesis.growth_orientation_score),
-    digital_maturity_score: clamp(synthesis.digital_maturity_score),
-    change_readiness_score: clamp(synthesis.change_readiness_score),
-    staff_depth_score: clamp(synthesis.staff_depth_score),
+    growth_orientation_score: synthesis.growth_orientation_score == null ? null : clamp(synthesis.growth_orientation_score),
+    digital_maturity_score: synthesis.digital_maturity_score == null ? null : clamp(synthesis.digital_maturity_score),
+    change_readiness_score: synthesis.change_readiness_score == null ? null : clamp(synthesis.change_readiness_score),
+    staff_depth_score: synthesis.staff_depth_score == null ? null : clamp(synthesis.staff_depth_score),
     evidence_access_level: accessLevel,
     identity_contamination_flag: contamination.length > 0,
     research_confidence,

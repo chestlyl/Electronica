@@ -6,7 +6,7 @@ export interface SearchResult {
   provider?: string;
 }
 
-export type CrawlMethod = 'playwright' | 'fetch_fallback' | 'none';
+export type CrawlMethod = 'playwright' | 'playwright_rendered' | 'fetch' | 'fetch_fallback' | 'none';
 
 export interface PageContent {
   url: string;
@@ -17,6 +17,14 @@ export interface PageContent {
   text: string;        // readable, truncated text content
   category: string;    // home | about | staff | beliefs | contact | ...
   crawlMethod: CrawlMethod;
+  // rendered-DOM diagnostics (in-memory only)
+  rawTextLength?: number;
+  renderedTextLength?: number;
+  renderedGainRatio?: number;
+  mailto?: string[];
+  tel?: string[];
+  navLabels?: string[];
+  staffBlocks?: string[];
   error?: string;
   fetchedAt: string;
 }
@@ -33,6 +41,12 @@ export interface ResearchBundle {
   crawlMethod: CrawlMethod;
   /** False when a non-JS fetch crawler was used (dynamic content may be missed). */
   jsRendered: boolean;
+  /** Rendered-DOM diagnostics for the official homepage (in-memory only). */
+  officialDomFetched?: boolean;
+  renderedDomUsed?: boolean;
+  rawTextLength?: number;
+  renderedTextLength?: number;
+  renderedGainRatio?: number;
   /** Human-readable note when research was degraded or failed. */
   note?: string;
   /** How the official site was discovered (provenance for the agents). */

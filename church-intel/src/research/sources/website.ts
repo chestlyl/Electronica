@@ -60,6 +60,13 @@ export async function collectWebsite(ctx: ResearchContext): Promise<SourceFindin
     for (const m of page.text.matchAll(SOCIAL_LINK)) {
       push('social_link', 'https://' + m[0].replace(/^https?:\/\//, ''), 75, 'Social link on official site');
     }
+    // Rendered-DOM extractions: mailto/tel links + staff-card text.
+    for (const email of page.mailto ?? []) push('email', email, 88, 'mailto link on rendered site');
+    for (const t of page.tel ?? []) push('phone', t, 85, 'tel link on rendered site');
+
+    // Append rendered staff-card blocks so the extractors/synthesis see staff.
+    const staffText = (page.staffBlocks ?? []).join(' • ');
+    const text = (page.text + (staffText ? `\n\nSTAFF CARDS: ${staffText}` : '')).slice(0, 5000);
 
     findings.push(makeFinding({
       sourceType,
@@ -68,8 +75,12 @@ export async function collectWebsite(ctx: ResearchContext): Promise<SourceFindin
       title: page.title,
       fetched: true,
       status: page.status,
-      text: page.text.slice(0, 4000),
+      text,
       fields,
+      crawlMethod: page.crawlMethod,
+      rawTextLength: page.rawTextLength,
+      renderedTextLength: page.renderedTextLength,
+      renderedGainRatio: page.renderedGainRatio,
     }));
   }
   return findings;

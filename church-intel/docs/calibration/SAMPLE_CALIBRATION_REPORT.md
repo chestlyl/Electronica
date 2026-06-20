@@ -1,7 +1,7 @@
 <!-- SAMPLE: single church, OFFLINE mock data. Real runs cover all 10. -->
 
 # Calibration Report
-_generated 2026-06-20T12:30:51.518Z · 1 churches_
+_generated 2026-06-20T13:51:42.568Z · 1 churches_
 
 > Central question: *Would an experienced church strategist trust this dossier enough to decide whether to pursue a relationship with this church?*
 > Tool Assessment = what the platform concluded. Human Assessment = blank for you. Variance = where the tool is likely wrong / weak.
@@ -34,6 +34,7 @@ _All proxies are derived from existing dossier fields; "MMC-ready" is a transpar
 ### Identity
 - official website: **https://www.cornerstonechurch.info/** · identity_confidence 40 · verdict no_match
 - contamination flags: Same-name church at cornerstonelife.com appears to be in a different city/state (https://cornerstonelife.com/sending/) — not this church; do not attribute its facts here.
+- crawl: official DOM fetched **no** · rendered DOM used **no** (none) · raw_text 0 → rendered_text 0 (gain ×1)
 ### Contacts
 | role | name | email | phone | confidence |
 |---|---|---|---|---|

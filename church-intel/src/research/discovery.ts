@@ -1,6 +1,7 @@
 import { logger } from '../lib/logger.js';
 import { isDirectoryUrl } from './search.js';
 import { multiSearch, type SearchDiagnostic } from './searchProviders.js';
+import { smartFetch } from './renderedFetch.js';
 import type { ResearchInput, SearchResult } from './types.js';
 
 export type CandidateSource = 'original' | 'urlname' | 'domain_guess' | 'search';
@@ -148,41 +149,34 @@ function firstMatch(re: RegExp, html: string): string {
   return m ? m[1] : '';
 }
 
-/** One GET: reachability, parked check, church content, and identity text. */
-async function inspectSite(url: string): Promise<SiteInspection> {
+/**
+ * One render-aware fetch: reachability, parked check, church content, identity
+ * text, and church-OWNED signals. Escalates to a rendered browser when allowed
+ * (church-provided URLs) so JS-rendered sites' nav/content are visible.
+ */
+async function inspectSite(url: string, allowRender: boolean): Promise<SiteInspection> {
   const out: SiteInspection = {
     reachable: false, status: 0, finalUrl: url, identityText: '', bodyText: '',
     churchLike: false, ownershipSignals: 0, parked: false,
   };
   try {
-    const res = await fetch(url, {
-      redirect: 'follow',
-      signal: AbortSignal.timeout(10000),
-      headers: { 'user-agent': BROWSER_UA, accept: 'text/html,*/*' },
-    });
-    out.status = res.status;
-    out.finalUrl = res.url || url;
-    out.reachable = res.ok;
-    const ct = res.headers.get('content-type') ?? '';
-    if (res.ok && /html|text/.test(ct)) {
-      const html = (await res.text()).slice(0, 40000);
-      const title = firstMatch(/<title[^>]*>([\s\S]*?)<\/title>/i, html);
-      const ogSite = firstMatch(/<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i, html);
-      const ogTitle = firstMatch(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i, html);
-      const h1 = firstMatch(/<h1[^>]*>([\s\S]*?)<\/h1>/i, html).replace(/<[^>]+>/g, ' ');
-      const desc = firstMatch(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i, html);
-      out.identityText = [title, ogSite, ogTitle, h1, desc].join(' | ').replace(/\s+/g, ' ').trim();
-      const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    const r = await smartFetch(url, allowRender);
+    out.status = r.status;
+    out.finalUrl = r.finalUrl;
+    out.reachable = r.ok;
+    if (r.ok && (r.rawHtml || r.text)) {
+      out.identityText = r.identityText || firstMatch(/<title[^>]*>([\s\S]*?)<\/title>/i, r.rawHtml);
+      const text = r.text;
       out.bodyText = text.toLowerCase().slice(0, 20000);
       out.parked = PARKED_TERMS.test(text) || text.replace(/\s/g, '').length < 200;
       out.churchLike = CHURCH_TERMS.test(text);
 
-      // Church-OWNED signals: distinct nav/link items the church runs itself,
-      // plus first-person identity markers. A page ABOUT a church lacks these.
+      // Church-OWNED signals: nav/link items the church runs itself + first-person
+      // markers. Use rendered nav labels when available, else parse raw anchors.
       const navHits = new Set<string>();
-      for (const m of html.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/gi)) {
-        const anchor = m[1].replace(/<[^>]+>/g, ' ').trim();
-        const hit = anchor.match(NAV_CHURCH_ITEMS);
+      const navSource = r.navLabels.length ? r.navLabels : [...r.rawHtml.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/gi)].map((m) => m[1].replace(/<[^>]+>/g, ' ').trim());
+      for (const label of navSource) {
+        const hit = label.match(NAV_CHURCH_ITEMS);
         if (hit) navHits.add(hit[0].toLowerCase().replace(/\s+/g, ' ').trim());
       }
       const firstPerson = text.match(OWN_CHURCH_MARKERS)?.length ?? 0;
@@ -436,7 +430,9 @@ export async function discoverWebsite(input: ResearchInput): Promise<DiscoveryRe
     .map((url) => ({ url, source: 'domain_guess' as CandidateSource, provider: undefined as string | undefined }));
 
   const allSeeds = [...seeds, ...guessSeeds];
-  const inspections = await mapPool(allSeeds, 5, (s) => inspectSite(s.url));
+  // Render-escalate only church-provided URLs (bounded cost); rank everything
+  // else with plain fetch.
+  const inspections = await mapPool(allSeeds, 5, (s) => inspectSite(s.url, s.source === 'original' || s.source === 'urlname'));
 
   const candidates: DiscoveryCandidate[] = allSeeds.map((s, idx) => {
     const ins = inspections[idx];

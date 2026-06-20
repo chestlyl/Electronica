@@ -16,6 +16,7 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   L.push(`- Official site: **${b.officialSite ?? 'NOT CONFIDENTLY IDENTIFIED'}** (discovery verdict: ${b.identity.identityVerdict}, identity_confidence ${fmtPct(b.identity.identity_confidence)})`);
   L.push(`- Official DOM fetched: **${b.officialCrawled ? 'yes' : 'NO — reconstructed from indexed snippets / third-party sources'}**`);
   L.push(`- Best evidence access level: **${b.accessLevel}** → confidence is capped accordingly`);
+  L.push(`- Crawl: official DOM fetched **${b.crawl.officialDomFetched ? 'yes' : 'no'}** · rendered DOM used **${b.crawl.renderedDomUsed ? 'yes' : 'no'}** (${b.crawl.crawlMethod}) · raw_text ${b.crawl.rawTextLength} → rendered_text ${b.crawl.renderedTextLength} (gain ×${b.crawl.renderedGainRatio})`);
   L.push(`- Lead pastor: ${s.lead_pastor ?? '—'} · Denomination: ${s.denomination ?? '—'} · Lifecycle: **${s.lifecycle_stage}**`);
   L.push(`- ${s.identity_summary}`);
   if (!b.officialCrawled) {

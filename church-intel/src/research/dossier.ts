@@ -93,6 +93,11 @@ export interface SourceFinding {
   reliability: number;      // 0..1
   fields: ExtractedField[];
   fetchedAt: string;
+  // rendered-DOM diagnostics (in-memory only)
+  crawlMethod?: string;
+  rawTextLength?: number;
+  renderedTextLength?: number;
+  renderedGainRatio?: number;
 }
 
 export function makeFinding(partial: Partial<SourceFinding> & {

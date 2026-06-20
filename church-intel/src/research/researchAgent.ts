@@ -44,8 +44,18 @@ export interface DossierBuild {
   officialSite: string | null;
   accessLevel: EvidenceAccessLevel;
   officialCrawled: boolean;
+  crawl: CrawlDiagnostics;
   tokens: number;
   cost: number;
+}
+
+export interface CrawlDiagnostics {
+  officialDomFetched: boolean;
+  renderedDomUsed: boolean;
+  crawlMethod: string;
+  rawTextLength: number;
+  renderedTextLength: number;
+  renderedGainRatio: number;
 }
 
 const clamp = (n: number) => Math.max(0, Math.min(100, n));
@@ -146,11 +156,23 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   const accessLevel = dossierAccessLevel(findings);
   const facts = extractFacts(findings);
 
+  // Rendered-DOM crawl diagnostics (from the official homepage finding).
+  const liveFindings = findings.filter((f) => f.accessLevel === 'live_official_site');
+  const homeFinding = liveFindings.find((f) => f.crawlMethod) ?? liveFindings[0];
+  const crawl: CrawlDiagnostics = {
+    officialDomFetched: officialCrawled,
+    renderedDomUsed: liveFindings.some((f) => f.crawlMethod === 'playwright_rendered'),
+    crawlMethod: homeFinding?.crawlMethod ?? (officialCrawled ? 'fetch' : 'none'),
+    rawTextLength: homeFinding?.rawTextLength ?? 0,
+    renderedTextLength: homeFinding?.renderedTextLength ?? 0,
+    renderedGainRatio: homeFinding?.renderedGainRatio ?? 1,
+  };
+
   const { data: synthesis, usage } = await deps.llm.extractJson<DossierSynthesis>({
     system: dossierSynthesisPrompt.system,
     user: dossierSynthesisPrompt.user({
       name: target.name, city: target.city, state: target.state,
-      officialSite: identity.officialSite, officialCrawled,
+      officialSite: identity.officialSite, officialCrawled, renderedDomUsed: crawl.renderedDomUsed,
       findings, conflicts, contamination, facts,
     }),
     schema: dossierSynthesisPrompt.schema,
@@ -227,7 +249,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
 
   return {
     identity, findings, conflicts, contamination, synthesis, facts, dossier, strategic,
-    fieldEstimates, officialSite, accessLevel, officialCrawled,
+    fieldEstimates, officialSite, accessLevel, officialCrawled, crawl,
     tokens: usage.inputTokens + usage.outputTokens,
     cost: usage.costEstimate,
   };

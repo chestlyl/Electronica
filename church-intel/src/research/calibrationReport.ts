@@ -98,6 +98,8 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
     L.push('### Identity');
     L.push(`- official website: **${r.officialSite ?? 'NOT IDENTIFIED'}** · identity_confidence ${Math.round(r.identity_confidence)} · verdict ${r.identityVerdict}`);
     L.push(`- contamination flags: ${r.contaminationFlags.length ? r.contaminationFlags.join('; ') : 'none'}`);
+    const c = r.crawl ?? { officialDomFetched: false, renderedDomUsed: false, crawlMethod: 'none', rawTextLength: 0, renderedTextLength: 0, renderedGainRatio: 1 };
+    L.push(`- crawl: official DOM fetched **${c.officialDomFetched ? 'yes' : 'no'}** · rendered DOM used **${c.renderedDomUsed ? 'yes' : 'no'}** (${c.crawlMethod}) · raw_text ${c.rawTextLength} → rendered_text ${c.renderedTextLength} (gain ×${c.renderedGainRatio})`);
 
     L.push('### Contacts');
     L.push('| role | name | email | phone | confidence |');

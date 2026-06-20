@@ -134,6 +134,7 @@ export interface CalibrationRow {
   archetype: Derived;
   contactability: Derived;
   lifecycle: { value: string; confidence: number; evidence: string };
+  crawl: { officialDomFetched: boolean; renderedDomUsed: boolean; crawlMethod: string; rawTextLength: number; renderedTextLength: number; renderedGainRatio: number };
   generatedAt: string;
 }
 
@@ -159,6 +160,7 @@ export function rowFromBuild(entry: CalibrationEntry, build: DossierBuild): Cali
     archetype: deriveArchetype(fields, build.accessLevel),
     contactability: deriveContactability(build, fields, build.accessLevel),
     lifecycle: { value: lifecycleDisplay(String(s.lifecycle_stage)), confidence: lifecycleConf, evidence: s.lifecycle_summary },
+    crawl: build.crawl,
     generatedAt: new Date().toISOString(),
   };
 }

@@ -1,6 +1,7 @@
 import { config } from '../config.js';
 import { logger } from '../lib/logger.js';
 import { RobotsRules } from './robots.js';
+import { smartFetch } from './renderedFetch.js';
 import { categorizeLink, discoverOfficialSite, sleep, type Discovery } from './discover.js';
 import type {
   PageContent,
@@ -68,49 +69,37 @@ function looksJsOnly(html: string, text: string): boolean {
 }
 
 /**
- * Fetch-based fallback crawler. No browser required: plain HTTP, visible-text
- * extraction, keyword-prioritized internal links, robots.txt, polite delays.
- * Marks every page crawl_method = "fetch_fallback" and flags missing JS render.
+ * Render-aware crawler: plain HTTP fetch, escalating per-page to a headless
+ * browser (Playwright) when the fetch output is thin/JS-rendered. Extracts
+ * visible text, links, mailto/tel, nav labels, and staff-card blocks, with
+ * crawl-method + raw-vs-rendered diagnostics. Honors robots.txt + polite delays.
  */
 export class FetchResearch implements ResearchProvider {
   async close(): Promise<void> {}
 
-  private async fetchPage(url: string, category: string): Promise<PageContent> {
-    const base: PageContent = {
+  private async fetchPage(url: string, category: string, allowRender: boolean): Promise<PageContent & { _links?: string[] }> {
+    const r = await smartFetch(url, allowRender);
+    const pc: PageContent & { _links?: string[] } = {
       url,
-      finalUrl: url,
-      ok: false,
-      status: 0,
-      title: '',
-      text: '',
+      finalUrl: r.finalUrl,
+      ok: r.ok,
+      status: r.status,
+      title: r.title,
+      text: r.text.slice(0, 12000),
       category,
-      crawlMethod: 'fetch_fallback',
+      crawlMethod: r.crawlMethod,
+      rawTextLength: r.rawTextLength,
+      renderedTextLength: r.renderedTextLength,
+      renderedGainRatio: r.gainRatio,
+      mailto: r.mailto,
+      tel: r.tel,
+      navLabels: r.navLabels,
+      staffBlocks: r.staffBlocks,
       fetchedAt: new Date().toISOString(),
+      _links: r.links,
     };
-    try {
-      const res = await fetch(url, {
-        headers: { 'user-agent': config.crawl.userAgent, accept: 'text/html,*/*' },
-        redirect: 'follow',
-        signal: AbortSignal.timeout(config.crawl.pageTimeoutMs),
-      });
-      base.status = res.status;
-      base.finalUrl = res.url || url;
-      base.ok = res.ok;
-      const ct = res.headers.get('content-type') ?? '';
-      if (!res.ok || !/html|text/.test(ct)) {
-        if (!res.ok) base.error = `HTTP ${res.status}`;
-        else base.error = `non-html content-type: ${ct}`;
-        return base;
-      }
-      const html = await res.text();
-      base.title = extractTitle(html);
-      base.text = extractText(html).slice(0, 12000);
-      (base as PageContent & { _html?: string })._html = html; // transient, for link discovery
-      return base;
-    } catch (err) {
-      base.error = (err as Error).message;
-      return base;
-    }
+    if (!r.ok) pc.error = `HTTP ${r.status}`;
+    return pc;
   }
 
   async research(input: ResearchInput): Promise<ResearchBundle> {
@@ -123,19 +112,19 @@ export class FetchResearch implements ResearchProvider {
     const pages: PageContent[] = [];
     const robotsBlockedUrls: string[] = [];
     const maxPages = config.research.fetchMaxPages;
-    let jsWarning = false;
+    const allowRender = !config.research.forceFetchFallback;
 
     if (officialSite) {
       const origin = new URL(officialSite).origin;
       const robots = await RobotsRules.forOrigin(origin);
 
-      const visit = async (url: string, category: string): Promise<PageContent | null> => {
+      const visit = async (url: string, category: string): Promise<(PageContent & { _links?: string[] }) | null> => {
         if (pages.length >= maxPages) return null;
         if (!robots.isAllowed(url)) {
           robotsBlockedUrls.push(url);
           return null;
         }
-        const pc = await this.fetchPage(url, category);
+        const pc = await this.fetchPage(url, category, allowRender);
         pages.push(pc);
         await sleep(config.crawl.delayMs); // polite rate limit
         return pc;
@@ -143,35 +132,39 @@ export class FetchResearch implements ResearchProvider {
 
       const home = await visit(officialSite, 'home');
       if (home?.ok) {
-        const html = (home as PageContent & { _html?: string })._html ?? '';
-        if (looksJsOnly(html, home.text)) jsWarning = true;
-
-        // Prioritize internal links by category; one best link per category.
-        const links = extractLinks(html, home.finalUrl);
+        // Prioritize internal links by category (from the rendered/raw links).
         const pickedCategories = new Set<string>();
         const ordered: { url: string; category: string }[] = [];
-        for (const l of links) {
-          const cat = categorizeLink(l.href, l.text);
-          if (!cat || pickedCategories.has(cat)) continue;
-          pickedCategories.add(cat);
-          ordered.push({ url: l.href, category: cat });
+        for (const href of home._links ?? []) {
+          if (/^(mailto:|tel:|javascript:|data:)/i.test(href)) continue;
+          try {
+            const abs = new URL(href, home.finalUrl);
+            if (abs.origin !== origin) continue;
+            abs.hash = '';
+            const cat = categorizeLink(abs.pathname, '');
+            if (!cat || pickedCategories.has(cat)) continue;
+            pickedCategories.add(cat);
+            ordered.push({ url: abs.toString(), category: cat });
+          } catch { /* ignore */ }
         }
         for (const { url, category } of ordered) {
           if (pages.length >= maxPages) break;
           await visit(url, category);
         }
       }
-      // Clean up transient html before returning.
-      for (const p of pages) delete (p as PageContent & { _html?: string })._html;
+      for (const p of pages) delete (p as PageContent & { _links?: string[] })._links;
     } else {
-      logger.warn(`no official site found for "${input.name}" (fetch fallback)`);
+      logger.warn(`no official site found for "${input.name}"`);
     }
 
-    const note =
-      'Crawled with the plain-HTTP fetch fallback (no JavaScript rendering). ' +
-      (jsWarning
-        ? 'The homepage appears to be a JavaScript-rendered app, so dynamic content may be missing.'
-        : 'Dynamic/JS-injected content may be missing.');
+    const renderedDomUsed = pages.some((p) => p.crawlMethod === 'playwright_rendered');
+    const officialDomFetched = pages.some((p) => p.ok);
+    const home = pages[0];
+    const note = renderedDomUsed
+      ? 'Official site rendered with a headless browser (Playwright); dynamic content captured.'
+      : officialDomFetched
+        ? 'Crawled via plain HTTP fetch (content was not JS-rendered).'
+        : 'Could not fetch the official site DOM; evidence is from snippets/third-party sources only.';
 
     return {
       query,
@@ -180,10 +173,15 @@ export class FetchResearch implements ResearchProvider {
       originalSiteWorks,
       pages,
       robotsBlockedUrls,
-      crawlMethod: 'fetch_fallback',
-      jsRendered: false,
+      crawlMethod: renderedDomUsed ? 'playwright_rendered' : officialDomFetched ? 'fetch' : 'fetch_fallback',
+      jsRendered: renderedDomUsed,
       note,
       discoveryNote,
+      officialDomFetched,
+      renderedDomUsed,
+      rawTextLength: home?.rawTextLength,
+      renderedTextLength: home?.renderedTextLength,
+      renderedGainRatio: home?.renderedGainRatio,
     };
   }
 }

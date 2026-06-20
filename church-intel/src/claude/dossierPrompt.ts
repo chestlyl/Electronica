@@ -190,7 +190,7 @@ RULES:
 - For every field in "fields", attach the evidence and the source access_level.`,
   user(opts: {
     name: string; city: string | null; state: string | null;
-    officialSite: string | null; officialCrawled: boolean;
+    officialSite: string | null; officialCrawled: boolean; renderedDomUsed?: boolean;
     findings: SourceFinding[]; conflicts: ResearchConflict[]; contamination: string[];
     facts?: Record<string, { value: string | number | boolean; confidence: number; source_url: string }>;
   }): string {
@@ -200,7 +200,7 @@ RULES:
     return `CHURCH: ${opts.name}
 LOCATION: ${[opts.city, opts.state].filter(Boolean).join(', ') || 'unknown'}
 OFFICIAL SITE (identity): ${opts.officialSite ?? 'NOT CONFIDENTLY IDENTIFIED'}
-OFFICIAL SITE DOM FETCHED: ${opts.officialCrawled ? 'yes' : 'NO — only indexed snippets/third-party sources available; cap confidence'}
+OFFICIAL SITE DOM FETCHED: ${opts.officialCrawled ? (opts.renderedDomUsed ? 'yes (rendered with a headless browser — full DOM available)' : 'yes (plain fetch)') : 'NO — only indexed snippets/third-party sources available; cap confidence'}
 
 CONFLICTS DETECTED (preserve, do not resolve silently):
 ${opts.conflicts.length ? opts.conflicts.map((c) => `- ${c.field_name}: "${c.value_a}" (${c.source_a}) vs "${c.value_b}" (${c.source_b})`).join('\n') : '- none'}

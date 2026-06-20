@@ -1,4 +1,5 @@
 import type { EvidenceAccessLevel } from '../types.js';
+import type { LinkDiagnostic } from './types.js';
 
 export type SourceType =
   | 'official_site'
@@ -98,6 +99,8 @@ export interface SourceFinding {
   rawTextLength?: number;
   renderedTextLength?: number;
   renderedGainRatio?: number;
+  /** Per-link crawl decision trace (attached to the home finding only). */
+  linkDiagnostics?: LinkDiagnostic[];
 }
 
 export function makeFinding(partial: Partial<SourceFinding> & {

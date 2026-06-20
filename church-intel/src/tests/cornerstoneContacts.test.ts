@@ -12,6 +12,12 @@
  *   3. the crawler follows those links, and
  *   4. extractFacts recovers Jacob Young, connect@cornerstonechurch.info,
  *      330.644.3937.
+ * Scenario B: JS-injected nav — the homepage raw HTML has no subpage links at
+ * all, so /staff is reachable only via the targeted fallback probe (mirrors the
+ * real https://www.cornerstonechurch.info/staff). Verifies the probe fetches it
+ * and extractFacts recovers the same contacts; and that per-link crawl
+ * diagnostics are recorded either way.
+ *
  * Plus a snippet-fallback case: when no subpages exist, snippet evidence still
  * yields the contacts (snippet beats null).
  *
@@ -51,17 +57,32 @@ const ABOUT = `<html><head><title>About</title></head><body>
 <h1>About Cornerstone</h1><p>Cornerstone Church was planted in 1998.</p>
 </body></html>`;
 
-const PAGES: Record<string, string> = {
-  '/': HOME,
-  '/o/7f3a': STAFF,
-  '/o/9c2d': CONNECT,
-  '/o/1a0b': ABOUT,
+// ── Scenario B: JS-injected nav. The homepage raw HTML contains NO subpage
+// links at all (nav is built by JS); /staff is reachable ONLY by probing the
+// well-known path. Mirrors the real https://www.cornerstonechurch.info/staff.
+const HOME_JS = `<html><head><title>Cornerstone Church</title></head><body>
+<div id="root"></div>
+<noscript>Welcome to Cornerstone Church in Akron.</noscript>
+</body></html>`;
+const STAFF_JS = `<html><head><title>Our Staff</title></head><body>
+<h1>Our Staff</h1>
+<p>Jacob Young is the Lead Pastor. Email connect@cornerstonechurch.info or call 330.644.3937.</p>
+</body></html>`;
+
+// Keyed by host+path so the two scenarios (bare host vs www host) don't collide.
+const SITES: Record<string, string> = {
+  'cornerstonechurch.info/': HOME,
+  'cornerstonechurch.info/o/7f3a': STAFF,
+  'cornerstonechurch.info/o/9c2d': CONNECT,
+  'cornerstonechurch.info/o/1a0b': ABOUT,
+  'www.cornerstonechurch.info/': HOME_JS,
+  'www.cornerstonechurch.info/staff': STAFF_JS,
 };
 
 (globalThis as any).fetch = async (input: any) => {
   const url = typeof input === 'string' ? input : input.url;
   const u = new URL(url);
-  const html = PAGES[u.pathname];
+  const html = SITES[`${u.host}${u.pathname}`];
   if (html == null) return new Response('not found', { status: 404, headers: { 'content-type': 'text/html' } });
   return new Response(html, { status: 200, headers: { 'content-type': 'text/html' } });
 };
@@ -101,11 +122,52 @@ async function main() {
   check('homepage text lacks the lead pastor name', () => assert.ok(!(home?.text ?? '').includes('Jacob Young')));
   check('homepage text lacks the office email', () => assert.ok(!(home?.text ?? '').includes('connect@cornerstonechurch.info')));
 
+  // Crawl link diagnostics are recorded on the home finding
+  const diag = home?.linkDiagnostics ?? [];
+  check('link diagnostics captured for homepage', () => assert.ok(diag.length >= 3));
+  check('diagnostics show "Our Staff" link selected + fetched + signal', () => {
+    const staffLink = diag.find((d) => d.anchorText === 'Our Staff');
+    assert.ok(staffLink, 'no Our Staff diagnostic');
+    assert.strictEqual(staffLink!.category, 'staff');
+    assert.ok(staffLink!.selected && staffLink!.fetched);
+    assert.ok(staffLink!.hasStaffContactSignal);
+  });
+  check('diagnostics show "Home" link not selected (no category)', () => {
+    const h = diag.find((d) => d.anchorText === 'Home');
+    assert.ok(h && !h.selected && h.category == null);
+  });
+
   // (4) extractFacts recovers all three from the crawled subpages
   const facts = extractFacts(findings);
   check('lead_pastor recovered = Jacob Young', () => assert.strictEqual(facts.lead_pastor?.value, 'Jacob Young'));
   check('office_email recovered = connect@cornerstonechurch.info', () => assert.strictEqual(facts.office_email?.value, 'connect@cornerstonechurch.info'));
   check('office_phone recovered = 330.644.3937', () => assert.strictEqual(facts.office_phone?.value, '330.644.3937'));
+
+  // ── Scenario B: /staff only reachable via the fallback probe ──────────────
+  const ctxB = {
+    name: 'Cornerstone Church', city: 'Akron', state: 'OH',
+    originalWebsite: 'https://www.cornerstonechurch.info/', alternateName: null,
+    identity: {} as any,
+    officialSite: 'https://www.cornerstonechurch.info/',
+    research: new FetchResearch(),
+  };
+  const findingsB = await collectWebsite(ctxB as any);
+  const homeB = findingsB.find((f) => new URL(f.url).pathname === '/');
+  const diagB = homeB?.linkDiagnostics ?? [];
+
+  check('B: homepage exposed no crawlable subpage links (JS nav)',
+    () => assert.ok(!diagB.some((d) => d.discovery === 'homepage_link' && d.selected)));
+  check('B: /staff reached via fallback probe (fetched)', () => {
+    const probe = diagB.find((d) => d.discovery === 'fallback_probe' && d.href === '/staff');
+    assert.ok(probe, 'no /staff probe recorded');
+    assert.ok(probe!.fetched && probe!.hasStaffContactSignal);
+  });
+  check('B: /staff page is in the crawled findings',
+    () => assert.ok(findingsB.some((f) => new URL(f.url).pathname === '/staff')));
+  const factsB = extractFacts(findingsB);
+  check('B: lead_pastor recovered via probe = Jacob Young', () => assert.strictEqual(factsB.lead_pastor?.value, 'Jacob Young'));
+  check('B: office_email recovered via probe', () => assert.strictEqual(factsB.office_email?.value, 'connect@cornerstonechurch.info'));
+  check('B: office_phone recovered via probe', () => assert.strictEqual(factsB.office_phone?.value, '330.644.3937'));
 
   // Snippet fallback: a thin live homepage + snippet evidence → contacts survive.
   const homepageOnly = makeFinding({

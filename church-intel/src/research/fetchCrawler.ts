@@ -4,11 +4,25 @@ import { RobotsRules } from './robots.js';
 import { smartFetch } from './renderedFetch.js';
 import { categorizeLink, discoverOfficialSite, sleep, type Discovery } from './discover.js';
 import type {
+  LinkDiagnostic,
   PageContent,
   ResearchBundle,
   ResearchInput,
   ResearchProvider,
 } from './types.js';
+
+/** Well-known staff/contact paths to probe when the homepage crawl found none. */
+const COMMON_STAFF_CONTACT_PATHS = ['/staff', '/team', '/leadership', '/about', '/contact', '/connect'];
+const FALLBACK_MAX_PROBES = 6;
+
+const SIGNAL_EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+const SIGNAL_PHONE = /\(?\b\d{3}\)?[ .\-]\d{3}[ .\-]\d{4}\b/;
+const SIGNAL_ROLE = /\b(lead|senior|associate|executive|founding)\s+pastor\b/i;
+/** Does this page text hold actual staff/contact DATA (email, phone, or pastor title)? */
+function hasStaffContactSignal(text: string): boolean {
+  return SIGNAL_EMAIL.test(text) || SIGNAL_PHONE.test(text) || SIGNAL_ROLE.test(text);
+}
+const pageSignalText = (p: { title?: string; text?: string } | null | undefined) => `${p?.title ?? ''} ${p?.text ?? ''}`;
 
 const ENTITIES: Record<string, string> = {
   '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'",
@@ -111,6 +125,7 @@ export class FetchResearch implements ResearchProvider {
 
     const pages: PageContent[] = [];
     const robotsBlockedUrls: string[] = [];
+    const linkDiagnostics: LinkDiagnostic[] = [];
     const maxPages = config.research.fetchMaxPages;
     const allowRender = !config.research.forceFetchFallback;
 
@@ -118,8 +133,10 @@ export class FetchResearch implements ResearchProvider {
       const origin = new URL(officialSite).origin;
       const robots = await RobotsRules.forOrigin(origin);
 
-      const visit = async (url: string, category: string): Promise<(PageContent & { _linkPairs?: { href: string; text: string }[] }) | null> => {
-        if (pages.length >= maxPages) return null;
+      // `ignoreLimit` lets the targeted staff/contact fallback run even when the
+      // category crawl has already reached maxPages (its own cap below).
+      const visit = async (url: string, category: string, ignoreLimit = false): Promise<(PageContent & { _linkPairs?: { href: string; text: string }[] }) | null> => {
+        if (!ignoreLimit && pages.length >= maxPages) return null;
         if (!robots.isAllowed(url)) {
           robotsBlockedUrls.push(url);
           return null;
@@ -138,23 +155,59 @@ export class FetchResearch implements ResearchProvider {
         // the anchor text would hide the staff/contact subpages entirely.
         const pickedCategories = new Set<string>();
         const ordered: { url: string; category: string }[] = [];
+        const seen = new Set<string>();
         for (const { href, text } of home._linkPairs ?? []) {
           if (/^(mailto:|tel:|javascript:|data:)/i.test(href)) continue;
+          let resolvedUrl = ''; let sameOrigin = false; let category: string | null = null; let selected = false;
           try {
             const abs = new URL(href, home.finalUrl);
-            if (abs.origin !== origin) continue;
             abs.hash = '';
-            const cat = categorizeLink(abs.pathname, text);
-            if (!cat || pickedCategories.has(cat)) continue;
-            pickedCategories.add(cat);
-            ordered.push({ url: abs.toString(), category: cat });
-          } catch { /* ignore */ }
+            resolvedUrl = abs.toString();
+            sameOrigin = abs.origin === origin;
+            if (sameOrigin) {
+              category = categorizeLink(abs.pathname, text);
+              if (category && !pickedCategories.has(category)) {
+                pickedCategories.add(category);
+                ordered.push({ url: resolvedUrl, category });
+                selected = true;
+              }
+            }
+          } catch { /* unresolvable href */ }
+          const key = resolvedUrl || `raw:${href}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          linkDiagnostics.push({ anchorText: text, href, resolvedUrl, sameOrigin, category, selected, fetched: false, textLength: 0, hasStaffContactSignal: false, discovery: 'homepage_link' });
         }
+        const markFetched = (url: string, pc: PageContent | null) => {
+          const d = linkDiagnostics.find((x) => x.resolvedUrl === url && x.discovery === 'homepage_link');
+          if (d) { d.fetched = !!pc?.ok; d.textLength = pc?.ok ? (pc.text?.length ?? 0) : 0; d.hasStaffContactSignal = pc?.ok ? hasStaffContactSignal(pageSignalText(pc)) : false; }
+        };
         for (const { url, category } of ordered) {
           if (pages.length >= maxPages) break;
-          await visit(url, category);
+          markFetched(url, await visit(url, category));
         }
       }
+
+      // Targeted fallback: if NOTHING fetched so far yields staff/contact data,
+      // probe well-known paths before giving up. This rescues JS-rendered nav
+      // (links absent from raw HTML, e.g. /staff) and unlinked staff pages.
+      const haveData = pages.some((p) => p.ok && hasStaffContactSignal(pageSignalText(p)));
+      if (home?.ok && !haveData) {
+        const already = new Set<string>(pages.flatMap((p) => [p.url, p.finalUrl]));
+        let probes = 0;
+        for (const path of COMMON_STAFF_CONTACT_PATHS) {
+          if (probes >= FALLBACK_MAX_PROBES) break;
+          const url = origin + path;
+          if (already.has(url)) continue;
+          probes++;
+          const category = categorizeLink(path, '') ?? 'contact';
+          const pc = await visit(url, category, true); // bypass maxPages — bounded by FALLBACK_MAX_PROBES
+          const signal = !!pc?.ok && hasStaffContactSignal(pageSignalText(pc));
+          linkDiagnostics.push({ anchorText: '(probe)', href: path, resolvedUrl: url, sameOrigin: true, category, selected: true, fetched: !!pc?.ok, textLength: pc?.ok ? (pc.text?.length ?? 0) : 0, hasStaffContactSignal: signal, discovery: 'fallback_probe' });
+          if (signal) break; // found staff/contact data — stop probing
+        }
+      }
+
       for (const p of pages) delete (p as PageContent & { _linkPairs?: unknown })._linkPairs;
     } else {
       logger.warn(`no official site found for "${input.name}"`);
@@ -176,6 +229,7 @@ export class FetchResearch implements ResearchProvider {
       originalSiteWorks,
       pages,
       robotsBlockedUrls,
+      linkDiagnostics,
       crawlMethod: renderedDomUsed ? 'playwright_rendered' : officialDomFetched ? 'fetch' : 'fetch_fallback',
       jsRendered: renderedDomUsed,
       note,

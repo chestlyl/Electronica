@@ -81,6 +81,9 @@ export async function collectWebsite(ctx: ResearchContext): Promise<SourceFindin
       rawTextLength: page.rawTextLength,
       renderedTextLength: page.renderedTextLength,
       renderedGainRatio: page.renderedGainRatio,
+      // Attach the per-link crawl trace to the homepage finding so the dossier /
+      // calibration report can explain which links were (not) crawled.
+      linkDiagnostics: page.category === 'home' ? bundle.linkDiagnostics : undefined,
     }));
   }
   return findings;

@@ -264,6 +264,13 @@ program
             }
           }
           const row = rowFromBuild(e, build);
+          // Crawl link diagnostics (why each homepage link / fallback probe was crawled).
+          const links = build.crawl.links ?? [];
+          logger.info(`  crawl: ${build.crawl.crawlMethod} · official DOM ${build.crawl.officialDomFetched ? 'yes' : 'no'} · ${links.length} homepage link(s) discovered`);
+          for (const d of links) {
+            logger.info(`    ${d.selected ? '◉' : '○'}${d.fetched ? 'F' : ' '} [${d.category ?? '—'}] "${(d.anchorText || '').slice(0, 24)}" → ${d.resolvedUrl || d.href}${d.fetched ? ` (text ${d.textLength}${d.hasStaffContactSignal ? ', staff/contact✓' : ''})` : ''}${d.discovery === 'fallback_probe' ? ' [probe]' : ''}`);
+          }
+          if (links.length && !links.some((d) => d.fetched && d.hasStaffContactSignal)) logger.warn('    ⚠ no crawled page held staff/contact data');
           logger.info(`  → ${row.officialSite ?? 'NO MATCH'} · archetype ${row.archetype.value} · access ${build.accessLevel} · tokens ${build.tokens}`);
         } catch (err) {
           logger.error(`  ${e.id} failed: ${(err as Error).message}`);

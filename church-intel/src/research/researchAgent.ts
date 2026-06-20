@@ -10,7 +10,7 @@ import { collectSnippets } from './sources/snippets.js';
 import { extractFacts, type Facts } from './extractors.js';
 import { dossierSynthesisPrompt, type DossierSynthesis } from '../claude/dossierPrompt.js';
 import type { LlmProvider } from '../claude/client.js';
-import type { ResearchProvider } from './types.js';
+import type { LinkDiagnostic, ResearchProvider } from './types.js';
 import type {
   Church,
   EvidenceAccessLevel,
@@ -56,6 +56,8 @@ export interface CrawlDiagnostics {
   rawTextLength: number;
   renderedTextLength: number;
   renderedGainRatio: number;
+  /** Per-link crawl decision trace from the homepage + fallback probes. */
+  links: LinkDiagnostic[];
 }
 
 const clamp = (n: number) => Math.max(0, Math.min(100, n));
@@ -171,6 +173,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     rawTextLength: homeFinding?.rawTextLength ?? 0,
     renderedTextLength: homeFinding?.renderedTextLength ?? 0,
     renderedGainRatio: homeFinding?.renderedGainRatio ?? 1,
+    links: liveFindings.find((f) => f.linkDiagnostics)?.linkDiagnostics ?? [],
   };
 
   const { data: synthesis, usage } = await deps.llm.extractJson<DossierSynthesis>({

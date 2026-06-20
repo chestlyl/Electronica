@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { capForAccess } from './dossier.js';
 import { toolFieldsFromBuild, type Cell, type FieldMap } from './calibration.js';
 import type { DossierBuild, ResearchTarget } from './researchAgent.js';
+import type { LinkDiagnostic } from './types.js';
 
 export interface CalibrationEntry {
   id: string;
@@ -134,7 +135,7 @@ export interface CalibrationRow {
   archetype: Derived;
   contactability: Derived;
   lifecycle: { value: string; confidence: number; evidence: string };
-  crawl: { officialDomFetched: boolean; renderedDomUsed: boolean; crawlMethod: string; rawTextLength: number; renderedTextLength: number; renderedGainRatio: number };
+  crawl: { officialDomFetched: boolean; renderedDomUsed: boolean; crawlMethod: string; rawTextLength: number; renderedTextLength: number; renderedGainRatio: number; links: LinkDiagnostic[] };
   generatedAt: string;
 }
 

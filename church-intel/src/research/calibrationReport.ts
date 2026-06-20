@@ -98,8 +98,27 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
     L.push('### Identity');
     L.push(`- official website: **${r.officialSite ?? 'NOT IDENTIFIED'}** · identity_confidence ${Math.round(r.identity_confidence)} · verdict ${r.identityVerdict}`);
     L.push(`- contamination flags: ${r.contaminationFlags.length ? r.contaminationFlags.join('; ') : 'none'}`);
-    const c = r.crawl ?? { officialDomFetched: false, renderedDomUsed: false, crawlMethod: 'none', rawTextLength: 0, renderedTextLength: 0, renderedGainRatio: 1 };
+    const c = r.crawl ?? { officialDomFetched: false, renderedDomUsed: false, crawlMethod: 'none', rawTextLength: 0, renderedTextLength: 0, renderedGainRatio: 1, links: [] };
     L.push(`- crawl: official DOM fetched **${c.officialDomFetched ? 'yes' : 'no'}** · rendered DOM used **${c.renderedDomUsed ? 'yes' : 'no'}** (${c.crawlMethod}) · raw_text ${c.rawTextLength} → rendered_text ${c.renderedTextLength} (gain ×${c.renderedGainRatio})`);
+
+    // Per-link crawl trace: why each homepage link was / wasn't crawled, plus any
+    // fallback staff/contact probes. Answers "why didn't /staff get fetched?".
+    const links = c.links ?? [];
+    L.push('#### Crawl link diagnostics');
+    if (!links.length) {
+      L.push('- _(no homepage links captured — homepage not fetched, or nav is JS-injected and the raw HTML had no <a> links)_');
+    } else {
+      L.push('| anchor text | resolved URL | category | selected | fetched | text len | staff/contact signal | via |');
+      L.push('|---|---|---|---|---|---|---|---|');
+      for (const d of links) {
+        const anchor = (d.anchorText || '—').slice(0, 28).replace(/\|/g, '/');
+        const url = (d.resolvedUrl || d.href || '—').slice(0, 70);
+        L.push(`| ${anchor} | ${url} | ${d.category ?? '—'} | ${d.selected ? '✓' : ''} | ${d.fetched ? '✓' : ''} | ${d.textLength || '—'} | ${d.hasStaffContactSignal ? '✓' : ''} | ${d.discovery === 'fallback_probe' ? 'probe' : 'home'} |`);
+      }
+      const probes = links.filter((d) => d.discovery === 'fallback_probe');
+      if (probes.length) L.push(`- fallback staff/contact probes attempted: ${probes.map((p) => p.href).join(', ')}`);
+      if (!links.some((d) => d.fetched && d.hasStaffContactSignal)) L.push('- ⚠️ no crawled page contained staff/contact data (email / phone / pastor title)');
+    }
 
     L.push('### Contacts');
     L.push('| role | name | email | phone | confidence |');

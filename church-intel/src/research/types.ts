@@ -8,6 +8,23 @@ export interface SearchResult {
 
 export type CrawlMethod = 'playwright' | 'playwright_rendered' | 'fetch' | 'fetch_fallback' | 'none';
 
+/**
+ * Per-link crawl decision trace for a homepage (and fallback probes). Surfaced
+ * in calibration diagnostics to answer "why was/wasn't this page crawled?".
+ */
+export interface LinkDiagnostic {
+  anchorText: string;          // visible link text ('(probe)' for fallback paths)
+  href: string;                // raw href as discovered (or the probed path)
+  resolvedUrl: string;         // absolute resolved URL ('' if unresolvable)
+  sameOrigin: boolean;         // same host as the official site?
+  category: string | null;     // categorizeLink(path, anchorText) result
+  selected: boolean;           // chosen for crawl
+  fetched: boolean;            // actually fetched with HTTP 2xx
+  textLength: number;          // extracted visible text length (0 if not fetched)
+  hasStaffContactSignal: boolean; // page text held email / phone / pastor-title
+  discovery: 'homepage_link' | 'fallback_probe';
+}
+
 export interface PageContent {
   url: string;
   finalUrl: string;
@@ -37,6 +54,8 @@ export interface ResearchBundle {
   originalSiteWorks: boolean | null;
   pages: PageContent[];
   robotsBlockedUrls: string[];
+  /** Per-link crawl decision trace from the homepage + fallback probes. */
+  linkDiagnostics?: LinkDiagnostic[];
   /** How the page text was obtained. */
   crawlMethod: CrawlMethod;
   /** False when a non-JS fetch crawler was used (dynamic content may be missed). */

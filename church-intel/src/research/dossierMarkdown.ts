@@ -17,6 +17,13 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   L.push(`- Official DOM fetched: **${b.officialCrawled ? 'yes' : 'NO — reconstructed from indexed snippets / third-party sources'}**`);
   L.push(`- Best evidence access level: **${b.accessLevel}** → confidence is capped accordingly`);
   L.push(`- Crawl: official DOM fetched **${b.crawl.officialDomFetched ? 'yes' : 'no'}** · rendered DOM used **${b.crawl.renderedDomUsed ? 'yes' : 'no'}** (${b.crawl.crawlMethod}) · raw_text ${b.crawl.rawTextLength} → rendered_text ${b.crawl.renderedTextLength} (gain ×${b.crawl.renderedGainRatio})`);
+  const links = b.crawl.links ?? [];
+  if (links.length) {
+    L.push('- Crawl link trace (anchor → URL · category · selected/fetched · staff/contact signal):');
+    for (const d of links) {
+      L.push(`  - ${d.selected ? '◉' : '○'}${d.fetched ? ' fetched' : ''} [${d.category ?? '—'}] "${(d.anchorText || '').slice(0, 30)}" → ${d.resolvedUrl || d.href}${d.fetched ? ` · text ${d.textLength}${d.hasStaffContactSignal ? ' · staff/contact✓' : ''}` : ''}${d.discovery === 'fallback_probe' ? ' · [probe]' : ''}`);
+    }
+  }
   L.push(`- Lead pastor: ${s.lead_pastor ?? '—'} · Denomination: ${s.denomination ?? '—'} · Lifecycle: **${s.lifecycle_stage}**`);
   L.push(`- ${s.identity_summary}`);
   if (!b.officialCrawled) {

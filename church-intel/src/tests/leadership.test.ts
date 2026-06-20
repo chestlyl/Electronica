@@ -121,12 +121,29 @@ Pastor Dan is the Senior Pastor of Our Finest Hour Church. Jennifer serves along
     for (const bad of ['Pastor Dan', 'of Our', 'and leads', 'Our Pastors', 'Our Staff']) assert.ok(!names.includes(bad), `unexpected leader ${bad}`);
   });
 
-  // Report renders "Lead pastor(s): Dan Zirkle; Jennifer Zirkle" from leadership.
+  // Report renders "Lead pastor(s): Dan Zirkle; Jennifer Zirkle" — but ONLY via the
+  // interpretation layer (Layer 4), which is fed by normalized evidence (Layer 3).
+  // The report no longer reads raw findings / leadership[] for the conclusion.
+  const { normalizeEvidence } = await import('../research/normalize.js');
+  const { interpretDossier } = await import('../research/interpret.js');
   const { build } = await buildCornerstoneOffline();
   const row: any = rowFromBuild({ id: 'our-finest-hour-coweta', name: 'Our Finest Hour', city: 'Broken Arrow', state: 'OK', url: 'https://www.ofhchurch.com/' }, build);
   row.leadership = ofhLeaders;
+  const normalized = normalizeEvidence({ findings: [ofhFinding], facts: {}, leadership: ofhLeaders, techStack: [], strategicSignals: [], conflicts: [] });
+  row.interpretation = interpretDossier({
+    normalized, synthesis: build.synthesis, facts: {}, accessLevel: 'live_official_site',
+    scoreConfidence: build.scoreConfidence, identity: { inputMode: 'known_church', websiteVerificationStatus: 'verified' },
+  });
+  check('OFH: normalized.leaders carries both Zirkles as lead_pastor', () => {
+    const leadNames = normalized.leaders.filter((l) => l.category === 'lead_pastor').map((l) => l.value).sort();
+    assert.deepStrictEqual(leadNames, ['Dan Zirkle', 'Jennifer Zirkle']);
+  });
+  check('OFH: interpretation.lead_pastors references normalized evidence ids', () => {
+    assert.deepStrictEqual(row.interpretation.lead_pastors.value.sort(), ['Dan Zirkle', 'Jennifer Zirkle']);
+    assert.ok(row.interpretation.lead_pastors.evidence_ids.length >= 2);
+  });
   const md = renderCalibrationReport([row], {});
-  check('OFH: report renders "Lead pastor(s): Dan Zirkle; Jennifer Zirkle"', () => {
+  check('OFH: report renders "Lead pastor(s): Dan Zirkle; Jennifer Zirkle" (from interpretation)', () => {
     assert.ok(/Lead pastor\(s\):\*\*\s*Dan Zirkle; Jennifer Zirkle/.test(md), md.split('\n').find((l) => /Lead pastor\(s\)/.test(l)) ?? 'no lead pastor line');
   });
 

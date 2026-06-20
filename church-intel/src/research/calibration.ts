@@ -210,7 +210,9 @@ export function toolFieldsFromBuild(target: ResearchTarget, build: DossierBuild)
     church_name: { value: target.name, confidence: capc(build.identity.identity_confidence || 60) },
     city: { value: target.city, confidence: capc(60) },
     state: { value: target.state, confidence: capc(60) },
-    lead_pastor: { value: s.lead_pastor ?? (build.facts.lead_pastor?.value ?? null), confidence: capc(fe.lead_pastor?.confidence) },
+    // Lead pastor is an INTERPRETATION conclusion (Layer 4), not a raw fact — the
+    // calibration field map surfaces the same value report + enrich consume.
+    lead_pastor: { value: build.interpretation.lead_pastors.value[0] ?? null, confidence: capc(build.interpretation.lead_pastors.confidence || fe.lead_pastor?.confidence) },
     lead_pastor_role: { value: roleConflict?.recommended_value ?? null, confidence: roleConflict?.confidence ?? null },
     executive_pastor: fact('executive_pastor'),
     operations_leader: fact('operations_leader'),

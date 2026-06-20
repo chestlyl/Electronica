@@ -59,6 +59,7 @@ function candidateUrls(findings: SourceFinding[]): string[] {
   for (const f of findings) {
     if (f.url) out.push(f.url);
     for (const d of f.linkDiagnostics ?? []) { if (d.resolvedUrl) out.push(d.resolvedUrl); else if (d.href) out.push(d.href); }
+    for (const l of f.outboundLinks ?? []) { if (l.url) out.push(l.url); }
     for (const x of f.fields) {
       if (x.source_url) out.push(x.source_url);
       if (typeof x.value === 'string' && /^https?:\/\//i.test(x.value)) out.push(x.value);

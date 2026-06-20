@@ -181,20 +181,48 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
       }
     }
 
+    // ── Evidence layers (Layer 2 raw → Layer 3 normalized → Layer 4 conclusions) ─
+    if (r.interpretation) {
+      L.push('### Evidence layers');
+      L.push(`- raw evidence items: ${r.rawEvidenceCount ?? 0}`);
+      if (r.normalizedCounts) {
+        const nz = Object.entries(r.normalizedCounts).filter(([, v]) => v > 0).map(([k, v]) => `${k} ${v}`).join(' · ');
+        L.push(`- normalized evidence: ${nz || 'none'}`);
+      }
+      const I0 = r.interpretation;
+      L.push('### Interpretation (conclusions → evidence)');
+      L.push('| conclusion | value | confidence | evidence ids | reason |');
+      L.push('|---|---|---|---|---|');
+      const crow = (label: string, c: { value: unknown; confidence: number; evidence_ids: string[]; reason: string }) =>
+        L.push(`| ${label} | ${Array.isArray(c.value) ? (c.value.join('; ') || '—') : (c.value ?? '—')} | ${Math.round(c.confidence)} | ${c.evidence_ids.join(', ') || '—'} | ${(c.reason || '').slice(0, 70).replace(/\|/g, '/')} |`);
+      crow('lead_pastors', I0.lead_pastors);
+      crow('office_email', I0.office_email);
+      crow('office_phone', I0.office_phone);
+      crow('lifecycle_stage', I0.lifecycle_stage);
+      crow('archetype', I0.archetype);
+      crow('contactability', I0.contactability_score);
+      L.push(`- known_church_verified: **${I0.known_church_verified}**`);
+    }
+
     L.push('### Contacts');
-    // Lead pastor(s): aggregated, supports co-lead / multiple lead pastors.
-    const leads = (r.leadership ?? []).filter((l) => l.isLead);
-    const leadNames = leads.length ? leads.map((l) => l.name).join('; ') : (f.lead_pastor?.value != null ? String(f.lead_pastor.value) : '');
-    L.push(`- **Lead pastor(s):** ${leadNames || '—'}`);
+    // CONCLUSIONS come from the interpretation layer (the SAME object enrich
+    // consumes) — the report never re-derives leadership from raw findings.
+    const I = r.interpretation;
+    const leadNames = I ? I.lead_pastors.value.join('; ') : '';
+    const leadConf = I ? Math.round(I.lead_pastors.confidence) : '—';
+    const emailVal = I ? (I.office_email.value ?? '—') : val(f.office_email);
+    const phoneVal = I ? (I.office_phone.value ?? '—') : val(f.office_phone);
+    L.push(`- **Lead pastor(s):** ${leadNames || '—'}${I && I.lead_pastors.evidence_ids.length ? ` _(evidence: ${I.lead_pastors.evidence_ids.join(', ')})_` : ''}`);
     L.push('| role | name | email | phone | confidence |');
     L.push('|---|---|---|---|---|');
-    const leadConf = leads.length ? Math.round(Math.max(...leads.map((l) => l.confidence))) : (f.lead_pastor?.confidence != null ? Math.round(f.lead_pastor.confidence) : '—');
-    L.push(`| Lead pastor(s) | ${leadNames || '—'} | ${val(f.office_email)} | ${val(f.office_phone)} | ${leadConf} |`);
-    const contactRow = (role: string, label: string) => `| ${label} | ${val(f[role])} | — | — | ${f[role]?.confidence != null ? Math.round(f[role]!.confidence!) : '—'} |`;
-    L.push(contactRow('executive_pastor', 'Executive pastor'));
-    L.push(contactRow('operations_leader', 'Operations leader'));
-    L.push(contactRow('communications_leader', 'Communications leader'));
-    L.push(`- office email: ${withConf(f.office_email)} · office phone: ${withConf(f.office_phone)} _(church-level, not person-specific)_`);
+    L.push(`| Lead pastor(s) | ${leadNames || '—'} | ${emailVal} | ${phoneVal} | ${leadConf} |`);
+    const roleConc = (k: 'executive_pastor' | 'operations_leader' | 'communications_leader', label: string) =>
+      `| ${label} | ${I ? (I[k].value ?? '—') : val(f[k])} | — | — | ${I ? (I[k].value ? Math.round(I[k].confidence) : '—') : (f[k]?.confidence != null ? Math.round(f[k]!.confidence!) : '—')} |`;
+    L.push(roleConc('executive_pastor', 'Executive pastor'));
+    L.push(roleConc('operations_leader', 'Operations leader'));
+    L.push(roleConc('communications_leader', 'Communications leader'));
+    L.push(`- office email: ${emailVal} · office phone: ${phoneVal} _(church-level, not person-specific)_`);
+    // Evidence display: all leader candidates (Layer-3 normalized roster).
     if (r.leadership && r.leadership.length) {
       L.push('- all leaders found: ' + r.leadership.map((l) => `${l.name} (${l.title}${l.isLead ? ', LEAD' : ''})`).join('; '));
     }

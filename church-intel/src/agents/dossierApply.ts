@@ -102,6 +102,9 @@ export async function applyDossierToChurch(ctx: AgentContext, church: Church, bu
 
   const officialUrl = build.officialSite ?? undefined;
   const f = build.facts;
+  // CONCLUSIONS come from the interpretation layer — the SAME object the report
+  // consumes. Enrich and report can never diverge on leadership/contacts.
+  const I = build.interpretation;
 
   // website (normal): only on a confident identity match.
   if (build.identity.identityVerdict === 'true_match' && build.identity.officialSite) {
@@ -119,14 +122,16 @@ export async function applyDossierToChurch(ctx: AgentContext, church: Church, bu
   await applyField('denomination', s.denomination, confOf('denomination') ?? capConfidence(65, build.accessLevel), false,
     'Denomination from dossier synthesis', sources([officialUrl]));
 
-  // contacts/relationships (rule 4 → review unless very high)
-  await applyField('lead_pastor', s.lead_pastor ?? (f.lead_pastor?.value as string ?? null),
-    confOf('lead_pastor'), true, 'Lead pastor (contact)', sources([f.lead_pastor?.source_url, officialUrl]));
-  await applyField('email_verified', (f.office_email?.value as string) ?? null,
-    f.office_email ? confOf('office_email') ?? f.office_email.confidence : null, true,
+  // contacts/relationships (rule 4 → review unless very high) — from interpretation.
+  // Co-lead pastors are preserved (joined), not collapsed to a first match.
+  await applyField('lead_pastor', I.lead_pastors.value.length ? I.lead_pastors.value.join('; ') : null,
+    I.lead_pastors.value.length ? I.lead_pastors.confidence : null, true,
+    `Lead pastor(s) (contact) — evidence ${I.lead_pastors.evidence_ids.join(', ') || 'synthesis'}`, sources([f.lead_pastor?.source_url, officialUrl]));
+  await applyField('email_verified', I.office_email.value,
+    I.office_email.value ? I.office_email.confidence : null, true,
     'Public office email', sources([f.office_email?.source_url]));
-  await applyField('phone_verified', (f.office_phone?.value as string) ?? null,
-    f.office_phone ? confOf('office_phone') ?? f.office_phone.confidence : null, true,
+  await applyField('phone_verified', I.office_phone.value,
+    I.office_phone.value ? I.office_phone.confidence : null, true,
     'Public office phone', sources([f.office_phone?.source_url]));
 
   // structure (normal)

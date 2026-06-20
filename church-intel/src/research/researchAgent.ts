@@ -11,6 +11,9 @@ import { extractFacts, aggregateLeadership, debugExtractionTrace, type Facts, ty
 import { detectDigitalSignals, digitalEvidenceSummary, type DigitalSignals } from './digitalSignals.js';
 import { detectTechStack, type PlatformHit } from './techStack.js';
 import { detectStrategicSignals, dimensionCounts, type StrategicSignal, type Dimension } from './strategicSignals.js';
+import { toRawEvidence, normalizeEvidence } from './normalize.js';
+import { interpretDossier } from './interpret.js';
+import { normalizedCounts, type RawEvidence, type NormalizedEvidence, type Interpretation } from './evidenceModel.js';
 import { computeCoverage, scoreConfidence, contactabilityConfidence, computeSourceCoverage, sourceCoverageSummary, type CoverageRow, type ScoreConfidence, type SourceCoverageRow } from './coverage.js';
 import { dossierSynthesisPrompt, type DossierSynthesis } from '../claude/dossierPrompt.js';
 import { logger } from '../lib/logger.js';
@@ -61,6 +64,12 @@ export interface DossierBuild {
   strategicSignals: StrategicSignal[];
   /** Count of strategic signals supporting each of the five dimensions. */
   strategicDimensionCounts: Record<Dimension, number>;
+  /** Layer 2 — raw evidence (collected, no interpretation). */
+  raw: RawEvidence[];
+  /** Layer 3 — normalized evidence tables (structured, no conclusions). */
+  normalized: NormalizedEvidence;
+  /** Layer 4 — the ONLY conclusions; report + enrich consume this same object. */
+  interpretation: Interpretation;
   scoreConfidence: Record<string, ScoreConfidence>;
   tokens: number;
   cost: number;
@@ -296,6 +305,16 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     contactability: contactabilityConfidence(coverage),
   };
 
+  // ── Layers 2→3→4: raw evidence → normalized tables → interpretation ────────
+  // Conclusions are produced ONLY here (interpretDossier), from normalized
+  // evidence — never from raw page text. Report + enrich consume `interpretation`.
+  const raw = toRawEvidence(findings);
+  const normalized = normalizeEvidence({ findings, facts, leadership, techStack, strategicSignals, conflicts });
+  const interpretation = interpretDossier({
+    normalized, synthesis, facts, accessLevel, scoreConfidence: scoreConf,
+    identity: { inputMode: identity.inputMode, websiteVerificationStatus: identity.websiteVerificationStatus, identityVerdict: identity.identityVerdict },
+  });
+
   // ── TEMPORARY INSTRUMENTATION (DOSSIER_DEBUG) — trace where contacts vanish ──
   if (process.env.DOSSIER_DEBUG) {
     logger.info(`\n══ DOSSIER_DEBUG: ${target.name} ══`);
@@ -330,12 +349,25 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
       logger.info(`    [${s.access_level}] ${s.category} · "${s.anchor_text.slice(0, 24)}" → ${s.host} (conf ${s.confidence}) · dims: ${s.dimensions.join(',')}`);
     }
     logger.info(`— strategic dimension counts: ${JSON.stringify(strategicDimensionCounts)}`);
+
+    // ── LAYER TRACE: raw → normalized → interpretation (with evidence ids) ────
+    logger.info('— LAYER TRACE (Layer 2 raw → Layer 3 normalized → Layer 4 interpretation) —');
+    logger.info(`  raw evidence items: ${raw.length}`);
+    logger.info(`  normalized counts: ${JSON.stringify(normalizedCounts(normalized))}`);
+    const c2 = (k: string, v: { value: unknown; confidence: number; evidence_ids: string[]; reason: string }) =>
+      logger.info(`  interpret.${k} = ${JSON.stringify(v.value)} (conf ${v.confidence}) ⇐ [${v.evidence_ids.join(', ') || 'none'}] · ${v.reason}`);
+    c2('lead_pastors', interpretation.lead_pastors);
+    c2('office_email', interpretation.office_email);
+    c2('office_phone', interpretation.office_phone);
+    c2('archetype', interpretation.archetype);
+    c2('contactability_score', interpretation.contactability_score);
+    logger.info(`  interpret.known_church_verified = ${interpretation.known_church_verified}`);
   }
 
   return {
     identity, findings, conflicts, contamination, synthesis, facts, leadership, dossier, strategic,
     fieldEstimates, officialSite, accessLevel, officialCrawled, crawl, coverage, sourceCoverage, digital, techStack,
-    strategicSignals, strategicDimensionCounts, scoreConfidence: scoreConf,
+    strategicSignals, strategicDimensionCounts, raw, normalized, interpretation, scoreConfidence: scoreConf,
     tokens: usage.inputTokens + usage.outputTokens,
     cost: usage.costEstimate,
   };

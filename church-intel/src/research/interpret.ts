@@ -1,0 +1,212 @@
+import { capForAccess } from './dossier.js';
+import {
+  type Conclusion,
+  type Interpretation,
+  type NormalizedEvidence,
+  type NormalizedRow,
+} from './evidenceModel.js';
+import type { Facts } from './extractors.js';
+import type { Cell, FieldMap } from './calibration.js';
+import type { ScoreConfidence } from './coverage.js';
+import type { DossierSynthesis } from '../claude/dossierPrompt.js';
+import type { EvidenceAccessLevel } from '../types.js';
+
+/**
+ * Layer 4 — Interpretation.
+ *
+ * THE ONLY layer that produces conclusions. It reasons exclusively from
+ * NormalizedEvidence (+ the synthesis as a supporting opinion), never from raw
+ * webpage text. Every conclusion references the normalized rows it rests on, so
+ * report and enrich can consume the SAME Interpretation and never diverge.
+ */
+
+// ── report-only derivations (moved here from calibrationSet so conclusions live
+//    in the interpretation layer; re-exported by calibrationSet for compat) ────
+export interface Derived { value: string; confidence: number; evidence: string; }
+
+function num(c: Cell | undefined): number | null {
+  if (!c || c.value == null) return null;
+  if (typeof c.value === 'number') return c.value;
+  const n = parseFloat(String(c.value).replace(/[^0-9.\-]/g, ''));
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Report-only church archetype derived from interpreted/size fields. */
+export function deriveArchetype(fields: FieldMap, accessLevel: string): Derived {
+  const att = num(fields.avg_weekly_attendance);
+  const online = num(fields.online_attendance_estimate);
+  const campuses = num(fields.campus_count);
+  const digital = num(fields.digital_maturity_score) ?? 0;
+  const growth = num(fields.growth_orientation_score) ?? 0;
+  const stage = String(fields.lifecycle_stage?.value ?? '');
+  const cap = capForAccess(accessLevel as EvidenceAccessLevel);
+
+  const ev: string[] = [];
+  if (att != null) ev.push(`attendance≈${att}`);
+  if (campuses != null) ev.push(`campuses=${campuses}`);
+  if (stage) ev.push(`lifecycle=${stage}`);
+  ev.push(`digital=${digital}`, `growth=${growth}`);
+
+  let value = 'Unclassified';
+  if (stage === 'relaunch_revitalization') value = 'Revitalization Church';
+  else if (online != null && att != null && att > 0 && online >= 2 * att && digital >= 70) value = 'Influence Platform';
+  else if (campuses != null && campuses >= 2) value = 'Multi-Campus Church';
+  else if (att != null && att >= 2000) value = (stage === 'plateaued' || stage === 'declining') ? 'Plateaued Mega Church' : (growth >= 60 ? 'Growth Church' : 'Healthy Regional Church');
+  else if (att != null && att >= 500) value = growth >= 60 ? 'Growth Church' : (stage === 'plateaued' || stage === 'declining' ? 'Institutional Church' : 'Healthy Regional Church');
+  else if (stage === 'plant' || (att != null && att < 200 && growth >= 55)) value = 'Church Plant';
+  else if (att != null && att < 500) value = stage === 'declining' ? 'Reverting Church' : 'Legacy Church';
+
+  if (value === 'Unclassified') {
+    if (stage === 'plant') value = 'Church Plant';
+    else if (stage === 'growing') value = 'Growth Church';
+    else if (stage === 'plateaued') value = 'Institutional Church';
+    else if (stage === 'declining') value = 'Reverting Church';
+    else if (stage === 'established') value = 'Healthy Regional Church';
+  }
+
+  let conf = 30;
+  if (att != null) conf += 20;
+  if (campuses != null) conf += 10;
+  if (stage) conf += 10;
+  return { value, confidence: Math.min(conf, cap), evidence: ev.join(', ') };
+}
+
+/** Report-only contactability score: weighted completeness of relationship data. */
+export function deriveContactability(scoreConf: ScoreConfidence | undefined, fields: FieldMap, accessLevel: string): Derived {
+  const has = (k: string) => fields[k]?.value != null && fields[k]?.value !== '';
+  const cap = capForAccess(accessLevel as EvidenceAccessLevel);
+  const parts: { key: string; w: number; label: string }[] = [
+    { key: 'lead_pastor', w: 30, label: 'lead pastor' },
+    { key: 'executive_pastor', w: 15, label: 'exec pastor' },
+    { key: 'operations_leader', w: 10, label: 'operations' },
+    { key: 'communications_leader', w: 10, label: 'communications' },
+    { key: 'office_email', w: 20, label: 'email' },
+    { key: 'office_phone', w: 15, label: 'phone' },
+  ];
+  let score = 0;
+  const found: string[] = [];
+  const missing: string[] = [];
+  for (const p of parts) {
+    if (has(p.key)) { score += p.w; found.push(p.label); } else missing.push(p.label);
+  }
+  const evidence = `found: ${found.join(', ') || 'none'}${missing.length ? ` · missing: ${missing.join(', ')}` : ''}`;
+  const confidence = Math.min(scoreConf?.confidence ?? 60, cap);
+  return { value: String(score), confidence, evidence: scoreConf?.reason ? `${evidence} · ${scoreConf.reason}` : evidence };
+}
+
+// ── interpretation ───────────────────────────────────────────────────────────
+export interface InterpretInput {
+  normalized: NormalizedEvidence;
+  synthesis: DossierSynthesis;
+  facts: Facts;
+  accessLevel: EvidenceAccessLevel;
+  scoreConfidence: Record<string, ScoreConfidence>;
+  identity: { inputMode?: string; websiteVerificationStatus?: string; identityVerdict?: string };
+}
+
+const DIMENSION_FOR_SCORE: Record<string, string> = {
+  digital_maturity_score: 'digital_maturity',
+  growth_orientation_score: 'growth_orientation',
+  change_readiness_score: 'change_readiness',
+  staff_depth_score: 'organizational_capacity',
+};
+
+export function interpretDossier(input: InterpretInput): Interpretation {
+  const { normalized, synthesis, facts, accessLevel, scoreConfidence, identity } = input;
+  const cap = (n: number) => Math.min(Math.max(0, Math.round(n)), capForAccess(accessLevel));
+
+  const mk = <T,>(value: T, confidence: number, ids: string[], reason: string, lvl: EvidenceAccessLevel = accessLevel): Conclusion<T> =>
+    ({ value, confidence: cap(confidence), evidence_ids: ids, reason, access_level: lvl });
+
+  const bestAccessOf = (rows: NormalizedRow[]): EvidenceAccessLevel => rows[0]?.access_level ?? accessLevel;
+
+  // ── leadership (from normalized leaders, NOT first-match facts) ────────────
+  const leadRows = normalized.leaders.filter((l) => l.category === 'lead_pastor');
+  const lead_pastors: Conclusion<string[]> = leadRows.length
+    ? mk(dedupe(leadRows.map((l) => l.value)), Math.max(...leadRows.map((l) => l.confidence)),
+        leadRows.map((l) => l.id),
+        `Named (co-)lead pastor(s) in normalized evidence: ${leadRows.map((l) => `${l.value} (${l.detail})`).join('; ')}.`,
+        bestAccessOf(leadRows))
+    // compat fallback: synthesis opinion only when NO normalized leader exists.
+    : mk(synthesis.lead_pastor ? [synthesis.lead_pastor] : [], synthesis.lead_pastor ? 45 : 0, [],
+        synthesis.lead_pastor ? 'From synthesis opinion (no normalized leader rows).' : 'No leader evidence.');
+
+  const roleConclusion = (role: string): Conclusion<string | null> => {
+    const row = normalized.leaders.find((l) => l.category === role);
+    return row
+      ? mk<string | null>(row.value, row.confidence, [row.id], `${role} in normalized evidence: ${row.value} (${row.detail}).`, row.access_level)
+      : mk<string | null>(null, 0, [], `No ${role} found in normalized evidence.`);
+  };
+
+  // ── contacts (from normalized contacts) ───────────────────────────────────
+  const contactConclusion = (category: string): Conclusion<string | null> => {
+    const row = normalized.contacts.find((c) => c.category === category);
+    return row
+      ? mk<string | null>(row.value, row.confidence, [row.id], `Public office ${category} from normalized evidence.`, row.access_level)
+      : mk<string | null>(null, 0, [], `No office ${category} in normalized evidence.`);
+  };
+  const office_email = contactConclusion('email');
+  const office_phone = contactConclusion('phone');
+
+  // ── scores (kept from synthesis for now; referenced to external signals) ──
+  const scoreConclusion = (key: keyof DossierSynthesis): Conclusion<number | null> => {
+    const value = (synthesis[key] as number | null) ?? null;
+    const dim = DIMENSION_FOR_SCORE[key as string];
+    const ids = dim ? normalized.external_signals.filter((s) => (s.detail ?? '').includes(dim)).map((s) => s.id) : [];
+    const sc = scoreConfidence[key as string];
+    const reason = value == null
+      ? 'Insufficient evidence — no synthesized score.'
+      : `${sc?.tier ?? 'synthesized'} (${sc?.reason ?? 'from synthesis'})${ids.length ? ` · ${ids.length} supporting external signal(s)` : ''}`;
+    return mk<number | null>(value, sc?.confidence ?? (value == null ? 0 : 50), ids, reason);
+  };
+
+  // ── archetype + contactability (report-only derivations, now interpreted) ──
+  const archFields: FieldMap = {
+    avg_weekly_attendance: { value: synthesis.attendance_estimate, confidence: null },
+    online_attendance_estimate: { value: synthesis.online_attendance_estimate, confidence: null },
+    campus_count: { value: facts.campus_count?.value ?? null, confidence: null },
+    digital_maturity_score: { value: synthesis.digital_maturity_score, confidence: null },
+    growth_orientation_score: { value: synthesis.growth_orientation_score, confidence: null },
+    lifecycle_stage: { value: synthesis.lifecycle_stage, confidence: null },
+  };
+  const arch = deriveArchetype(archFields, accessLevel);
+
+  const contactFields: FieldMap = {
+    lead_pastor: { value: lead_pastors.value[0] ?? null, confidence: null },
+    executive_pastor: { value: roleConclusion('executive_pastor').value, confidence: null },
+    operations_leader: { value: roleConclusion('operations_leader').value, confidence: null },
+    communications_leader: { value: roleConclusion('communications_leader').value, confidence: null },
+    office_email: { value: office_email.value, confidence: null },
+    office_phone: { value: office_phone.value, confidence: null },
+  };
+  const contact = deriveContactability(scoreConfidence.contactability, contactFields, accessLevel);
+
+  const known_church_verified = identity.inputMode === 'known_church' &&
+    (identity.websiteVerificationStatus === 'verified' || identity.identityVerdict === 'true_match');
+
+  return {
+    lead_pastors,
+    executive_pastor: roleConclusion('executive_pastor'),
+    operations_leader: roleConclusion('operations_leader'),
+    communications_leader: roleConclusion('communications_leader'),
+    office_email,
+    office_phone,
+    denomination: mk<string | null>(synthesis.denomination, synthesis.denomination ? 60 : 0, [], 'From synthesis (denomination).'),
+    attendance_estimate: mk<number | null>(synthesis.attendance_estimate, synthesis.attendance_confidence, [], synthesis.lifecycle_summary || 'From synthesis (attendance).'),
+    lifecycle_stage: mk<string>(synthesis.lifecycle_stage, 60, [], synthesis.lifecycle_summary || 'From synthesis (lifecycle).'),
+    archetype: mk<string>(arch.value, arch.confidence, [], arch.evidence),
+    digital_maturity_score: scoreConclusion('digital_maturity_score'),
+    growth_orientation_score: scoreConclusion('growth_orientation_score'),
+    change_readiness_score: scoreConclusion('change_readiness_score'),
+    staff_depth_score: scoreConclusion('staff_depth_score'),
+    contactability_score: mk<number>(Number(contact.value), contact.confidence, [], contact.evidence),
+    known_church_verified,
+  };
+}
+
+function dedupe(xs: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const x of xs) { const k = x.toLowerCase(); if (!seen.has(k)) { seen.add(k); out.push(x); } }
+  return out;
+}

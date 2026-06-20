@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { capForAccess } from './dossier.js';
 import { toolFieldsFromBuild, type Cell, type FieldMap } from './calibration.js';
+import { digitalEvidenceSummary } from './digitalSignals.js';
 import type { DossierBuild, ResearchTarget } from './researchAgent.js';
 import type { LinkDiagnostic } from './types.js';
+import type { CoverageRow } from './coverage.js';
 
 export interface CalibrationEntry {
   id: string;
@@ -109,8 +111,11 @@ export function deriveContactability(build: DossierBuild, fields: FieldMap, acce
     if (has(p.key)) { score += p.w; found.push(p.label); } else missing.push(p.label);
   }
   const evidence = `found: ${found.join(', ') || 'none'}${missing.length ? ` · missing: ${missing.join(', ')}` : ''}`;
-  // Confidence reflects how the contacts were sourced (capped by access level).
-  return { value: String(score), confidence: Math.min(60, cap), evidence };
+  // Confidence is coverage-aware (capped by access level): it reflects whether
+  // the contact/staff evidence the score depends on was actually collected.
+  const sc = build.scoreConfidence?.contactability;
+  const confidence = Math.min(sc?.confidence ?? 60, cap);
+  return { value: String(score), confidence, evidence: sc?.reason ? `${evidence} · ${sc.reason}` : evidence };
 }
 
 export interface CalibrationConflict {
@@ -136,6 +141,9 @@ export interface CalibrationRow {
   contactability: Derived;
   lifecycle: { value: string; confidence: number; evidence: string };
   crawl: { officialDomFetched: boolean; renderedDomUsed: boolean; crawlMethod: string; rawTextLength: number; renderedTextLength: number; renderedGainRatio: number; links: LinkDiagnostic[] };
+  coverage: CoverageRow[];
+  digitalSummary: string;
+  scoreNotes: Record<string, { confidence: number; tier: string; reason: string }>;
   generatedAt: string;
 }
 
@@ -162,6 +170,9 @@ export function rowFromBuild(entry: CalibrationEntry, build: DossierBuild): Cali
     contactability: deriveContactability(build, fields, build.accessLevel),
     lifecycle: { value: lifecycleDisplay(String(s.lifecycle_stage)), confidence: lifecycleConf, evidence: s.lifecycle_summary },
     crawl: build.crawl,
+    coverage: build.coverage,
+    digitalSummary: digitalEvidenceSummary(build.digital),
+    scoreNotes: Object.fromEntries(Object.entries(build.scoreConfidence).map(([k, v]) => [k, { confidence: v.confidence, tier: v.tier, reason: v.reason }])),
     generatedAt: new Date().toISOString(),
   };
 }

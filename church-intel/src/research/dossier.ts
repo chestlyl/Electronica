@@ -89,6 +89,7 @@ export interface SourceFinding {
   title?: string;
   fetched: boolean;         // did we retrieve real page content, or only a snippet?
   status: number;
+  category?: string;        // page category for coverage (home|staff|contact|about|...)
   text?: string;
   snippet?: string;
   reliability: number;      // 0..1

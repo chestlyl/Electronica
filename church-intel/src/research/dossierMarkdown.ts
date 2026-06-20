@@ -1,3 +1,4 @@
+import { digitalEvidenceSummary } from './digitalSignals.js';
 import type { DossierBuild, ResearchTarget } from './researchAgent.js';
 
 function fmtPct(n: number | null | undefined): string {
@@ -24,6 +25,9 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
       L.push(`  - ${d.selected ? '◉' : '○'}${d.fetched ? ' fetched' : ''} [${d.category ?? '—'}] "${(d.anchorText || '').slice(0, 30)}" → ${d.resolvedUrl || d.href}${d.fetched ? ` · text ${d.textLength}${d.hasStaffContactSignal ? ' · staff/contact✓' : ''}` : ''}${d.discovery === 'fallback_probe' ? ' · [probe]' : ''}`);
     }
   }
+  const covLine = (b.coverage ?? []).map((c) => `${c.category}${c.useful ? '✓' : c.fetched ? '~' : '✗'}`).join(' ');
+  if (covLine) L.push(`- Coverage (✓ useful / ~ fetched / ✗ missing): ${covLine}`);
+  if (b.digital) L.push(`- Digital signals: ${digitalEvidenceSummary(b.digital)}`);
   L.push(`- Lead pastor: ${s.lead_pastor ?? '—'} · Denomination: ${s.denomination ?? '—'} · Lifecycle: **${s.lifecycle_stage}**`);
   L.push(`- ${s.identity_summary}`);
   if (!b.officialCrawled) {

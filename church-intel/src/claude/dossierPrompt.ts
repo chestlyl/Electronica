@@ -196,6 +196,7 @@ RULES:
     officialSite: string | null; officialCrawled: boolean; renderedDomUsed?: boolean;
     findings: SourceFinding[]; conflicts: ResearchConflict[]; contamination: string[];
     facts?: Record<string, { value: string | number | boolean; confidence: number; source_url: string }>;
+    digital?: string;
   }): string {
     const factLines = opts.facts && Object.keys(opts.facts).length
       ? Object.entries(opts.facts).map(([k, v]) => `- ${k} = ${v.value} (conf ${v.confidence}, ${v.source_url})`).join('\n')
@@ -213,6 +214,9 @@ ${opts.contamination.length ? opts.contamination.map((c) => `- ${c}`).join('\n')
 
 DETERMINISTIC EXTRACTIONS (regex over the evidence — confirm or override these):
 ${factLines}
+
+DIGITAL SIGNALS DETECTED (evidence for digital_maturity — weigh, do not fabricate beyond these):
+- ${opts.digital ?? 'not assessed'}
 
 EVIDENCE (${opts.findings.length} findings):
 ${renderFindings(opts.findings)}

@@ -236,10 +236,11 @@ export function toolFieldsFromBuild(target: ResearchTarget, build: DossierBuild)
     instagram_followers: { value: extracted('instagram_followers'), confidence: capc(60) },
     facebook_followers: { value: extracted('facebook_followers'), confidence: capc(60) },
     online_giving_present: fact('online_giving_present'),
-    change_readiness_score: { value: st.change_readiness_score ?? null, confidence: build.dossier.research_confidence },
-    digital_maturity_score: { value: st.digital_maturity_score ?? null, confidence: build.dossier.research_confidence },
-    growth_orientation_score: { value: st.growth_orientation_score ?? null, confidence: build.dossier.research_confidence },
-    staff_depth_score: { value: st.staff_depth_score ?? null, confidence: build.dossier.research_confidence },
+    // Score VALUES are unchanged (from synthesis); CONFIDENCE is coverage-aware.
+    change_readiness_score: { value: st.change_readiness_score ?? null, confidence: capc(build.scoreConfidence.change_readiness_score?.confidence) },
+    digital_maturity_score: { value: st.digital_maturity_score ?? null, confidence: capc(build.scoreConfidence.digital_maturity_score?.confidence) },
+    growth_orientation_score: { value: st.growth_orientation_score ?? null, confidence: capc(build.scoreConfidence.growth_orientation_score?.confidence) },
+    staff_depth_score: { value: st.staff_depth_score ?? null, confidence: capc(build.scoreConfidence.staff_depth_score?.confidence) },
     evidence_access_level: { value: build.accessLevel, confidence: 90 },
     identity_contamination_flag: { value: st.identity_contamination_flag ?? false, confidence: 80 },
   };

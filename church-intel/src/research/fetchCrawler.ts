@@ -12,8 +12,7 @@ import type {
   ResearchProvider,
 } from './types.js';
 
-/** Well-known staff/contact paths to probe when the homepage crawl found none. */
-const COMMON_STAFF_CONTACT_PATHS = ['/staff', '/team', '/leadership', '/about', '/contact', '/connect'];
+/** Upper bound on fallback path probes (minimum-coverage, not exhaustive). */
 const FALLBACK_MAX_PROBES = 6;
 
 const SIGNAL_EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
@@ -202,23 +201,32 @@ export class FetchResearch implements ResearchProvider {
         }
       }
 
-      // Targeted fallback: if NOTHING fetched so far yields staff/contact data,
-      // probe well-known paths before giving up. This rescues JS-rendered nav
-      // (links absent from raw HTML, e.g. /staff) and unlinked staff pages.
-      const haveData = pages.some((p) => p.ok && hasStaffContactSignal(pageSignalText(p)));
-      if (home?.ok && !haveData) {
+      // Minimum-evidence coverage: ensure the REQUIRED categories (staff,
+      // contact, about) were attempted. Probe well-known paths for any required
+      // category not already fetched via homepage links. Bounded by
+      // FALLBACK_MAX_PROBES — this is minimum coverage, NOT exhaustive crawling.
+      if (home?.ok) {
+        const fetchedCats = new Set(pages.filter((p) => p.ok).map((p) => p.category));
+        const required: { covered: () => boolean; fallbackCat: string; paths: string[] }[] = [
+          { covered: () => fetchedCats.has('staff') || fetchedCats.has('leadership'), fallbackCat: 'staff', paths: ['/staff', '/team', '/leadership', '/our-team'] },
+          { covered: () => fetchedCats.has('contact'), fallbackCat: 'contact', paths: ['/contact', '/connect'] },
+          { covered: () => fetchedCats.has('about'), fallbackCat: 'about', paths: ['/about', '/about-us', '/who-we-are'] },
+        ];
         const already = new Set<string>(pages.flatMap((p) => [p.url, p.finalUrl]));
         let probes = 0;
-        for (const path of COMMON_STAFF_CONTACT_PATHS) {
-          if (probes >= FALLBACK_MAX_PROBES) break;
-          const url = origin + path;
-          if (already.has(url)) continue;
-          probes++;
-          const category = categorizeLink(path, '') ?? 'contact';
-          const pc = await visit(url, category, true); // bypass maxPages — bounded by FALLBACK_MAX_PROBES
-          const signal = !!pc?.ok && hasStaffContactSignal(pageSignalText(pc));
-          linkDiagnostics.push({ anchorText: '(probe)', href: path, resolvedUrl: url, sameOrigin: true, category, selected: true, fetched: !!pc?.ok, textLength: pc?.ok ? (pc.text?.length ?? 0) : 0, hasStaffContactSignal: signal, discovery: 'fallback_probe', crawlMethod: pc?.crawlMethod, rawTextLength: pc?.rawTextLength, gainRatio: pc?.renderedGainRatio, staffNames: pc?.staffNamesDetected, staffRoles: pc?.staffRolesDetected });
-          if (signal) break; // found staff/contact data — stop probing
+        for (const req of required) {
+          if (req.covered() || probes >= FALLBACK_MAX_PROBES) continue;
+          for (const path of req.paths) {
+            if (probes >= FALLBACK_MAX_PROBES) break;
+            const url = origin + path;
+            if (already.has(url)) continue;
+            probes++;
+            const category = categorizeLink(path, '') ?? req.fallbackCat;
+            const pc = await visit(url, category, true); // bypass maxPages — bounded by FALLBACK_MAX_PROBES
+            const signal = !!pc?.ok && hasStaffContactSignal(pageSignalText(pc));
+            linkDiagnostics.push({ anchorText: '(probe)', href: path, resolvedUrl: url, sameOrigin: true, category, selected: true, fetched: !!pc?.ok, textLength: pc?.ok ? (pc.text?.length ?? 0) : 0, hasStaffContactSignal: signal, discovery: 'fallback_probe', crawlMethod: pc?.crawlMethod, rawTextLength: pc?.rawTextLength, gainRatio: pc?.renderedGainRatio, staffNames: pc?.staffNamesDetected, staffRoles: pc?.staffRolesDetected });
+            if (pc?.ok) { fetchedCats.add(pc.category ?? category); already.add(pc.url); already.add(pc.finalUrl); break; } // category covered — move on
+          }
         }
       }
 

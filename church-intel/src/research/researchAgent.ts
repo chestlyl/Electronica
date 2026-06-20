@@ -8,6 +8,8 @@ import {
 import { collectWebsite } from './sources/website.js';
 import { collectSnippets } from './sources/snippets.js';
 import { extractFacts, debugExtractionTrace, type Facts } from './extractors.js';
+import { detectDigitalSignals, digitalEvidenceSummary, type DigitalSignals } from './digitalSignals.js';
+import { computeCoverage, scoreConfidence, contactabilityConfidence, type CoverageRow, type ScoreConfidence } from './coverage.js';
 import { dossierSynthesisPrompt, type DossierSynthesis } from '../claude/dossierPrompt.js';
 import { logger } from '../lib/logger.js';
 import type { LlmProvider } from '../claude/client.js';
@@ -46,6 +48,9 @@ export interface DossierBuild {
   accessLevel: EvidenceAccessLevel;
   officialCrawled: boolean;
   crawl: CrawlDiagnostics;
+  coverage: CoverageRow[];
+  digital: DigitalSignals;
+  scoreConfidence: Record<string, ScoreConfidence>;
   tokens: number;
   cost: number;
 }
@@ -177,12 +182,17 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     links: liveFindings.find((f) => f.linkDiagnostics)?.linkDiagnostics ?? [],
   };
 
+  // Minimum-evidence coverage + digital-maturity evidence (diagnostic; feeds
+  // honest confidence + the synthesis prompt — does not change score formulas).
+  const digital = detectDigitalSignals(findings);
+  const coverage = computeCoverage(findings, crawl.links, facts, digital);
+
   const { data: synthesis, usage } = await deps.llm.extractJson<DossierSynthesis>({
     system: dossierSynthesisPrompt.system,
     user: dossierSynthesisPrompt.user({
       name: target.name, city: target.city, state: target.state,
       officialSite: identity.officialSite, officialCrawled, renderedDomUsed: crawl.renderedDomUsed,
-      findings, conflicts, contamination, facts,
+      findings, conflicts, contamination, facts, digital: digitalEvidenceSummary(digital),
     }),
     schema: dossierSynthesisPrompt.schema,
     maxTokens: 2200,
@@ -215,9 +225,9 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   }
 
   const types = new Set(findings.map((f) => f.sourceType)).size;
-  const coverage = Math.min(types / 8, 1);
+  const typeCoverage = Math.min(types / 8, 1);
   const research_confidence = capConfidence(
-    clamp(coverage * 55 + (officialCrawled ? 25 : 0) + (findings.length >= 5 ? 15 : 5) - conflicts.length * 4),
+    clamp(typeCoverage * 55 + (officialCrawled ? 25 : 0) + (findings.length >= 5 ? 15 : 5) - conflicts.length * 4),
     accessLevel,
   );
 
@@ -256,6 +266,15 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     online_attendance_confidence: capConfidence(synthesis.online_attendance_confidence, accessLevel),
   };
 
+  // Coverage-aware confidence for each strategic score (values unchanged).
+  const scoreConf: Record<string, ScoreConfidence> = {
+    growth_orientation_score: scoreConfidence('growth_orientation_score', coverage, digital),
+    digital_maturity_score: scoreConfidence('digital_maturity_score', coverage, digital),
+    change_readiness_score: scoreConfidence('change_readiness_score', coverage, digital),
+    staff_depth_score: scoreConfidence('staff_depth_score', coverage, digital),
+    contactability: contactabilityConfidence(coverage),
+  };
+
   // ── TEMPORARY INSTRUMENTATION (DOSSIER_DEBUG) — trace where contacts vanish ──
   if (process.env.DOSSIER_DEBUG) {
     logger.info(`\n══ DOSSIER_DEBUG: ${target.name} ══`);
@@ -275,7 +294,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
 
   return {
     identity, findings, conflicts, contamination, synthesis, facts, dossier, strategic,
-    fieldEstimates, officialSite, accessLevel, officialCrawled, crawl,
+    fieldEstimates, officialSite, accessLevel, officialCrawled, crawl, coverage, digital, scoreConfidence: scoreConf,
     tokens: usage.inputTokens + usage.outputTokens,
     cost: usage.costEstimate,
   };

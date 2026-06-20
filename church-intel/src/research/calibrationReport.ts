@@ -124,6 +124,21 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
       }
     }
 
+    // ── Coverage checklist (minimum-evidence diagnostic) ──────────────────
+    L.push('### Coverage checklist');
+    L.push('_Required: homepage, staff/leadership, contact, about. Optional: ministries, giving, sermons, app._');
+    const cov = r.coverage ?? [];
+    if (!cov.length) { L.push('- _(coverage not recorded)_'); }
+    else {
+      const tick = (b: boolean) => (b ? '✓' : '✗');
+      L.push('| category | required | found | fetched | rendered | useful | note |');
+      L.push('|---|---|---|---|---|---|---|');
+      for (const c of cov) L.push(`| ${c.category} | ${c.required ? 'yes' : 'no'} | ${tick(c.found)} | ${tick(c.fetched)} | ${tick(c.rendered)} | ${tick(c.useful)} | ${c.note} |`);
+      const missingReq = cov.filter((c) => c.required && !c.useful).map((c) => c.category);
+      if (missingReq.length) L.push(`- ⚠️ required evidence incomplete: ${missingReq.join(', ')} — strategic scores below are LOW confidence for the affected dimensions.`);
+      L.push(`- digital signals → ${r.digitalSummary ?? '—'}`);
+    }
+
     L.push('### Contacts');
     L.push('| role | name | email | phone | confidence |');
     L.push('|---|---|---|---|---|');
@@ -140,12 +155,15 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
     L.push(`- staff count: ${withConf(f.staff_count)} · campus count: ${withConf(f.campus_count)}`);
 
     L.push('### Strategic');
-    L.push('| metric | score | confidence | evidence |');
-    L.push('|---|---|---|---|');
+    L.push('_Score values are synthesized; CONFIDENCE reflects evidence coverage (see checklist)._');
+    L.push('| metric | score | confidence | tier | evidence / reason |');
+    L.push('|---|---|---|---|---|');
+    const notes = r.scoreNotes ?? {};
     for (const [k, label] of [['digital_maturity_score', 'digital maturity'], ['growth_orientation_score', 'growth orientation'], ['change_readiness_score', 'change readiness'], ['staff_depth_score', 'staff depth']] as const) {
-      L.push(`| ${label} | ${val(f[k])} | ${f[k]?.confidence != null ? Math.round(f[k]!.confidence!) : '—'} | synthesized |`);
+      const n = notes[k];
+      L.push(`| ${label} | ${val(f[k])} | ${f[k]?.confidence != null ? Math.round(f[k]!.confidence!) : '—'} | ${n?.tier ?? '—'} | ${n?.reason ?? 'synthesized'} |`);
     }
-    L.push(`| contactability | ${r.contactability.value} | ${Math.round(r.contactability.confidence)} | ${r.contactability.evidence} |`);
+    L.push(`| contactability | ${r.contactability.value} | ${Math.round(r.contactability.confidence)} | ${notes.contactability?.tier ?? '—'} | ${r.contactability.evidence} |`);
 
     L.push('### Lifecycle');
     L.push(`- **${r.lifecycle.value}** · confidence ${Math.round(r.lifecycle.confidence)} · ${r.lifecycle.evidence}`);

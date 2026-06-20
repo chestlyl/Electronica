@@ -88,6 +88,7 @@ export async function collectWebsite(ctx: ResearchContext): Promise<SourceFindin
       title: page.title,
       fetched: true,
       status: page.status,
+      category: page.category,
       text,
       fields,
       crawlMethod: page.crawlMethod,

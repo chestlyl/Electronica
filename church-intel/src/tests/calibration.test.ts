@@ -9,6 +9,7 @@ import assert from 'node:assert';
 import { buildCornerstoneOffline } from '../researchDemo.js';
 import { rowFromBuild, deriveArchetype, type CalibrationEntry } from '../research/calibrationSet.js';
 import { renderCalibrationReport } from '../research/calibrationReport.js';
+import { dossierSynthesisSchema } from '../claude/dossierPrompt.js';
 import type { FieldMap } from '../research/calibration.js';
 
 let failures = 0;
@@ -43,6 +44,27 @@ async function main() {
   check('deriveArchetype: plateaued mega', () => {
     const a = deriveArchetype(fm({ avg_weekly_attendance: { value: 4000 }, campus_count: { value: 1 }, lifecycle_stage: { value: 'plateaued' } }), 'live_official_site');
     assert.strictEqual(a.value, 'Plateaued Mega Church');
+  });
+
+  // P8A fixes: lifecycle synonyms, size estimates, archetype fallback.
+  console.log('P8A classification fixes');
+  const parseLc = (lc: string) => (dossierSynthesisSchema.parse({ lifecycle_stage: lc }) as any).lifecycle_stage;
+  check('lifecycle "revitalizing" → relaunch_revitalization', () => assert.strictEqual(parseLc('revitalizing'), 'relaunch_revitalization'));
+  check('lifecycle "relaunch" → relaunch_revitalization', () => assert.strictEqual(parseLc('relaunch'), 'relaunch_revitalization'));
+  check('lifecycle "Established legacy church" → established', () => assert.strictEqual(parseLc('Established legacy church'), 'established'));
+  check('lifecycle truly unknown stays unknown', () => assert.strictEqual(parseLc('???'), 'unknown'));
+  check('staff_count "6" coerced + campus default present', () => {
+    const d = dossierSynthesisSchema.parse({ staff_count: '6', campus_count: 1 }) as any;
+    assert.strictEqual(d.staff_count, 6);
+    assert.strictEqual(d.campus_count, 1);
+  });
+  check('archetype from lifecycle alone (no attendance) → Revitalization Church', () => {
+    const a = deriveArchetype(fm({ lifecycle_stage: { value: 'relaunch_revitalization' } }), 'search_snippets');
+    assert.strictEqual(a.value, 'Revitalization Church');
+  });
+  check('archetype fallback: established + no size → Healthy Regional Church', () => {
+    const a = deriveArchetype(fm({ lifecycle_stage: { value: 'established' } }), 'search_snippets');
+    assert.strictEqual(a.value, 'Healthy Regional Church');
   });
 
   const md = renderCalibrationReport([row], {});

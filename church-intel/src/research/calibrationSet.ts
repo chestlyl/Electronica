@@ -71,6 +71,16 @@ export function deriveArchetype(fields: FieldMap, accessLevel: string): Derived 
   else if (stage === 'plant' || (att != null && att < 200 && growth >= 55)) value = 'Church Plant';
   else if (att != null && att < 500) value = stage === 'declining' ? 'Reverting Church' : 'Legacy Church';
 
+  // Fallback: classify from lifecycle alone when size is unknown, so a church with
+  // a clear lifecycle is not left "Unclassified".
+  if (value === 'Unclassified') {
+    if (stage === 'plant') value = 'Church Plant';
+    else if (stage === 'growing') value = 'Growth Church';
+    else if (stage === 'plateaued') value = 'Institutional Church';
+    else if (stage === 'declining') value = 'Reverting Church';
+    else if (stage === 'established') value = 'Healthy Regional Church';
+  }
+
   // Confidence: anchored to attendance/lifecycle availability, capped by access.
   let conf = 30;
   if (att != null) conf += 20;

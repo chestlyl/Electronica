@@ -1,7 +1,7 @@
 <!-- SAMPLE: single church, OFFLINE mock data. Real runs cover all 10. -->
 
 # Calibration Report
-_generated 2026-06-20T06:43:45.111Z · 1 churches_
+_generated 2026-06-20T12:30:51.518Z · 1 churches_
 
 > Central question: *Would an experienced church strategist trust this dossier enough to decide whether to pursue a relationship with this church?*
 > Tool Assessment = what the platform concluded. Human Assessment = blank for you. Variance = where the tool is likely wrong / weak.

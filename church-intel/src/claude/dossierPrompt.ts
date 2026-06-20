@@ -33,6 +33,20 @@ function strOrNull(v: unknown): string | null {
 function arrStr(v: unknown): string[] {
   return Array.isArray(v) ? v.map((x) => str(x)).filter(Boolean) : [];
 }
+/** Map a free-text lifecycle to the enum (Claude often returns a synonym). */
+function coerceLifecycle(v: unknown): string {
+  const t = str(v).toLowerCase().trim();
+  if ((LIFECYCLE_VALUES as readonly string[]).includes(t)) return t;
+  if (/relaunch|revitaliz|replant|refresh|reset|rebirth|renew/.test(t)) return 'relaunch_revitalization';
+  if (/church\s*plant|\bplant(ed|ing)?\b|launching|new church|startup/.test(t)) return 'plant';
+  if (/plateau|stagnant|\bflat\b|steady|stable/.test(t)) return 'plateaued';
+  if (/declin|dying|shrink|aging|waning/.test(t)) return 'declining';
+  if (/grow|expanding|momentum|thriving/.test(t)) return 'growing';
+  if (/establish|legacy|institution|mature|long-?standing/.test(t)) return 'established';
+  if (/merg/.test(t)) return 'merged';
+  if (/clos|defunct|dissolved|shut/.test(t)) return 'closed';
+  return 'unknown';
+}
 function fieldVal(v: unknown): string | number | null {
   if (typeof v === 'number') return Number.isFinite(v) ? v : null;
   if (typeof v === 'string') return v;
@@ -57,7 +71,7 @@ function normField(x: unknown): { field_name: string; value: string | number | n
 /** Normalize a raw (possibly malformed) Claude object into the expected shape. */
 function normalizeSynthesisRaw(input: unknown): unknown {
   const o = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
-  const lifecycle = (LIFECYCLE_VALUES as readonly string[]).includes(str(o.lifecycle_stage)) ? o.lifecycle_stage : 'unknown';
+  const lifecycle = coerceLifecycle(o.lifecycle_stage);
   const appStatus = (APP_STATUS_VALUES as readonly string[]).includes(str(o.church_app_status)) ? o.church_app_status : 'unknown';
   return {
     identity_summary: str(o.identity_summary),
@@ -81,6 +95,10 @@ function normalizeSynthesisRaw(input: unknown): unknown {
     attendance_min: coerceNum(o.attendance_min, null),
     attendance_max: coerceNum(o.attendance_max, null),
     attendance_confidence: coerceNum(o.attendance_confidence, 0) ?? 0,
+    staff_count: coerceNum(o.staff_count, null),
+    staff_count_confidence: coerceNum(o.staff_count_confidence, 0) ?? 0,
+    campus_count: coerceNum(o.campus_count, null),
+    campus_count_confidence: coerceNum(o.campus_count_confidence, 0) ?? 0,
     fields: Array.isArray(o.fields) ? o.fields.map(normField).filter((f): f is NonNullable<typeof f> => f !== null) : [],
     known: arrStr(o.known),
     uncertain: arrStr(o.uncertain),
@@ -117,6 +135,10 @@ const dossierSynthesisInner = z.object({
   attendance_min: z.number().nullable(),
   attendance_max: z.number().nullable(),
   attendance_confidence: z.number(),
+  staff_count: z.number().nullable(),
+  staff_count_confidence: z.number(),
+  campus_count: z.number().nullable(),
+  campus_count_confidence: z.number(),
   fields: z.array(synthField),
   known: z.array(z.string()),
   uncertain: z.array(z.string()),
@@ -149,15 +171,22 @@ human analyst would.
 RULES:
 - Establish "this is THE site for THIS church" — never confuse a same-named church
   in another city, and never treat a vendor/contractor or news page as the church.
-- Do NOT optimize for confidence. Prefer "Unknown"/null and LOW confidence over
-  false precision. Optimize for honestly marking what is uncertain.
+- Avoid false PRECISION, not estimates. For SIZE (attendance, staff_count,
+  campus_count) ALWAYS give a best estimate when any indirect signal exists
+  (service count, building, social following, "a church in <city>"): a BROAD
+  attendance_min/max range with Low/Very-Low confidence. Use null ONLY when there
+  is genuinely zero signal. Most churches are single-campus → campus_count = 1
+  unless there is explicit multi-site language.
 - If the official website was NOT fetched (no access_level=live_official_site
   finding), say so and keep confidence modest — the platform will additionally CAP
   it. Vendor/news evidence is supporting only.
-- Score lifecycle_stage and the strategic scores from real signals (relaunch/
-  rebrand language → change_readiness & relaunch_revitalization; hiring/new
-  ministries → growth & staff_depth; app/livestream/giving/social stack → digital
-  maturity).
+- lifecycle_stage MUST be exactly one of: plant, growing, established,
+  relaunch_revitalization, plateaued, declining, merged, closed, unknown. A church
+  that recently relaunched/rebranded/replanted (e.g. a long-standing church that
+  "relaunched" or "revitalized") = relaunch_revitalization — do NOT return unknown
+  when the narrative clearly indicates a stage.
+- Score the strategic scores from real signals (relaunch/rebrand → change_readiness;
+  hiring/new ministries → growth & staff_depth; app/livestream/giving/social → digital maturity).
 - For every field in "fields", attach the evidence and the source access_level.`,
   user(opts: {
     name: string; city: string | null; state: string | null;
@@ -190,7 +219,8 @@ staff_summary, growth_summary, lifecycle_summary, research_summary, lifecycle_st
 growth_orientation_score, digital_maturity_score, change_readiness_score,
 staff_depth_score, church_app_status, app_provider, lead_pastor, denomination,
 online_attendance_estimate, online_attendance_confidence, attendance_estimate,
-attendance_min, attendance_max, attendance_confidence, fields[], known[], uncertain[].`;
+attendance_min, attendance_max, attendance_confidence, staff_count,
+staff_count_confidence, campus_count, campus_count_confidence, fields[], known[], uncertain[].`;
   },
   schema: dossierSynthesisSchema,
 };

@@ -93,6 +93,10 @@ export function synthesize(_opts: ExtractOptions<unknown>): DossierSynthesis {
     attendance_min: 150,
     attendance_max: 500,
     attendance_confidence: 80,
+    staff_count: 6,
+    staff_count_confidence: 55,
+    campus_count: 1,
+    campus_count_confidence: 60,
     fields: [
       { field_name: 'lead_pastor', value: 'Jacob Young', confidence: 85, evidence: 'staff page snippet', access_level: 'search_snippets' },
       { field_name: 'lifecycle_stage', value: 'relaunch_revitalization', confidence: 80, evidence: 'celebrated 40 years in 2020; relaunch Aug 2020' },

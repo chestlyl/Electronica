@@ -157,6 +157,16 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     maxTokens: 2200,
   });
 
+  // Size fallback: when the deterministic extractors found no staff/campus count,
+  // use the synthesis estimate (lower precision, kept as a fact so all downstream
+  // consumers — report, enrich, markdown — pick it up).
+  if (!facts.staff_count && synthesis.staff_count != null) {
+    facts.staff_count = { value: synthesis.staff_count, confidence: synthesis.staff_count_confidence || 40, evidence: 'estimated from indirect signals (synthesis)', source_url: officialSite ?? '', access_level: accessLevel };
+  }
+  if (!facts.campus_count && synthesis.campus_count != null) {
+    facts.campus_count = { value: synthesis.campus_count, confidence: synthesis.campus_count_confidence || 40, evidence: 'estimated from indirect signals (synthesis)', source_url: officialSite ?? '', access_level: accessLevel };
+  }
+
   // Cap every field by its own (or the dossier's) best access level.
   const validLevel = (s?: string): EvidenceAccessLevel | null =>
     s && ['user_provided_ground_truth', 'live_official_site', 'staff_profile', 'social_profile', 'job_posting', 'third_party_directory', 'search_snippets', 'vendor_reference'].includes(s)

@@ -10,7 +10,8 @@ on:
 
 jobs:
   calibrate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
 
     steps:
       - name: Checkout code
@@ -19,16 +20,24 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
+          cache-dependency-path: 'church-intel/package-lock.json'
 
       - name: Install dependencies
+        working-directory: church-intel
         run: npm ci
 
+      - name: Install Playwright Chromium
+        working-directory: church-intel
+        run: npx playwright install chromium
+
       - name: Build project
+        working-directory: church-intel
         run: npm run build
 
       - name: Run calibration
+        working-directory: church-intel
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -36,6 +45,7 @@ jobs:
         run: npm run cli -- calibrate-run --id ${{ inputs.church_id }}
 
       - name: Generate calibration report
+        working-directory: church-intel
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -43,10 +53,12 @@ jobs:
         run: npm run cli -- calibrate-report
 
       - name: Upload calibration artifacts
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: calibration-results
+          name: calibration-results-${{ inputs.church_id }}
           path: |
-            docs/CALIBRATION_REPORT.md
-            data/output/calibration/**
-          retention-days: 30
+            church-intel/docs/CALIBRATION_REPORT.md
+            church-intel/data/output/calibration/
+          retention-days: 365
+          if-no-files-found: warn

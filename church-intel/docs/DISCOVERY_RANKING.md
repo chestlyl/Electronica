@@ -28,9 +28,35 @@ new model is **identity-first** and **prefers NO MATCH over a false positive**.
 | Candidate is a **generic directory / social** profile | −10 |
 | Unclassified site | −5 |
 
-Hard gates → identity 0 / `no_match`: unreachable, parked/placeholder domain, or a
-**non-identifying church name** (blank or garbage like `26:16:00` — no distinctive
-alphabetic tokens, so identity cannot be proven for anyone).
+## Candidate kinds
+
+Identity can only be **proven** by `official_church` or `denom_directory`; every
+other kind is capped below the acceptance bar (cannot become a `true_match`).
+
+| kind | meaning | can be true_match? |
+|---|---|---|
+| `official_church` | the church's **own** site (carries church-owned nav: give/sermons/visit/ministries + first-person markers) | ✅ |
+| `denom_directory` | a denominational/district directory entry confirming this church | ✅ |
+| `general_directory` | yelp/facebook/yellowpages profile | ❌ (capped) |
+| `resource` | parachurch / bible-study / sermon resource | ❌ (capped) |
+| `vendor_reference` | contractor/architect/builder/vendor page **about** a church project | 🚫 **disqualified** |
+| `media_reference` | news/media article **about** a church | 🚫 **disqualified** |
+| `unknown` | church-like page with no ownership signals — *mentions* a church but doesn't represent it | ❌ (capped) |
+
+## Hard disqualifiers (never a true_match)
+
+A candidate is rejected outright when:
+
+- the domain belongs to a **contractor, architect, builder, consultant, vendor,
+  news site, or media outlet** (`vendor_reference` / `media_reference`);
+- the page is **describing** a church rather than **representing** it (third-person);
+- the page lacks **church-owned signals** — navigation/links to give, sermons,
+  service times, plan-a-visit, ministries, events, staff (ownership signals < 2).
+
+Plus the basic gates → identity 0 / `no_match`: unreachable, parked/placeholder
+domain, or a **non-identifying church name** (blank or garbage like `26:16:00`).
+
+> **A page ABOUT a church is not a church.**
 
 ## `identity_confidence` and verdict
 
@@ -91,6 +117,29 @@ This matches your judgment: the directory that confirms *this* church in *this*
 city beats a same-named church's site in a different state. The directory both
 confirms identity and (being the North/East Texas Nazarene district) corroborates
 the denomination.
+
+### row-4 follow-up — the construction-company false positive
+
+A later run surfaced
+`forneyconstruction.com/portfolio/hope-city-church-the-woodlands/` — a **builder's
+portfolio page about a church project** — at **identity 72**.
+
+**Why it reached 72 (old logic):**
+
+| component | points |
+|---|---|
+| partial name match (the church name appears in the portfolio title/URL) | +22 |
+| city match (coincidental — "Forney" appears because the *contractor* is **Forney** Construction) | +25 |
+| `official_church` (**misclassified** — the page is church-like and the host wasn't a known directory/resource, so it was treated as a church's own site) | +15 |
+| reachable + church content | +10 |
+| **total** | **72** ≥ 65 → false `true_match` |
+
+**Why it's now rejected (id 15, `no_match`):** the host matches the vendor
+pattern (`construct`), so it is classified `vendor_reference` and **disqualified**
+regardless of name/city. Independently, it would also fail the new
+`official_church` gate — a contractor portfolio has no give/sermons/visit/
+ministries navigation, so its ownership-signal count is < 2. The church's real
+site (with church-owned navigation) wins instead, or the row returns NO MATCH.
 
 ## Inspecting any church
 

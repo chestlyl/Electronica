@@ -9,6 +9,8 @@ export type CandidateKind =
   | 'denom_directory'      // denominational/association directory listing this church
   | 'general_directory'    // yelp/facebook/yellowpages etc.
   | 'resource'             // parachurch / bible-study / sermon resource — not a church
+  | 'vendor_reference'     // contractor/architect/builder/vendor page ABOUT a church
+  | 'media_reference'      // news/media article ABOUT a church
   | 'unknown';
 export type LocationStatus = 'match' | 'conflict' | 'unknown';
 export type IdentityVerdict = 'true_match' | 'uncertain' | 'no_match';
@@ -54,11 +56,20 @@ const UNCERTAIN_THRESHOLD = 45;
 const CHURCH_TERMS = /church|worship|sermon|pastor|ministr|service times|gospel|congregation|nazarene|sunday|small group|discipleship/i;
 const PARKED_TERMS = /domain (is )?for sale|buy this domain|this domain is parked|parked free|godaddy|sedoparking|hugedomains|namecheap|website coming soon|under construction/i;
 const OWN_CHURCH_MARKERS = /plan (your|a) visit|service times|what to expect|join us (this )?sunday|our (church|services|pastor)|give online|i'?m new|connect card|weekend services/gi;
+// Church-OWNED navigation/links — present when the church runs the site itself.
+const NAV_CHURCH_ITEMS = /\b(give|giving|donate|tithe|sermons?|messages|watch ?(live)?|plan (your|a) visit|i'?m new|im new|ministr(y|ies)|small ?groups?|life ?groups?|connect|next steps|events|prayer requests?|service times|what to expect|our beliefs|new here)\b/i;
 const RESOURCE_HOSTS = [
   'cbsclass.org', 'communitybiblestudy.org', 'bsfinternational.org', 'biblestudyfellowship.org',
   'sermonaudio.com', 'sermonindex.net', 'gotquestions.org', 'biblegateway.com', 'youversion.com',
   'blogspot.com', 'wordpress.com', 'patheos.com',
 ];
+// Vendors describe a church project; they do not REPRESENT the church.
+const VENDOR_HOST = /construct|builder|contractor|architect|engineer|roofing|hvac|interior|consult(ing|ants?)?|realty|realestate|signage|landscap|plumb|electric|paving|millwork|cabinetry|flooring|concrete|drywall|glass|steel|mechanical|integrat|designbuild|avsystems|soundsystem|propertie?s/i;
+const VENDOR_CONTENT = /portfolio|case stud|our (work|projects)|completed (project|in|the)|general contractor|design[- ]build|scope of work|square feet|sq\.? ?ft|project (gallery|profile|details)|we (built|designed|constructed|completed)|client[:s]|architectural/i;
+const VENDOR_PATH = /\/portfolio\/|\/projects?\/|\/our-work\/|\/work\/|\/case-stud/i;
+const MEDIA_HOST = /(^|\.)(news|tribune|times|herald|gazette|chronicle|journal|patch|cbs|abc|nbc|fox|click2houston|communityimpact|press|magazine|dailymail|guardian|reuters|apnews|axios|patheos)/i;
+const MEDIA_CONTENT = /staff (writer|reporter)|by [a-z]+ [a-z]+, (staff|correspondent)|published (on|at)|read more|subscribe to (our )?newsletter|advertisement|all rights reserved.*(news|media)|originally appeared/i;
+const MEDIA_PATH = /\/news\/|\/article\/|\/story\/|\/stories\/|\/20\d\d\/\d\d\//;
 const STOP = new Set([
   'church', 'of', 'the', 'nazarene', 'community', 'fellowship', 'a', 'at', 'in',
   'and', 'first', 'new', 'iglesia', 'el', 'la', 'de', 'ministries', 'ministry',
@@ -128,7 +139,7 @@ interface SiteInspection {
   identityText: string;   // title + og:site_name/title + h1 + meta description (original case)
   bodyText: string;       // visible text (lowercased)
   churchLike: boolean;
-  ownMarkers: boolean;    // first-person church identity markers present
+  ownershipSignals: number; // distinct church-owned nav/first-person markers (0..n)
   parked: boolean;
 }
 
@@ -141,7 +152,7 @@ function firstMatch(re: RegExp, html: string): string {
 async function inspectSite(url: string): Promise<SiteInspection> {
   const out: SiteInspection = {
     reachable: false, status: 0, finalUrl: url, identityText: '', bodyText: '',
-    churchLike: false, ownMarkers: false, parked: false,
+    churchLike: false, ownershipSignals: 0, parked: false,
   };
   try {
     const res = await fetch(url, {
@@ -165,7 +176,17 @@ async function inspectSite(url: string): Promise<SiteInspection> {
       out.bodyText = text.toLowerCase().slice(0, 20000);
       out.parked = PARKED_TERMS.test(text) || text.replace(/\s/g, '').length < 200;
       out.churchLike = CHURCH_TERMS.test(text);
-      out.ownMarkers = (text.match(OWN_CHURCH_MARKERS)?.length ?? 0) >= 1;
+
+      // Church-OWNED signals: distinct nav/link items the church runs itself,
+      // plus first-person identity markers. A page ABOUT a church lacks these.
+      const navHits = new Set<string>();
+      for (const m of html.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/gi)) {
+        const anchor = m[1].replace(/<[^>]+>/g, ' ').trim();
+        const hit = anchor.match(NAV_CHURCH_ITEMS);
+        if (hit) navHits.add(hit[0].toLowerCase().replace(/\s+/g, ' ').trim());
+      }
+      const firstPerson = text.match(OWN_CHURCH_MARKERS)?.length ?? 0;
+      out.ownershipSignals = navHits.size + Math.min(firstPerson, 3);
     }
   } catch {
     /* unreachable */
@@ -267,11 +288,26 @@ function locationStatus(ins: SiteInspection, city: string | null, state: string 
 
 function classifyKind(host: string, path: string, ins: SiteInspection, ratio: number, isDir: boolean): CandidateKind {
   if (RESOURCE_HOSTS.some((h) => host === h || host.endsWith('.' + h))) return 'resource';
+
+  // Vendor: contractor/architect/builder/etc. describing a church PROJECT.
+  // Host keyword is decisive; otherwise require portfolio-style content + path.
+  if (VENDOR_HOST.test(host) || (VENDOR_CONTENT.test(ins.bodyText) && VENDOR_PATH.test(path))) {
+    return 'vendor_reference';
+  }
+  // Media/news article ABOUT a church.
+  if (MEDIA_HOST.test(host) || (MEDIA_CONTENT.test(ins.bodyText) && MEDIA_PATH.test(path))) {
+    return 'media_reference';
+  }
   if (isDir) return 'general_directory';
+
   const dirPath = /church-directory|\/directory\/|find-a-church|\/churches?\//i.test(path);
   const denomHost = /(naz|nazarene|umc|sbc|district|presbytery|diocese|conference|assembliesofgod|\bag\.org|\.cog\.)/i.test(host);
   if (dirPath || (denomHost && ratio > 0)) return 'denom_directory';
-  if (ins.ownMarkers || ins.churchLike) return 'official_church';
+
+  // A site is the church's OWN site only if it carries church-owned signals
+  // (give/sermons/visit/ministries nav, first-person markers). Otherwise it is
+  // merely a page that mentions a church — not the church itself.
+  if (ins.ownershipSignals >= 2) return 'official_church';
   return 'unknown';
 }
 
@@ -297,6 +333,14 @@ function evaluateIdentity(
   if (!hasUsableName) {
     return { identity: 0, verdict: 'no_match', reason: 'church name is non-identifying (e.g. blank/garbage) — identity cannot be proven' };
   }
+  // A page ABOUT a church is not a church. Vendor/media references can NEVER be
+  // a true_match no matter how well the name/city line up.
+  if (c.kind === 'vendor_reference') {
+    return { identity: 15, verdict: 'no_match', reason: 'vendor/contractor page DESCRIBING a church project — does not represent the church (disqualified)' };
+  }
+  if (c.kind === 'media_reference') {
+    return { identity: 15, verdict: 'no_match', reason: 'news/media article ABOUT a church — does not represent the church (disqualified)' };
+  }
 
   let id = 0;
   const r: string[] = [];
@@ -316,11 +360,19 @@ function evaluateIdentity(
     case 'denom_directory': id += 25; r.push('denominational directory confirmation(+25)'); break;
     case 'general_directory': id -= 10; r.push('general directory/social(-10)'); break;
     case 'resource': id -= 30; r.push('church resource, not a church(-30)'); break;
-    default: id -= 5; r.push('unclassified site(-5)');
+    default: id -= 5; r.push('unclassified / not church-owned(-5)');
   }
 
   if (c.reachable) { id += 5; r.push('reachable(+5)'); }
   if (c.churchLike) { id += 5; r.push('church content(+5)'); }
+
+  // Identity can only be PROVEN by the church's own site or a directory that
+  // confirms it. Anything else (a page that merely mentions the church) is
+  // capped below the acceptance bar — NO MATCH beats a false positive.
+  if (c.kind !== 'official_church' && c.kind !== 'denom_directory') {
+    id = Math.min(id, UNCERTAIN_THRESHOLD - 1);
+    r.push('not a church-owned site or directory → capped (cannot be true_match)');
+  }
 
   id = Math.max(0, Math.min(100, id));
   const verdict: IdentityVerdict = id >= ACCEPT_THRESHOLD ? 'true_match' : id >= UNCERTAIN_THRESHOLD ? 'uncertain' : 'no_match';

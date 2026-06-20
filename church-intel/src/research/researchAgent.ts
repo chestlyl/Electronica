@@ -324,8 +324,8 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     logger.info(`  facts.lead_pastor  = ${facts.lead_pastor?.value ?? '—'}`);
     logger.info(`  facts.office_email = ${facts.office_email?.value ?? '—'}`);
     logger.info(`  facts.office_phone = ${facts.office_phone?.value ?? '—'}`);
-    logger.info('— synthesis (Claude) — report lead_pastor = synthesis.lead_pastor ?? facts.lead_pastor —');
-    logger.info(`  synthesis.lead_pastor = ${JSON.stringify(synthesis.lead_pastor)}`);
+    logger.info('— synthesis (Claude) — INPUT to interpretation only (never consumed directly as a conclusion) —');
+    logger.info(`  synthesis.lead_pastor = ${JSON.stringify(synthesis.lead_pastor)} · interpretation.lead_pastors = ${JSON.stringify(interpretation.lead_pastors.value)}`);
     logger.info('— fetched page text (first 2000 chars each) —');
     for (const f of findings.filter((x) => x.fetched)) {
       logger.info(`  ▼ ${f.url} (textLen=${(f.text ?? '').length})\n${(f.text ?? '').slice(0, 2000)}\n  ▲`);

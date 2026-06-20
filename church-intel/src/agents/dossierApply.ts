@@ -118,9 +118,9 @@ export async function applyDossierToChurch(ctx: AgentContext, church: Church, bu
       'Official website is live and reachable', sources([officialUrl]));
   }
 
-  // denomination (normal)
-  await applyField('denomination', s.denomination, confOf('denomination') ?? capConfidence(65, build.accessLevel), false,
-    'Denomination from dossier synthesis', sources([officialUrl]));
+  // denomination (normal) — from interpretation (single source of truth)
+  await applyField('denomination', I.denomination.value, I.denomination.value ? (I.denomination.confidence || capConfidence(65, build.accessLevel)) : null, false,
+    'Denomination (interpretation)', sources([officialUrl]));
 
   // contacts/relationships (rule 4 → review unless very high) — from interpretation.
   // Co-lead pastors are preserved (joined), not collapsed to a first match.
@@ -142,30 +142,32 @@ export async function applyDossierToChurch(ctx: AgentContext, church: Church, bu
     f.campus_count ? confOf('campus_count') ?? f.campus_count.confidence : null, false,
     'Campus count', sources([f.campus_count?.source_url]));
 
-  // attendance — ALWAYS carries range + confidence + source (rule 5)
-  if (s.attendance_estimate != null && s.attendance_min != null && s.attendance_max != null) {
-    const conf = capConfidence(s.attendance_confidence, build.accessLevel);
+  // attendance — point estimate + confidence from INTERPRETATION (single source
+  // of truth); min/max are sub-components of that conclusion (from synthesis).
+  const att = I.attendance_estimate.value;
+  if (att != null && s.attendance_min != null && s.attendance_max != null) {
+    const conf = capConfidence(I.attendance_estimate.confidence, build.accessLevel);
     const tier = confidenceToTier(conf);
-    const evText = `Attendance estimate ${s.attendance_estimate} [${s.attendance_min}–${s.attendance_max}], tier ${tier}, confidence ${conf} (access ${build.accessLevel}).`;
+    const evText = `Attendance estimate ${att} [${s.attendance_min}–${s.attendance_max}], tier ${tier}, confidence ${conf} (access ${build.accessLevel}).`;
     await ctx.store.insertEvidence({
-      church_id: church.id, field_name: 'attendance_estimate', proposed_value: `${s.attendance_estimate} [${s.attendance_min}-${s.attendance_max}]`,
+      church_id: church.id, field_name: 'attendance_estimate', proposed_value: `${att} [${s.attendance_min}-${s.attendance_max}]`,
       evidence_text: evText, source_url: officialUrl ?? null, source_type: 'research_dossier', confidence_score: conf,
     });
     const decision = decideUpdate(conf);
     if (decision === 'update') {
       await ctx.store.updateChurch(church.id, {
-        attendance_estimate: s.attendance_estimate, attendance_min: s.attendance_min,
+        attendance_estimate: att, attendance_min: s.attendance_min,
         attendance_max: s.attendance_max, attendance_confidence: conf, attendance_confidence_tier: tier,
       });
-      sum.updated.push(`attendance_estimate=${s.attendance_estimate} [${s.attendance_min}-${s.attendance_max}] (${conf})`);
+      sum.updated.push(`attendance_estimate=${att} [${s.attendance_min}-${s.attendance_max}] (${conf})`);
     } else if (decision === 'review') {
       await ctx.store.enqueueReview({
         church_id: church.id, field_name: 'attendance_estimate',
         current_value: church.attendance_estimate == null ? null : String(church.attendance_estimate),
-        proposed_value: `${s.attendance_estimate} [${s.attendance_min}-${s.attendance_max}]`,
+        proposed_value: `${att} [${s.attendance_min}-${s.attendance_max}]`,
         confidence_score: conf, evidence_summary: evText, source_urls: sources([officialUrl]), review_status: 'pending',
       });
-      sum.review.push(`attendance_estimate=${s.attendance_estimate} [${s.attendance_min}-${s.attendance_max}] (${conf})`);
+      sum.review.push(`attendance_estimate=${att} [${s.attendance_min}-${s.attendance_max}] (${conf})`);
     } else {
       sum.evidenceOnly.push(`attendance_estimate (${conf})`);
     }

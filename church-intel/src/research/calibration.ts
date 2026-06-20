@@ -195,6 +195,7 @@ export function compareCalibration(tool: FieldMap, claude: FieldMap, truth: Fiel
 export function toolFieldsFromBuild(target: ResearchTarget, build: DossierBuild): FieldMap {
   const s = build.synthesis;
   const st = build.strategic;
+  const I = build.interpretation; // single source of truth for conclusions
   const cap = capForAccess(build.accessLevel);
   const fe = Object.fromEntries(build.fieldEstimates.map((f) => [f.field_name, f]));
   const present = new Set(build.findings.map((f) => f.sourceType));
@@ -220,13 +221,13 @@ export function toolFieldsFromBuild(target: ResearchTarget, build: DossierBuild)
     communications_leader: { value: build.interpretation.communications_leader.value, confidence: capc(build.interpretation.communications_leader.confidence) },
     office_email: { value: build.interpretation.office_email.value, confidence: capc(build.interpretation.office_email.confidence) },
     office_phone: { value: build.interpretation.office_phone.value, confidence: capc(build.interpretation.office_phone.confidence) },
-    denomination: { value: s.denomination, confidence: capc(65) },
+    denomination: { value: I.denomination.value, confidence: capc(I.denomination.confidence || 65) },
     multi_site: fact('multi_site'),
     campus_count: fact('campus_count'),
-    lifecycle_stage: { value: s.lifecycle_stage, confidence: capc(fe.lifecycle_stage?.confidence) },
+    lifecycle_stage: { value: I.lifecycle_stage.value, confidence: capc(I.lifecycle_stage.confidence) },
     founded_year: fact('founded_year'),
     years_active: fact('years_active'),
-    avg_weekly_attendance: { value: s.attendance_estimate, confidence: s.attendance_estimate == null ? null : capc(s.attendance_confidence) },
+    avg_weekly_attendance: { value: I.attendance_estimate.value, confidence: I.attendance_estimate.value == null ? null : capc(I.attendance_estimate.confidence) },
     online_attendance_estimate: { value: s.online_attendance_estimate, confidence: st.online_attendance_confidence ?? null },
     staff_count: { value: build.interpretation.staff_count.value, confidence: capc(build.interpretation.staff_count.confidence) },
     annual_budget: { value: null, confidence: null },
@@ -240,10 +241,11 @@ export function toolFieldsFromBuild(target: ResearchTarget, build: DossierBuild)
     facebook_followers: { value: extracted('facebook_followers'), confidence: capc(60) },
     online_giving_present: fact('online_giving_present'),
     // Score VALUES are unchanged (from synthesis); CONFIDENCE is coverage-aware.
-    change_readiness_score: { value: st.change_readiness_score ?? null, confidence: capc(build.scoreConfidence.change_readiness_score?.confidence) },
-    digital_maturity_score: { value: st.digital_maturity_score ?? null, confidence: capc(build.scoreConfidence.digital_maturity_score?.confidence) },
-    growth_orientation_score: { value: st.growth_orientation_score ?? null, confidence: capc(build.scoreConfidence.growth_orientation_score?.confidence) },
-    staff_depth_score: { value: st.staff_depth_score ?? null, confidence: capc(build.scoreConfidence.staff_depth_score?.confidence) },
+    // Score VALUES + confidence are INTERPRETATION conclusions (single producer).
+    change_readiness_score: { value: I.change_readiness_score.value, confidence: capc(I.change_readiness_score.confidence) },
+    digital_maturity_score: { value: I.digital_maturity_score.value, confidence: capc(I.digital_maturity_score.confidence) },
+    growth_orientation_score: { value: I.growth_orientation_score.value, confidence: capc(I.growth_orientation_score.confidence) },
+    staff_depth_score: { value: I.staff_depth_score.value, confidence: capc(I.staff_depth_score.confidence) },
     evidence_access_level: { value: build.accessLevel, confidence: 90 },
     identity_contamination_flag: { value: st.identity_contamination_flag ?? false, confidence: 80 },
   };

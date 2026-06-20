@@ -33,8 +33,9 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   if (b.digital) L.push(`- Digital signals: ${digitalEvidenceSummary(b.digital)}`);
   if (b.techStack?.length) L.push(`- Technology stack: ${b.techStack.map((t) => `${t.platform_name} (${t.category})`).join(', ')}`);
   if (b.strategicSignals?.length) L.push(`- Strategic signals: ${strategicSignalSummary(b.strategicSignals)}`);
-  const leadLine = b.interpretation?.lead_pastors.value.length ? b.interpretation.lead_pastors.value.join('; ') : (s.lead_pastor ?? '—');
-  L.push(`- Lead pastor(s): ${leadLine} · Denomination: ${s.denomination ?? '—'} · Lifecycle: **${s.lifecycle_stage}**`);
+  const leadLine = b.interpretation.lead_pastors.value.length ? b.interpretation.lead_pastors.value.join('; ') : '—';
+  L.push(`- Lead pastor(s): ${leadLine} · Denomination: ${b.interpretation.denomination.value ?? '—'} · Lifecycle: **${b.interpretation.lifecycle_stage.value}**`);
+  if (b.interpretation.address.value) L.push(`- Address: ${b.interpretation.address.value}`);
   L.push(`- ${s.identity_summary}`);
   if (!b.officialCrawled) {
     L.push('');
@@ -62,19 +63,20 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   L.push(`Source mix: ${b.dossier.official_source_count} official · ${b.dossier.secondary_source_count} secondary · research_confidence **${fmtPct(b.dossier.research_confidence)}**`);
   L.push('');
 
-  // Strategic estimates
+  // Strategic estimates — VALUES are interpretation conclusions (single source).
+  const I = b.interpretation;
   L.push('## Strategic estimates');
   L.push('| field | value | confidence | basis |');
   L.push('|---|---|---|---|');
   const cap = b.accessLevel;
-  L.push(`| lifecycle_stage | ${s.lifecycle_stage} | — | capped @ ${cap} |`);
-  L.push(`| growth_orientation_score | ${fmtPct(s.growth_orientation_score)} | — | synthesized |`);
-  L.push(`| digital_maturity_score | ${fmtPct(s.digital_maturity_score)} | — | synthesized |`);
-  L.push(`| change_readiness_score | ${fmtPct(s.change_readiness_score)} | — | synthesized |`);
-  L.push(`| staff_depth_score | ${fmtPct(s.staff_depth_score)} | — | synthesized |`);
+  L.push(`| lifecycle_stage | ${I.lifecycle_stage.value} | ${fmtPct(I.lifecycle_stage.confidence)} | interpretation |`);
+  L.push(`| growth_orientation_score | ${fmtPct(I.growth_orientation_score.value)} | ${fmtPct(I.growth_orientation_score.confidence)} | interpretation |`);
+  L.push(`| digital_maturity_score | ${fmtPct(I.digital_maturity_score.value)} | ${fmtPct(I.digital_maturity_score.confidence)} | interpretation |`);
+  L.push(`| change_readiness_score | ${fmtPct(I.change_readiness_score.value)} | ${fmtPct(I.change_readiness_score.confidence)} | interpretation |`);
+  L.push(`| staff_depth_score | ${fmtPct(I.staff_depth_score.value)} | ${fmtPct(I.staff_depth_score.confidence)} | interpretation |`);
   L.push(`| church_app_status | ${s.church_app_status} | — | app-store/site search |`);
   L.push(`| app_provider | ${s.app_provider ?? '—'} | — | — |`);
-  L.push(`| attendance_estimate | ${s.attendance_estimate ?? '—'} [${s.attendance_min ?? '?'}–${s.attendance_max ?? '?'}] | ${fmtPct(b.strategic.attendance_confidence ?? null)} | capped @ ${cap} |`);
+  L.push(`| attendance_estimate | ${I.attendance_estimate.value ?? '—'} [${s.attendance_min ?? '?'}–${s.attendance_max ?? '?'}] | ${fmtPct(I.attendance_estimate.confidence)} | interpretation |`);
   L.push(`| online_attendance_estimate | ${s.online_attendance_estimate ?? '—'} | ${fmtPct(b.strategic.online_attendance_confidence ?? null)} | capped @ ${cap} |`);
   L.push('');
 

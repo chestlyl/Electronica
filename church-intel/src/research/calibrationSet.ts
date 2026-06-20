@@ -120,7 +120,8 @@ export function rowFromBuild(entry: CalibrationEntry, build: DossierBuild): Cali
     // the row surfaces them rather than re-deriving them in the report layer.
     archetype: { value: build.interpretation.archetype.value, confidence: build.interpretation.archetype.confidence, evidence: build.interpretation.archetype.reason },
     contactability: { value: String(build.interpretation.contactability_score.value), confidence: build.interpretation.contactability_score.confidence, evidence: build.interpretation.contactability_score.reason },
-    lifecycle: { value: lifecycleDisplay(String(s.lifecycle_stage)), confidence: lifecycleConf, evidence: s.lifecycle_summary },
+    // Lifecycle is an INTERPRETATION conclusion; summary text stays as evidence.
+    lifecycle: { value: lifecycleDisplay(String(build.interpretation.lifecycle_stage.value)), confidence: lifecycleConf, evidence: s.lifecycle_summary },
     crawl: build.crawl,
     coverage: build.coverage,
     sourceCoverage: build.sourceCoverage,

@@ -201,6 +201,12 @@ export function interpretDossier(input: InterpretInput): Interpretation {
     office_email,
     office_phone,
     staff_count,
+    address: (() => {
+      const a = normalized.locations[0];
+      return a
+        ? mk<string | null>(a.value, a.confidence, [a.id], 'Address from normalized location evidence.', a.access_level)
+        : mk<string | null>(null, 0, [], 'No address in normalized evidence.');
+    })(),
     denomination: mk<string | null>(synthesis.denomination, synthesis.denomination ? 60 : 0, [], 'From synthesis (denomination).'),
     attendance_estimate: mk<number | null>(synthesis.attendance_estimate, synthesis.attendance_confidence, [], synthesis.lifecycle_summary || 'From synthesis (attendance).'),
     lifecycle_stage: mk<string>(synthesis.lifecycle_stage, 60, [], synthesis.lifecycle_summary || 'From synthesis (lifecycle).'),

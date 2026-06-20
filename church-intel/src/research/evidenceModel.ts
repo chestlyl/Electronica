@@ -89,6 +89,7 @@ export interface Interpretation {
   office_email: Conclusion<string | null>;
   office_phone: Conclusion<string | null>;
   staff_count: Conclusion<number | null>;
+  address: Conclusion<string | null>;
   denomination: Conclusion<string | null>;
   attendance_estimate: Conclusion<number | null>;
   lifecycle_stage: Conclusion<string>;

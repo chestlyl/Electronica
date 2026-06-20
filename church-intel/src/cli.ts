@@ -174,6 +174,53 @@ program
     }
   });
 
+// ── research-calibrate ─────────────────────────────────────────────────────
+program
+  .command('research-calibrate')
+  .description('Build a dossier and diff it vs the Claude baseline + ground truth')
+  .option('--id <id>', 'church id or original_row_id')
+  .option('--url <url>', 'official website (ad-hoc)')
+  .option('--name <name>', 'church name (ad-hoc)')
+  .option('--city <city>', 'city')
+  .option('--state <state>', 'state')
+  .requiredOption('--ground-truth <path>', 'ground-truth json (see docs/calibration/*.template.json)')
+  .option('--baseline <path>', 'Claude baseline json', 'docs/calibration/claude_baseline_cornerstone.json')
+  .option('-o, --out <path>', 'output markdown', 'data/output/calibration_report.md')
+  .action(async (opts) => {
+    const ctx = createLiveContext();
+    try {
+      let target: ResearchTarget;
+      if (opts.id) {
+        const id = await resolveId(ctx.store, opts.id);
+        const c = await ctx.store.getChurch(id);
+        if (!c) throw new Error(`church ${id} not found`);
+        target = { name: c.name ?? '', city: c.city, state: c.state, originalWebsite: c.website_original, alternateName: extractAltName(c.notes) };
+      } else {
+        if (!opts.url || !opts.name) throw new Error('Provide --id, or --url and --name');
+        target = { name: opts.name, city: opts.city ?? null, state: opts.state ?? null, originalWebsite: opts.url, alternateName: null };
+      }
+      const build = await buildDossier(target, ctx);
+      const { compareCalibration, loadFieldMap, toolFieldsFromBuild } = await import('./research/calibration.js');
+      const { renderCalibrationMarkdown } = await import('./research/calibrationMarkdown.js');
+      const report = compareCalibration(
+        toolFieldsFromBuild(target, build),
+        loadFieldMap(opts.baseline),
+        loadFieldMap(opts.groundTruth),
+        build.accessLevel,
+      );
+      report.conflicts = build.conflicts.map((c) => ({ field: c.field_name, a: c.value_a ?? '', b: c.value_b ?? '', recommended: c.recommended_value ?? '', confidence: c.confidence }));
+      const md = renderCalibrationMarkdown(target.name, report);
+      const { mkdirSync, writeFileSync } = await import('node:fs');
+      const { dirname } = await import('node:path');
+      mkdirSync(dirname(opts.out), { recursive: true });
+      writeFileSync(opts.out, md);
+      console.log(md);
+      console.log(`\nWrote ${opts.out}`);
+    } finally {
+      await ctx.close();
+    }
+  });
+
 // ── verify-church / verify-batch ───────────────────────────────────────────
 program
   .command('verify-church')

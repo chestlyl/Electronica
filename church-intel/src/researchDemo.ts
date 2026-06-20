@@ -42,14 +42,30 @@ function ddgHtml(results: { url: string; title: string; snippet: string }[]): st
 }
 
 const SEARCH_HOSTS = ['html.duckduckgo.com', 'lite.duckduckgo.com', 'www.bing.com', 'www.mojeek.com'];
-(globalThis as any).fetch = async (input: any) => {
-  const url = typeof input === 'string' ? input : input.url;
-  const h = new URL(url).hostname;
-  if (SEARCH_HOSTS.includes(h)) return new Response(ddgHtml(RESULTS), { status: 200, headers: { 'content-type': 'text/html' } });
-  const page = PAGES[h] || PAGES[h.replace(/^www\./, '')];
-  if (page) return new Response(page.html, { status: page.status, headers: { 'content-type': 'text/html' } });
-  return new Response('not found', { status: 404, headers: { 'content-type': 'text/html' } });
-};
+
+/** Build the Cornerstone dossier fully offline (mocked fetch + mock Claude). */
+export async function buildCornerstoneOffline() {
+  installMockFetch();
+  const target: ResearchTarget = {
+    name: 'Cornerstone Church', city: 'Akron', state: 'OH',
+    originalWebsite: 'https://www.cornerstonechurch.info', alternateName: null,
+  };
+  const research = new ResilientResearch();
+  const build = await buildDossier(target, { llm: new MockLlmProvider(synthesize), research });
+  await research.close();
+  return { target, build };
+}
+
+function installMockFetch() {
+  (globalThis as any).fetch = async (input: any) => {
+    const url = typeof input === 'string' ? input : input.url;
+    const h = new URL(url).hostname;
+    if (SEARCH_HOSTS.includes(h)) return new Response(ddgHtml(RESULTS), { status: 200, headers: { 'content-type': 'text/html' } });
+    const page = PAGES[h] || PAGES[h.replace(/^www\./, '')];
+    if (page) return new Response(page.html, { status: page.status, headers: { 'content-type': 'text/html' } });
+    return new Response('not found', { status: 404, headers: { 'content-type': 'text/html' } });
+  };
+}
 
 // ── mocked Claude synthesis ─────────────────────────────────────────────────
 function synthesize(_opts: ExtractOptions<unknown>): DossierSynthesis {
@@ -86,14 +102,7 @@ function synthesize(_opts: ExtractOptions<unknown>): DossierSynthesis {
 }
 
 async function main() {
-  const target: ResearchTarget = {
-    name: 'Cornerstone Church', city: 'Akron', state: 'OH',
-    originalWebsite: 'https://www.cornerstonechurch.info', alternateName: null,
-  };
-  const research = new ResilientResearch();
-  const build = await buildDossier(target, { llm: new MockLlmProvider(synthesize), research });
-  await research.close();
-
+  const { target, build } = await buildCornerstoneOffline();
   console.log(renderDossierMarkdown(target, build));
 
   console.log('\n=== CALIBRATION ASSERTIONS ===');
@@ -109,4 +118,6 @@ async function main() {
   check('research_confidence capped', (build.dossier.research_confidence ?? 100) <= 65, `research_confidence=${build.dossier.research_confidence}`);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+if (process.argv[1] && /researchDemo\.(ts|js)$/.test(process.argv[1])) {
+  main().catch((e) => { console.error(e); process.exit(1); });
+}

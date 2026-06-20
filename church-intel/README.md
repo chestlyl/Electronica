@@ -219,6 +219,12 @@ npm run cli -- research-church --url https://www.cornerstonechurch.info --name "
 npm run cli -- research-dossier --id row-2                      # persists dossier + conflicts + strategic fields
 npm run cli -- research-dossier --url https://example.org --name "X Church" --city Y --state OH --save
 
+# Calibrate the tool against the Claude baseline + your verified ground truth.
+# Emits correct/wrong/overconfident/underconfident/missing + conflicts + cap behavior.
+# Fill docs/calibration/cornerstone_ground_truth.template.json first.
+npm run cli -- research-calibrate --url https://www.cornerstonechurch.info --name "Cornerstone Church" --city Akron --state OH --ground-truth docs/calibration/cornerstone_ground_truth.json
+# Offline sample (no network): npm run calibration-demo -> docs/calibration/SAMPLE_calibration_cornerstone.md
+
 # Import the seed spreadsheet (auto-detects columns, de-dupes, preserves originals)
 npm run cli -- import-spreadsheet --file data/Church_Data_v1.xlsx
 npm run cli -- import-spreadsheet --file data/Church_Data_v1.xlsx --limit 100

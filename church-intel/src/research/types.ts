@@ -49,6 +49,9 @@ export interface PageContent {
   mailto?: string[];
   tel?: string[];
   navLabels?: string[];
+  /** Outbound links (resolved absolute URL + visible anchor text) — preserved for
+   *  strategic-signal classification (not just the homepage crawl decisions). */
+  outboundLinks?: { url: string; text: string }[];
   staffBlocks?: string[];
   staffCards?: StaffCard[];          // {name,title} pairs from staff/leadership pages
   staffNamesDetected?: number;

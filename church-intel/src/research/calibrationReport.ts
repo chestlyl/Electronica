@@ -163,6 +163,24 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
       for (const t of tech) L.push(`| ${t.platform_name} | ${t.category} | ${t.confidence} | ${(t.evidence_url || '—').slice(0, 80)} |`);
     }
 
+    // ── Strategic Signals (deterministic evidence collection — no score change) ─
+    const sig = r.strategicSignals ?? [];
+    const dim = r.strategicDimensionCounts ?? { digital_maturity: 0, growth_orientation: 0, change_readiness: 0, organizational_capacity: 0, contactability: 0 };
+    L.push('### Strategic Signals');
+    L.push('_Deterministic evidence collection only (no score change). Sorted website-first (live official site evidence leads)._');
+    L.push(`- signals supporting each dimension → digital_maturity **${dim.digital_maturity}** · growth_orientation **${dim.growth_orientation}** · change_readiness **${dim.change_readiness}** · organizational_capacity **${dim.organizational_capacity}** · contactability **${dim.contactability}**`);
+    if (!sig.length) { L.push('- _(no strategic signals detected)_'); }
+    else {
+      L.push('| category | score relevance | anchor text | host | destination URL | source page | confidence |');
+      L.push('|---|---|---|---|---|---|---|');
+      for (const s of sig) {
+        const anchor = (s.anchor_text || '—').slice(0, 24).replace(/\|/g, '/');
+        const dest = (s.destination_url || '—').slice(0, 60);
+        const src = (s.source_page || '—').slice(0, 50);
+        L.push(`| ${s.category} | ${s.dimensions.join(', ') || '—'} | ${anchor} | ${s.host || '—'} | ${dest} | ${src} | ${s.confidence} |`);
+      }
+    }
+
     L.push('### Contacts');
     // Lead pastor(s): aggregated, supports co-lead / multiple lead pastors.
     const leads = (r.leadership ?? []).filter((l) => l.isLead);

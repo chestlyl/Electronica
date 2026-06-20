@@ -100,6 +100,9 @@ export async function collectWebsite(ctx: ResearchContext): Promise<SourceFindin
       linkDiagnostics: page.category === 'home' ? bundle.linkDiagnostics : undefined,
       // Carry parsed staff cards so leadership aggregation has clean name+title.
       staffCards: cards.length ? cards : undefined,
+      // Carry EVERY outbound link from this page (not just homepage crawl
+      // decisions) so strategic-signal classification sees subpage links too.
+      outboundLinks: page.outboundLinks?.length ? page.outboundLinks : undefined,
     }));
   }
   return findings;

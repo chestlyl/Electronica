@@ -76,6 +76,34 @@ export function extractLinks(html: string, baseUrl: string): { href: string; tex
   return out;
 }
 
+/**
+ * Resolve raw link pairs (href + anchor text) into absolute outbound links,
+ * preserving BOTH same-site and external destinations (external hosts like
+ * churchcenter.com / pushpay.com are exactly the strategic signals we need).
+ * Deduped by URL; bounded so a link-heavy page can't bloat the finding.
+ */
+const OUTBOUND_LINK_CAP = 150;
+export function resolveOutboundLinks(pairs: { href: string; text: string }[], baseUrl: string): { url: string; text: string }[] {
+  const out: { url: string; text: string }[] = [];
+  const seen = new Set<string>();
+  let base: URL | null = null;
+  try { base = new URL(baseUrl); } catch { /* unresolvable base — keep absolute hrefs only */ }
+  for (const { href, text } of pairs) {
+    if (/^(mailto:|tel:|javascript:|data:)/i.test(href)) continue;
+    let url = '';
+    try {
+      const abs = base ? new URL(href, base) : new URL(href);
+      abs.hash = '';
+      url = abs.toString();
+    } catch { continue; }
+    if (seen.has(url)) continue;
+    seen.add(url);
+    out.push({ url, text: (text || '').slice(0, 120) });
+    if (out.length >= OUTBOUND_LINK_CAP) break;
+  }
+  return out;
+}
+
 /** Heuristic: did we get a JS-only shell with no real content? */
 function looksJsOnly(html: string, text: string): boolean {
   if (text.length > 400) return false;
@@ -96,6 +124,12 @@ export class FetchResearch implements ResearchProvider {
     // browser render and run the staff-card heuristic on them.
     const staffMode = category === 'staff' || category === 'leadership';
     const r = await smartFetch(url, allowRender, { forceRender: staffMode, staffMode });
+    // Preserve EVERY outbound link (resolved absolute URL + anchor text) on the
+    // page itself — a public field that survives the `_linkPairs` cleanup in
+    // research(). Strategic-signal classification needs links from every page,
+    // not just the homepage crawl-decision diagnostics. (smartFetch returns
+    // same-site link pairs; resolve them and keep external destinations too.)
+    const outboundLinks = resolveOutboundLinks(r.linkPairs ?? [], r.finalUrl);
     const pc: PageContent & { _linkPairs?: { href: string; text: string }[] } = {
       url,
       finalUrl: r.finalUrl,
@@ -111,6 +145,7 @@ export class FetchResearch implements ResearchProvider {
       mailto: r.mailto,
       tel: r.tel,
       navLabels: r.navLabels,
+      outboundLinks,
       staffBlocks: r.staffBlocks,
       staffCards: r.staffCards,
       staffNamesDetected: r.staffCards.length,

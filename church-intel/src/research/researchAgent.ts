@@ -10,6 +10,7 @@ import { collectSnippets } from './sources/snippets.js';
 import { extractFacts, aggregateLeadership, debugExtractionTrace, type Facts, type LeaderCandidate } from './extractors.js';
 import { detectDigitalSignals, digitalEvidenceSummary, type DigitalSignals } from './digitalSignals.js';
 import { detectTechStack, type PlatformHit } from './techStack.js';
+import { detectStrategicSignals, dimensionCounts, type StrategicSignal, type Dimension } from './strategicSignals.js';
 import { computeCoverage, scoreConfidence, contactabilityConfidence, computeSourceCoverage, sourceCoverageSummary, type CoverageRow, type ScoreConfidence, type SourceCoverageRow } from './coverage.js';
 import { dossierSynthesisPrompt, type DossierSynthesis } from '../claude/dossierPrompt.js';
 import { logger } from '../lib/logger.js';
@@ -56,6 +57,10 @@ export interface DossierBuild {
   sourceCoverage: SourceCoverageRow[];
   digital: DigitalSignals;
   techStack: PlatformHit[];
+  /** Deterministic strategic-signal evidence (collection only — no score change). */
+  strategicSignals: StrategicSignal[];
+  /** Count of strategic signals supporting each of the five dimensions. */
+  strategicDimensionCounts: Record<Dimension, number>;
   scoreConfidence: Record<string, ScoreConfidence>;
   tokens: number;
   cost: number;
@@ -195,6 +200,10 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   // honest confidence + the synthesis prompt — does not change score formulas).
   const digital = detectDigitalSignals(findings);
   const techStack = detectTechStack(findings); // deterministic hostname mapping
+  // Deterministic strategic-signal layer (evidence collection only). Sorted
+  // website-first (live official site signals lead) inside detectStrategicSignals.
+  const strategicSignals = detectStrategicSignals(findings);
+  const strategicDimensionCounts = dimensionCounts(strategicSignals);
   const coverage = computeCoverage(findings, crawl.links, facts, digital);
   const sourceCoverage = computeSourceCoverage(findings, digital);
 
@@ -302,11 +311,31 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     for (const f of findings.filter((x) => x.fetched)) {
       logger.info(`  ▼ ${f.url} (textLen=${(f.text ?? '').length})\n${(f.text ?? '').slice(0, 2000)}\n  ▲`);
     }
+
+    // ── CRAWL-LINK AUDIT: every page → outbound links → which became signals ──
+    logger.info('— CRAWL-LINK AUDIT (page → outbound links discovered → classification) —');
+    for (const f of findings) {
+      const links = f.outboundLinks ?? [];
+      logger.info(`  PAGE ${f.url} [${f.accessLevel}${f.fetched ? '' : ' (snippet — no rendered links)'}] · ${links.length} outbound links`);
+      for (const link of links) {
+        let host = link.url; try { host = new URL(link.url).hostname; } catch { /* keep raw */ }
+        const internal = (() => { try { return new URL(link.url).hostname === new URL(f.url).hostname; } catch { return false; } })();
+        const sig = strategicSignals.find((s) => s.destination_url === link.url || s.destination_url === (/^https?:/i.test(link.url) ? link.url : `https://${link.url}`));
+        logger.info(`    → "${(link.text || '').slice(0, 30)}" ${link.url} [${host}] ${internal ? 'internal' : 'external'} ⇒ ${sig ? `SIGNAL ${sig.category} (${sig.confidence})` : 'discarded (not classified)'}`);
+      }
+    }
+    // ── WEBSITE-FIRST ORDERING PROOF: signals sorted by access level rank ─────
+    logger.info('— WEBSITE-FIRST ORDER (signals lead with live_official_site evidence) —');
+    for (const s of strategicSignals) {
+      logger.info(`    [${s.access_level}] ${s.category} · "${s.anchor_text.slice(0, 24)}" → ${s.host} (conf ${s.confidence}) · dims: ${s.dimensions.join(',')}`);
+    }
+    logger.info(`— strategic dimension counts: ${JSON.stringify(strategicDimensionCounts)}`);
   }
 
   return {
     identity, findings, conflicts, contamination, synthesis, facts, leadership, dossier, strategic,
-    fieldEstimates, officialSite, accessLevel, officialCrawled, crawl, coverage, sourceCoverage, digital, techStack, scoreConfidence: scoreConf,
+    fieldEstimates, officialSite, accessLevel, officialCrawled, crawl, coverage, sourceCoverage, digital, techStack,
+    strategicSignals, strategicDimensionCounts, scoreConfidence: scoreConf,
     tokens: usage.inputTokens + usage.outputTokens,
     cost: usage.costEstimate,
   };

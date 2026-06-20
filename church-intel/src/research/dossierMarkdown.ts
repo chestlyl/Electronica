@@ -1,4 +1,5 @@
 import { digitalEvidenceSummary } from './digitalSignals.js';
+import { strategicSignalSummary } from './strategicSignals.js';
 import type { DossierBuild, ResearchTarget } from './researchAgent.js';
 
 function fmtPct(n: number | null | undefined): string {
@@ -31,6 +32,7 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   if (srcLine) L.push(`- Source breadth: ${srcLine}`);
   if (b.digital) L.push(`- Digital signals: ${digitalEvidenceSummary(b.digital)}`);
   if (b.techStack?.length) L.push(`- Technology stack: ${b.techStack.map((t) => `${t.platform_name} (${t.category})`).join(', ')}`);
+  if (b.strategicSignals?.length) L.push(`- Strategic signals: ${strategicSignalSummary(b.strategicSignals)}`);
   L.push(`- Lead pastor: ${s.lead_pastor ?? '—'} · Denomination: ${s.denomination ?? '—'} · Lifecycle: **${s.lifecycle_stage}**`);
   L.push(`- ${s.identity_summary}`);
   if (!b.officialCrawled) {

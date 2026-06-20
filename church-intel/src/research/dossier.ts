@@ -105,6 +105,9 @@ export interface SourceFinding {
   linkDiagnostics?: LinkDiagnostic[];
   /** {name,title} staff cards parsed from a rendered staff/leadership page. */
   staffCards?: StaffCard[];
+  /** Outbound links (resolved absolute URL + anchor text) from this page —
+   *  preserved for deterministic strategic-signal classification. */
+  outboundLinks?: { url: string; text: string }[];
 }
 
 export function makeFinding(partial: Partial<SourceFinding> & {

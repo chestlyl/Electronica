@@ -23,6 +23,12 @@ const PAGES: Record<string, string> = {
   'forneyconstruction.com': `<title>Hope City Church | Forney Construction Portfolio</title><nav><a href="/portfolio">Portfolio</a></nav><h1>Hope City Church</h1><p>This design-build project. General contractor. Completed 45,000 square feet.${PAD}</p>`,
   // a DIFFERENT "Place of Hope" in FL
   'placeofhope.org': `<title>Place of Hope Church | Palm Beach Gardens, FL</title><meta property="og:title" content="Place of Hope, Palm Beach Gardens, FL"><h1>Place of Hope</h1><p>A church in Palm Beach Gardens, FL.${PAD}</p>`,
+  // a GENERIC "Christ Church" (different church) — shares only the token "christ"
+  // with "Christ's Community Church"; has church-owned nav but NOT the full name
+  // phrase and NOT the target city.
+  'christchurch.org': `<title>Christ Church</title><h1>Christ Church</h1><p>We are a church. Plan your visit. Give online. Sermons.${PAD}</p>`,
+  // the REAL church (church-provided URL, exact name phrase, target city)
+  'cccaz.org': `<title>Christ's Community Church | Glendale, AZ</title><h1>Christ's Community Church</h1><p>A church in Glendale, AZ. Plan your visit. Give online. Sermons.${PAD}</p>`,
 };
 
 const SEARCH = ['html.duckduckgo.com', 'lite.duckduckgo.com', 'www.bing.com', 'www.mojeek.com'];
@@ -88,6 +94,32 @@ async function main() {
   });
   check('result-level identity_confidence reports best score (not 0)', () => {
     assert.ok(rFL.identity_confidence > 0, `identity_confidence=${rFL.identity_confidence}`);
+  });
+
+  // Generic Christ-domain (search-discovered) must NOT become true_match for
+  // "Christ's Community Church": no exact phrase, no city, not church-provided.
+  const rGeneric = await run(
+    { name: "Christ's Community Church", city: 'Glendale', state: 'AZ', originalWebsite: null, originalPhone: null, originalEmail: null, alternateName: null },
+    [{ url: 'https://christchurch.org', title: 'Christ Church' }],
+  );
+  check('generic christchurch.org is NOT true_match (single generic token)', () => {
+    assert.ok(!rGeneric.officialSite, `officialSite=${rGeneric.officialSite}`);
+    const g = rGeneric.candidates.find((c) => /christchurch\.org/.test(c.host));
+    assert.ok(g && g.identityVerdict !== 'true_match', `verdict=${g?.identityVerdict} id=${g?.identity_confidence}`);
+    assert.ok(g && !g.nameStrong, 'single generic token should not be a strong name match');
+  });
+
+  // The REAL church still matches via church-provided URL + exact phrase + city,
+  // and beats the generic decoy.
+  const rReal = await run(
+    { name: "Christ's Community Church", city: 'Glendale', state: 'AZ', originalWebsite: 'https://cccaz.org', originalPhone: null, originalEmail: null, alternateName: null },
+    [{ url: 'https://christchurch.org', title: 'Christ Church' }],
+  );
+  check('real cccaz.org (provided + phrase + city) IS true_match', () => {
+    assert.ok(rReal.officialSite && /cccaz\.org/.test(rReal.officialSite), `officialSite=${rReal.officialSite}`);
+    assert.strictEqual(rReal.identityVerdict, 'true_match');
+    const real = rReal.candidates.find((c) => /cccaz\.org/.test(c.host));
+    assert.ok(real && real.namePhrase && real.cityStatus === 'match', `phrase=${real?.namePhrase} city=${real?.cityStatus}`);
   });
 
   console.log(failures ? `\nFAILED (${failures})` : '\nALL PASSED');

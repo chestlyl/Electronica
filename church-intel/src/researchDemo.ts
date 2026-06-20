@@ -1,6 +1,14 @@
 /**
  * Offline Research-Agent calibration proof (no network / no credentials).
  *
+ * ⚠️ PROVENANCE: every Cornerstone value below (pastor name, email, phone,
+ * address, dates, social counts) is a SYNTHETIC FIXTURE input echoing
+ * user-provided calibration knowledge — NOT something this tool discovered. The
+ * tool has never fetched cornerstonechurch.info here (egress is blocked). This
+ * file proves the CODE PATHS work on seeded inputs; it is NOT evidence that the
+ * platform discovered any real fact about this church. Do not treat the mocked
+ * snippets/synthesis as tool-discovered evidence.
+ *
  * Reproduces the Cornerstone Church (Akron) case with a mocked `fetch`:
  *   - the official site (cornerstonechurch.info) returns 403 → DOM never fetched
  *   - evidence is reconstructed from search snippets + third-party sources

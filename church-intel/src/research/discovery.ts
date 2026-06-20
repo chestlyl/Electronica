@@ -28,6 +28,9 @@ export interface DiscoveryCandidate {
   kind: CandidateKind;
   nameMatch: number;            // 0..1 fraction of distinctive name tokens matched
   nameFull: boolean;            // every distinctive token matched (exact-ish)
+  nameStrong: boolean;          // exact name PHRASE present, or full match on a >=2-token name
+  namePhrase: boolean;          // the full multi-word church name appears contiguously
+  ownershipSignals: number;     // church-owned nav/first-person markers (0..n)
   cityStatus: LocationStatus;   // does the candidate place itself in THIS city/state?
   identity_confidence: number;  // 0..100 — "this is THE site for THIS church"
   identityVerdict: IdentityVerdict;
@@ -240,7 +243,7 @@ export function domainGuesses(name: string, city: string | null, altName: string
 
 // ── identity helpers ────────────────────────────────────────────────────────
 
-function nameMatch(identityText: string, host: string, primaryTok: string[], altTok: string[]): { ratio: number; full: boolean } {
+function nameMatch(identityText: string, host: string, primaryTok: string[], altTok: string[]): { ratio: number; full: boolean; strongFull: boolean } {
   const idLower = identityText.toLowerCase();
   const score = (toks: string[]): number => {
     if (!toks.length) return 0;
@@ -255,8 +258,33 @@ function nameMatch(identityText: string, host: string, primaryTok: string[], alt
   const rp = score(primaryTok);
   const ra = score(altTok);
   const ratio = Math.max(rp, ra);
-  const full = (primaryTok.length > 0 && rp === 1) || (altTok.length > 0 && ra === 1);
-  return { ratio, full };
+  const fullP = primaryTok.length > 0 && rp === 1;
+  const fullA = altTok.length > 0 && ra === 1;
+  const full = fullP || fullA;
+  // A full match is only "strong" when the matched name has >=2 distinctive
+  // tokens. A single generic token (e.g. "christ" from "Christ's Community
+  // Church", where "community"/"church" are stop-words) is NOT a strong match.
+  const strongFull = (fullP && primaryTok.length >= 2) || (fullA && altTok.length >= 2);
+  return { ratio, full, strongFull };
+}
+
+/**
+ * Does the church's full multi-word name appear contiguously in the candidate's
+ * identity/body text? This is the "exact name phrase" identity anchor — the real
+ * site for "Christ's Community Church" contains that phrase; a generic
+ * christ-something domain does not.
+ */
+function phraseTokens(s: string | null | undefined): string[] {
+  return (s ?? '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, ' ').split(/\s+/).filter((t) => t.length >= 2);
+}
+function namePhraseMatch(hay: string, name: string, altName: string | null): boolean {
+  const target = ' ' + phraseTokens(hay).join(' ') + ' ';
+  for (const n of [name, altName]) {
+    const toks = phraseTokens(n);
+    if (toks.length < 2) continue; // a single-token name cannot form a distinctive phrase
+    if (target.includes(' ' + toks.join(' ') + ' ')) return true;
+  }
+  return false;
 }
 
 function findStates(rawIdentityText: string): Set<string> {
@@ -345,10 +373,15 @@ function evaluateIdentity(
   let id = 0;
   const r: string[] = [];
 
-  if (c.source === 'original' || c.source === 'urlname') { id += 40; r.push('church-provided URL(+40)'); }
+  const churchProvided = c.source === 'original' || c.source === 'urlname';
+  if (churchProvided) { id += 40; r.push('church-provided URL(+40)'); }
 
-  if (c.nameFull) { id += 45; r.push('exact name match(+45)'); }
-  else if (c.nameMatch >= 0.5) { id += 22; r.push(`partial name match ${(c.nameMatch * 100) | 0}%(+22)`); }
+  // Exact-name credit requires a STRONG name match (full phrase, or a full match
+  // on a name with >=2 distinctive tokens). A single generic token (e.g. just
+  // "christ") earns only partial credit, so a generic Christ/church domain cannot
+  // ride a one-token coincidence to a true_match.
+  if (c.nameStrong) { id += 45; r.push('exact name match(+45)'); }
+  else if (c.nameMatch >= 0.5) { id += 22; r.push(`partial/generic name match ${(c.nameMatch * 100) | 0}%(+22)`); }
   else { id -= 40; r.push('name does NOT match candidate(-40)'); }
 
   if (c.cityStatus === 'match') { id += 25; r.push('city match(+25)'); }
@@ -372,6 +405,16 @@ function evaluateIdentity(
   if (c.kind !== 'official_church' && c.kind !== 'denom_directory') {
     id = Math.min(id, UNCERTAIN_THRESHOLD - 1);
     r.push('not a church-owned site or directory → capped (cannot be true_match)');
+  }
+
+  // FALSE-POSITIVE GATE: a candidate may reach true_match ONLY with a strong
+  // identity anchor — church-provided URL, exact name phrase, city/address match,
+  // or official ownership signals. Without any of these (e.g. a generic Christ/
+  // church domain matched on a single generic token), cap below the bar.
+  const strongAnchor = churchProvided || c.nameStrong || c.cityStatus === 'match' || c.ownershipSignals >= 2;
+  if (!strongAnchor) {
+    id = Math.min(id, UNCERTAIN_THRESHOLD - 1);
+    r.push('no strong identity anchor (church-provided URL / exact name phrase / city match / ownership signals) → cannot be true_match');
   }
 
   id = Math.max(0, Math.min(100, id));
@@ -440,6 +483,8 @@ export async function discoverWebsite(input: ResearchInput): Promise<DiscoveryRe
     const path = pathOf(s.url);
     const isDir = isDirectoryUrl(s.url);
     const nm = nameMatch(ins.identityText || host, host, primaryTok, altTok);
+    const namePhrase = ins.reachable ? namePhraseMatch(`${ins.identityText} ${ins.bodyText}`, input.name, altName) : false;
+    const nameStrong = nm.strongFull || namePhrase;
     const cityStatus = ins.reachable ? locationStatus(ins, input.city, input.state) : 'unknown';
     const kind = ins.reachable ? classifyKind(host, path, ins, nm.ratio, isDir, s.source, nm.full) : 'unknown';
 
@@ -455,6 +500,9 @@ export async function discoverWebsite(input: ResearchInput): Promise<DiscoveryRe
       kind,
       nameMatch: Math.round(nm.ratio * 100) / 100,
       nameFull: nm.full,
+      nameStrong,
+      namePhrase,
+      ownershipSignals: ins.ownershipSignals,
       cityStatus,
       identity_confidence: 0,
       identityVerdict: 'no_match',

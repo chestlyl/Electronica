@@ -1,8 +1,13 @@
 import { chromium, type Browser, type BrowserContext } from 'playwright';
+import { existsSync } from 'node:fs';
 import { config } from '../config.js';
 import { logger } from '../lib/logger.js';
 import { RobotsRules } from './robots.js';
-import { webSearch, pickOfficialSite, isDirectoryUrl } from './search.js';
+import {
+  PAGE_CATEGORIES,
+  discoverOfficialSite,
+  sleep,
+} from './discover.js';
 import type {
   PageContent,
   ResearchBundle,
@@ -10,33 +15,15 @@ import type {
   ResearchProvider,
 } from './types.js';
 
-/** Internal pages we care about, with the link keywords that identify them. */
-const PAGE_CATEGORIES: { category: string; keywords: string[] }[] = [
-  { category: 'about', keywords: ['about', 'who-we-are', 'our-story', 'whoweare'] },
-  { category: 'staff', keywords: ['staff', 'team', 'our-team'] },
-  { category: 'leadership', keywords: ['leadership', 'leaders', 'elders', 'pastors'] },
-  { category: 'beliefs', keywords: ['belief', 'what-we-believe', 'values', 'doctrine', 'mission-vision'] },
-  { category: 'contact', keywords: ['contact', 'connect', 'visit', 'plan-a-visit', 'plan-your-visit'] },
-  { category: 'locations', keywords: ['location', 'campus', 'campuses', 'times', 'service-times'] },
-  { category: 'ministries', keywords: ['ministr', 'groups', 'discipleship'] },
-  { category: 'missions', keywords: ['mission', 'outreach', 'global', 'serve'] },
-  { category: 'church-planting', keywords: ['plant', 'church-planting', 'multiply', 'multiplication'] },
-  { category: 'residency', keywords: ['residency', 'internship', 'cohort', 'school-of-ministry', 'training'] },
-  { category: 'partners', keywords: ['partner', 'network', 'affiliation'] },
-];
-
-function normalizeUrl(raw: string | null): string | null {
-  if (!raw) return null;
-  let u = raw.trim();
-  if (!/^https?:\/\//i.test(u)) u = 'http://' + u;
+/** True if Playwright's Chromium browser is actually installed on disk. */
+export function chromiumInstalled(): boolean {
   try {
-    return new URL(u).toString();
+    const p = chromium.executablePath();
+    return !!p && existsSync(p);
   } catch {
-    return null;
+    return false;
   }
 }
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export class PlaywrightResearch implements ResearchProvider {
   private browser: Browser | null = null;
@@ -72,6 +59,7 @@ export class PlaywrightResearch implements ResearchProvider {
       title: '',
       text: '',
       category,
+      crawlMethod: 'playwright',
       fetchedAt: new Date().toISOString(),
     };
     try {
@@ -131,39 +119,9 @@ export class PlaywrightResearch implements ResearchProvider {
     return picked;
   }
 
-  private async checkReachable(url: string): Promise<boolean> {
-    try {
-      const res = await fetch(url, {
-        method: 'GET',
-        headers: { 'user-agent': config.crawl.userAgent },
-        signal: AbortSignal.timeout(10000),
-        redirect: 'follow',
-      });
-      return res.ok;
-    } catch {
-      return false;
-    }
-  }
-
   async research(input: ResearchInput): Promise<ResearchBundle> {
-    const query = [input.name, input.city, input.state, 'church']
-      .filter(Boolean)
-      .join(' ');
-    logger.info(`research: "${query}"`);
-
-    const searchResults = await webSearch(query, 10);
-
-    const originalSite = normalizeUrl(input.originalWebsite);
-    let originalSiteWorks: boolean | null = null;
-    if (originalSite) originalSiteWorks = await this.checkReachable(originalSite);
-
-    // Prefer a working original official site; else best official from search.
-    let officialSite: string | null = null;
-    if (originalSite && originalSiteWorks && !isDirectoryUrl(originalSite)) {
-      officialSite = originalSite;
-    } else {
-      officialSite = pickOfficialSite(searchResults, input.name);
-    }
+    const { query, searchResults, officialSite, originalSiteWorks } =
+      await discoverOfficialSite(input);
 
     const pages: PageContent[] = [];
     const robotsBlockedUrls: string[] = [];
@@ -203,6 +161,8 @@ export class PlaywrightResearch implements ResearchProvider {
       originalSiteWorks,
       pages,
       robotsBlockedUrls,
+      crawlMethod: 'playwright',
+      jsRendered: true,
     };
   }
 }

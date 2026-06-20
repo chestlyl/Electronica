@@ -34,6 +34,15 @@ export function renderResearchContext(bundle: ResearchBundle, maxPageChars = 350
   lines.push(`SEARCH QUERY: ${bundle.query}`);
   lines.push(`OFFICIAL SITE (best guess): ${bundle.officialSite ?? 'unknown'}`);
   lines.push(`ORIGINAL SITE REACHABLE: ${bundle.originalSiteWorks ?? 'unknown'}`);
+  lines.push(`CRAWL METHOD: ${bundle.crawlMethod} (JS rendered: ${bundle.jsRendered})`);
+  if (!bundle.jsRendered) {
+    lines.push(
+      'NOTE: pages were fetched WITHOUT JavaScript rendering; some dynamic ' +
+        'content may be missing. Do not lower confidence for content that is ' +
+        'present, but avoid asserting the ABSENCE of something as strong evidence.',
+    );
+  }
+  if (bundle.note) lines.push(`NOTE: ${bundle.note}`);
   lines.push('');
   lines.push('TOP SEARCH RESULTS:');
   bundle.searchResults.slice(0, 6).forEach((r, i) => {

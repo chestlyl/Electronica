@@ -4,6 +4,8 @@ export interface SearchResult {
   snippet: string;
 }
 
+export type CrawlMethod = 'playwright' | 'fetch_fallback' | 'none';
+
 export interface PageContent {
   url: string;
   finalUrl: string;
@@ -12,6 +14,7 @@ export interface PageContent {
   title: string;
   text: string;        // readable, truncated text content
   category: string;    // home | about | staff | beliefs | contact | ...
+  crawlMethod: CrawlMethod;
   error?: string;
   fetchedAt: string;
 }
@@ -24,6 +27,12 @@ export interface ResearchBundle {
   originalSiteWorks: boolean | null;
   pages: PageContent[];
   robotsBlockedUrls: string[];
+  /** How the page text was obtained. */
+  crawlMethod: CrawlMethod;
+  /** False when a non-JS fetch crawler was used (dynamic content may be missed). */
+  jsRendered: boolean;
+  /** Human-readable note when research was degraded or failed. */
+  note?: string;
 }
 
 export interface ResearchInput {

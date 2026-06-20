@@ -1,0 +1,87 @@
+import { config } from '../config.js';
+import { logger } from '../lib/logger.js';
+import { webSearch, pickOfficialSite, isDirectoryUrl } from './search.js';
+import type { ResearchInput, SearchResult } from './types.js';
+
+/** Internal pages we care about, with the link keywords that identify them. */
+export const PAGE_CATEGORIES: { category: string; keywords: string[] }[] = [
+  { category: 'about', keywords: ['about', 'who-we-are', 'our-story', 'whoweare'] },
+  { category: 'staff', keywords: ['staff', 'team', 'our-team'] },
+  { category: 'leadership', keywords: ['leadership', 'leaders', 'elders', 'pastors'] },
+  { category: 'beliefs', keywords: ['belief', 'what-we-believe', 'values', 'doctrine', 'mission-vision'] },
+  { category: 'contact', keywords: ['contact', 'connect', 'visit', 'plan-a-visit', 'plan-your-visit'] },
+  { category: 'locations', keywords: ['location', 'campus', 'campuses', 'times', 'service-times'] },
+  { category: 'ministries', keywords: ['ministr', 'groups', 'discipleship'] },
+  { category: 'missions', keywords: ['mission', 'outreach', 'global', 'serve'] },
+  { category: 'church-planting', keywords: ['plant', 'church-planting', 'multiply', 'multiplication'] },
+  { category: 'residency', keywords: ['residency', 'internship', 'cohort', 'school-of-ministry', 'training'] },
+  { category: 'partners', keywords: ['partner', 'network', 'affiliation'] },
+];
+
+/** Match a link (href + anchor text) to the first page category it fits. */
+export function categorizeLink(href: string, text: string): string | null {
+  const hay = `${href} ${text}`.toLowerCase();
+  for (const { category, keywords } of PAGE_CATEGORIES) {
+    if (keywords.some((k) => hay.includes(k))) return category;
+  }
+  return null;
+}
+
+export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+export function normalizeUrl(raw: string | null): string | null {
+  if (!raw) return null;
+  let u = raw.trim();
+  if (!/^https?:\/\//i.test(u)) u = 'http://' + u;
+  try {
+    return new URL(u).toString();
+  } catch {
+    return null;
+  }
+}
+
+/** Can we GET this URL successfully? (plain fetch, no browser) */
+export async function checkReachable(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'user-agent': config.crawl.userAgent },
+      signal: AbortSignal.timeout(10000),
+      redirect: 'follow',
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export interface Discovery {
+  query: string;
+  searchResults: SearchResult[];
+  officialSite: string | null;
+  originalSiteWorks: boolean | null;
+}
+
+/**
+ * Shared first step for any crawler: build the query, search, test the original
+ * website, and pick the best official site. No browser required.
+ */
+export async function discoverOfficialSite(input: ResearchInput): Promise<Discovery> {
+  const query = [input.name, input.city, input.state, 'church'].filter(Boolean).join(' ');
+  logger.info(`research: "${query}"`);
+
+  const searchResults = await webSearch(query, 10);
+
+  const originalSite = normalizeUrl(input.originalWebsite);
+  let originalSiteWorks: boolean | null = null;
+  if (originalSite) originalSiteWorks = await checkReachable(originalSite);
+
+  let officialSite: string | null = null;
+  if (originalSite && originalSiteWorks && !isDirectoryUrl(originalSite)) {
+    officialSite = originalSite;
+  } else {
+    officialSite = pickOfficialSite(searchResults, input.name);
+  }
+
+  return { query, searchResults, officialSite, originalSiteWorks };
+}

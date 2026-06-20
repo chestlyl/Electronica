@@ -34,6 +34,13 @@ export const config = {
     headless: bool('HEADLESS', true),
     respectRobots: bool('RESPECT_ROBOTS', true),
   },
+  research: {
+    // Force the plain-HTTP fetch crawler even when Chromium is available
+    // (useful in locked-down/serverless environments).
+    forceFetchFallback: bool('FORCE_FETCH_FALLBACK', false),
+    // Max pages for the fetch fallback crawler.
+    fetchMaxPages: num('FETCH_MAX_PAGES', 5),
+  },
   thresholds: {
     autoUpdate: num('AUTO_UPDATE_THRESHOLD', 85),
     review: num('REVIEW_THRESHOLD', 60),

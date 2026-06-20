@@ -112,12 +112,97 @@ npm run dashboard      # http://localhost:4000  (mode: demo-json)
 
 ---
 
+## Running for real
+
+### 1. Configure `.env`
+
+```bash
+cp .env.example .env
+```
+Fill in, at minimum:
+```ini
+ANTHROPIC_API_KEY=sk-ant-...
+CLAUDE_MODEL=claude-sonnet-4-6
+SUPABASE_URL=https://<your-ref>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<service_role key from Supabase → Settings → API>
+```
+Apply the schema once (`supabase db push`, or paste
+`supabase/migrations/0001_initial_schema.sql` into the SQL editor).
+
+### 2. Run `doctor` to confirm readiness
+
+```bash
+npm run cli -- doctor
+```
+It checks all real-run prerequisites and prints **PASS / WARN / FAIL** with a
+fix for each problem:
+
+```
+[✓ PASS] Anthropic API key            ANTHROPIC_API_KEY is set
+[✓ PASS] Supabase URL                 https://abcd.supabase.co
+[✓ PASS] Supabase service role key    SUPABASE_SERVICE_ROLE_KEY is set
+[✓ PASS] Database connection          Connected to Supabase Postgres
+[✓ PASS] Migration applied            `churches` table exists
+[! WARN] Playwright Chromium          Chromium not installed — will use the fetch fallback
+[✓ PASS] Outbound HTTP                reached https://api.anthropic.com
+[✓ PASS] Search endpoint              DuckDuckGo HTML endpoint reachable
+[✓ PASS] Church website fetch         fetched https://www.life.church
+[✓ PASS] Real providers (not mock)    live Claude + Supabase + research (mode: playwright)
+
+Result: READY for real enrichment.
+```
+Do **not** start a real run until `doctor` reports **READY** (no FAILs).
+
+### 3. Run one real church (the proof-of-life)
+
+```bash
+npm run cli -- import-spreadsheet --file data/Church_Data_v1.xlsx --limit 5
+npm run cli -- enrich-church --id row-2
+```
+This does a live web search, crawls ~10 pages politely, runs all five Claude
+agents, writes evidence + confidence, and auto-updates or queues each field.
+
+### How to know whether results are MOCK or REAL
+
+| Signal | Mock (demo) | Real |
+|---|---|---|
+| Command | `npm run demo` | `npm run cli -- enrich-church …` |
+| Store | `data/output/demo_db.json` (JSON file) | Supabase |
+| Dashboard badge | `demo-json` | `supabase` |
+| LLM | `MockLlmProvider` (model `mock-claude`) | `AnthropicProvider` |
+| `enrichment_runs.model_used` | `mock-claude` | e.g. `claude-sonnet-4-6` |
+| `church_evidence.source_url` | `*.org` placeholders | real fetched URLs |
+| `doctor` check #10 | n/a | **Real providers (not mock): PASS** |
+
+Quick check: every real `enrichment_runs` row has `model_used` = your real model
+and a non-zero `tokens_used`; mock runs show `mock-claude` and `cost_estimate` 0.
+
+### Forcing fetch-fallback mode
+
+If Chromium can't be installed (locked-down/serverless hosts), the system
+automatically uses a **plain-HTTP fetch crawler** (no JavaScript rendering). To
+force it explicitly:
+
+```bash
+npm run cli -- enrich-church --id row-2 --fetch-fallback   # per command
+# or globally:
+echo "FORCE_FETCH_FALLBACK=true" >> .env
+```
+Research order: **Playwright** (if Chromium installed) → **fetch fallback** →
+if both yield no readable pages, a `research_status` item is added to the
+**review queue** explaining why. Fetch-crawled pages are marked
+`crawl_method = fetch_fallback`, and prompts are told JS was not rendered (so the
+model won't treat missing dynamic content as evidence of absence).
+
 ## CLI
 
 Run with `npm run cli -- <command>` (dev) or `church-intel <command>` after
 `npm run build && npm link`.
 
 ```bash
+# Check readiness for real enrichment (PASS/WARN/FAIL + fixes)
+npm run cli -- doctor
+
 # Import the seed spreadsheet (auto-detects columns, de-dupes, preserves originals)
 npm run cli -- import-spreadsheet --file data/Church_Data_v1.xlsx
 npm run cli -- import-spreadsheet --file data/Church_Data_v1.xlsx --limit 100

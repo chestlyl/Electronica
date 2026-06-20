@@ -53,6 +53,7 @@ class MockResearch implements ResearchProvider {
       status: 200,
       title: `${input.name} | Church of the Nazarene`,
       category: 'home',
+      crawlMethod: 'fetch_fallback' as const,
       fetchedAt: new Date().toISOString(),
       text: `Welcome to ${input.name} in ${input.city}, ${input.state}. ` +
         `We are a Church of the Nazarene congregation. Join us Sunday at 9:00 and ` +
@@ -66,6 +67,8 @@ class MockResearch implements ResearchProvider {
       originalSiteWorks: !!input.originalWebsite,
       pages: [home],
       robotsBlockedUrls: [],
+      crawlMethod: 'fetch_fallback' as const,
+      jsRendered: false,
     };
   }
   async close() {}

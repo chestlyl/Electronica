@@ -8,6 +8,7 @@ import { importSpreadsheet } from './importer/importSpreadsheet.js';
 import { verifyChurch, enrichChurch, scoreChurch } from './agents/index.js';
 import { processReviewQueue, setReviewStatus } from './review.js';
 import { exportResults } from './export.js';
+import { runDoctor, printDoctor } from './doctor.js';
 import type { Store } from './db/store.js';
 import type { ChurchFilter, ReviewStatus } from './types.js';
 
@@ -34,13 +35,23 @@ program
     console.log(JSON.stringify(summary, null, 2));
   });
 
+// ── doctor ─────────────────────────────────────────────────────────────────
+program
+  .command('doctor')
+  .description('Check whether the system is ready for real enrichment')
+  .action(async () => {
+    const checks = await runDoctor();
+    printDoctor(checks);
+  });
+
 // ── verify-church / verify-batch ───────────────────────────────────────────
 program
   .command('verify-church')
   .description('Verify a single church (active status + official website)')
   .requiredOption('--id <id>', 'church id (uuid) or original_row_id (e.g. row-12)')
+  .option('--fetch-fallback', 'force the plain-HTTP fetch crawler (no browser)')
   .action(async (opts) => {
-    const ctx = createLiveContext();
+    const ctx = createLiveContext({ forceFetch: opts.fetchFallback });
     try {
       const id = await resolveId(ctx.store, opts.id);
       await verifyChurch(ctx, id);
@@ -53,8 +64,9 @@ program
   .command('verify-batch')
   .description('Verify a batch of not-yet-checked churches')
   .option('--limit <n>', 'max churches', (v) => parseInt(v, 10), 10)
+  .option('--fetch-fallback', 'force the plain-HTTP fetch crawler (no browser)')
   .action(async (opts) => {
-    const ctx = createLiveContext();
+    const ctx = createLiveContext({ forceFetch: opts.fetchFallback });
     try {
       const churches = await ctx.store.listChurches({ needsVerification: true, limit: opts.limit });
       logger.info(`Verifying ${churches.length} churches…`);
@@ -69,8 +81,9 @@ program
   .command('enrich-church')
   .description('Full enrichment (verify + contact + denomination + size + score)')
   .requiredOption('--id <id>', 'church id or original_row_id')
+  .option('--fetch-fallback', 'force the plain-HTTP fetch crawler (no browser)')
   .action(async (opts) => {
-    const ctx = createLiveContext();
+    const ctx = createLiveContext({ forceFetch: opts.fetchFallback });
     try {
       const id = await resolveId(ctx.store, opts.id);
       await enrichChurch(ctx, id);
@@ -84,8 +97,9 @@ program
   .description('Enrich a batch of churches')
   .option('--limit <n>', 'max churches', (v) => parseInt(v, 10), 10)
   .option('--missing-website', 'only churches missing a verified website')
+  .option('--fetch-fallback', 'force the plain-HTTP fetch crawler (no browser)')
   .action(async (opts) => {
-    const ctx = createLiveContext();
+    const ctx = createLiveContext({ forceFetch: opts.fetchFallback });
     try {
       const filter: ChurchFilter = { limit: opts.limit };
       if (opts.missingWebsite) filter.missingWebsite = true;
@@ -103,8 +117,9 @@ program
   .command('score-church')
   .description('Compute influence / MMC fit / multiplication scores')
   .requiredOption('--id <id>', 'church id or original_row_id')
+  .option('--fetch-fallback', 'force the plain-HTTP fetch crawler (no browser)')
   .action(async (opts) => {
-    const ctx = createLiveContext();
+    const ctx = createLiveContext({ forceFetch: opts.fetchFallback });
     try {
       const id = await resolveId(ctx.store, opts.id);
       await scoreChurch(ctx, id);

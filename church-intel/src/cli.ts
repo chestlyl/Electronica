@@ -160,10 +160,10 @@ program
         churchId = await resolveId(ctx.store, opts.id);
         const c = await ctx.store.getChurch(churchId);
         if (!c) throw new Error(`church ${churchId} not found`);
-        target = { name: c.name ?? '', city: c.city, state: c.state, originalWebsite: c.website_original, alternateName: extractAltName(c.notes) };
+        target = { name: c.name ?? '', city: c.city, state: c.state, originalWebsite: c.website_original, alternateName: extractAltName(c.notes), mode: c.website_original ? 'known_church' : 'market_discovery' };
       } else {
-        if (!opts.url || !opts.name) throw new Error('Provide --id, or --url and --name for ad-hoc mode');
-        target = { name: opts.name, city: opts.city ?? null, state: opts.state ?? null, originalWebsite: opts.url, alternateName: null };
+        if (!opts.url || !opts.name) throw new Error('Provide --id, or --url and --name for ad-hoc mode (known-church research requires an official website URL)');
+        target = { name: opts.name, city: opts.city ?? null, state: opts.state ?? null, originalWebsite: opts.url, alternateName: null, mode: 'known_church' };
       }
       const build = await buildDossier(target, ctx);
       await emitDossier(target, build, opts.out);
@@ -248,8 +248,13 @@ program
     let totTok = 0, totCost = 0;
     try {
       for (const e of entries) {
-        const target: ResearchTarget = { name: e.name, city: e.city, state: e.state, originalWebsite: e.url ?? null, alternateName: null };
-        logger.info(`▶ calibrate: ${e.name} (${e.city}, ${e.state})`);
+        // Calibration rows are KNOWN churches → require an official website URL.
+        if (!e.url) {
+          logger.error(`  ${e.id}: Known church calibration requires an official website URL. Use market-discovery mode to find unknown churches.`);
+          continue;
+        }
+        const target: ResearchTarget = { name: e.name, city: e.city, state: e.state, originalWebsite: e.url, alternateName: null, mode: 'known_church' };
+        logger.info(`▶ calibrate: ${e.name} (${e.city}, ${e.state}) [known_church · ${e.url}]`);
         try {
           const build = await buildDossier(target, ctx);
           totTok += build.tokens; totCost += build.cost;

@@ -93,6 +93,12 @@ export interface ResearchInput {
   /** Alternate church name / "Url Name" seed value, used to aid discovery. */
   alternateName: string | null;
   /**
+   * known_church: anchor on the provided URL; do NOT run broad web discovery.
+   * market_discovery: search/nominate/verify candidate domains. Defaults to
+   * known_church when a website is provided, else market_discovery.
+   */
+  mode?: 'known_church' | 'market_discovery';
+  /**
    * When set, the crawler skips its own discovery pass and crawls this site
    * directly. Used during enrich so discovery runs once (in the dossier
    * identity step) instead of twice.

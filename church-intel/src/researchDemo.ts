@@ -60,6 +60,9 @@ export async function buildCornerstoneOffline() {
   const target: ResearchTarget = {
     name: 'Cornerstone Church', city: 'Akron', state: 'OH',
     originalWebsite: 'https://www.cornerstonechurch.info', alternateName: null,
+    // This offline fixture demonstrates the market-discovery MECHANISM (broad
+    // discovery + same-name contamination detection), so force that mode.
+    mode: 'market_discovery',
   };
   const research = new ResilientResearch();
   const build = await buildDossier(target, { llm: new MockLlmProvider(synthesize), research });

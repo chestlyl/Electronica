@@ -96,6 +96,7 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
     L.push(`## ${r.name} (${r.city ?? ''}, ${r.state ?? ''})`);
 
     L.push('### Identity');
+    L.push(`- input_mode: **${r.inputMode ?? 'market_discovery'}** · provided_url: ${r.providedUrl ?? '—'} · website_verification_status: **${r.websiteVerificationStatus ?? 'not_applicable'}**`);
     L.push(`- official website: **${r.officialSite ?? 'NOT IDENTIFIED'}** · identity_confidence ${Math.round(r.identity_confidence)} · verdict ${r.identityVerdict}`);
     L.push(`- contamination flags: ${r.contaminationFlags.length ? r.contaminationFlags.join('; ') : 'none'}`);
     const c = r.crawl ?? { officialDomFetched: false, renderedDomUsed: false, crawlMethod: 'none', rawTextLength: 0, renderedTextLength: 0, renderedGainRatio: 1, links: [] };

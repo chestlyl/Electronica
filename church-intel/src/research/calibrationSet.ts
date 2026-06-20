@@ -19,6 +19,16 @@ export function loadCalibrationSet(path: string): CalibrationEntry[] {
   return JSON.parse(readFileSync(path, 'utf8')) as CalibrationEntry[];
 }
 
+/** Error message when a known-church calibration row is missing its website URL. */
+export const KNOWN_CHURCH_URL_REQUIRED =
+  'Known church calibration requires an official website URL. Use market-discovery mode to find unknown churches.';
+
+/** Calibration rows are KNOWN churches → they must carry an official website URL. */
+export function requireCalibrationUrl(entry: CalibrationEntry): string {
+  if (!entry.url) throw new Error(`${entry.id}: ${KNOWN_CHURCH_URL_REQUIRED}`);
+  return entry.url;
+}
+
 /** Map the internal lifecycle enum to the calibration-report vocabulary. */
 export function lifecycleDisplay(stage: string | null | undefined): string {
   switch (stage) {
@@ -130,6 +140,9 @@ export interface CalibrationRow {
   city: string | null;
   state: string | null;
   officialSite: string | null;
+  inputMode: string;
+  providedUrl: string | null;
+  websiteVerificationStatus: string;
   identityVerdict: string;
   identity_confidence: number;
   contaminationFlags: string[];
@@ -158,6 +171,9 @@ export function rowFromBuild(entry: CalibrationEntry, build: DossierBuild): Cali
   return {
     id: entry.id, name: entry.name, city: entry.city, state: entry.state,
     officialSite: build.officialSite,
+    inputMode: build.identity.inputMode,
+    providedUrl: build.identity.providedUrl,
+    websiteVerificationStatus: build.identity.websiteVerificationStatus,
     identityVerdict: build.identity.identityVerdict,
     identity_confidence: build.identity.identity_confidence,
     contaminationFlags: build.contamination,

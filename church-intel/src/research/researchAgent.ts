@@ -27,6 +27,8 @@ export interface ResearchTarget {
   state: string | null;
   originalWebsite: string | null;
   alternateName: string | null;
+  /** known_church anchors on originalWebsite; market_discovery searches. */
+  mode?: 'known_church' | 'market_discovery';
 }
 
 export interface ResearchDeps {
@@ -140,6 +142,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     originalPhone: null,
     originalEmail: null,
     alternateName: target.alternateName,
+    mode: target.mode ?? (target.originalWebsite ? 'known_church' : 'market_discovery'),
   });
 
   // Effective official site: verified one, else the claimed/original domain

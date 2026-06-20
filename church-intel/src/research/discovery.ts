@@ -42,9 +42,15 @@ export interface DiscoveryCandidate {
   reason: string;
 }
 
+export type InputMode = 'known_church' | 'market_discovery';
+export type WebsiteVerificationStatus = 'verified' | 'unverified' | 'not_applicable';
+
 export interface DiscoveryResult {
   query: string;
   altQuery: string | null;
+  inputMode: InputMode;
+  providedUrl: string | null;
+  websiteVerificationStatus: WebsiteVerificationStatus;
   officialSite: string | null;
   identity_confidence: number;     // winner's, 0 when NO MATCH
   identityVerdict: IdentityVerdict;
@@ -479,6 +485,70 @@ function evaluateIdentity(
 }
 
 /**
+ * KNOWN-CHURCH MODE. The caller provided the official website. We anchor on it,
+ * verify it appears church-owned, and NEVER substitute a third-party page
+ * (directory/obituary/vendor/article). No broad web discovery is performed.
+ */
+async function verifyKnownChurch(
+  input: ResearchInput, query: string, altQuery: string | null,
+  primaryTok: string[], altTok: string[], hasUsableName: boolean,
+): Promise<DiscoveryResult> {
+  const provided = normalizeUrl(input.originalWebsite);
+  const baseResult = (extra: Partial<DiscoveryResult>): DiscoveryResult => ({
+    query, altQuery, inputMode: 'known_church', providedUrl: provided,
+    websiteVerificationStatus: 'unverified', officialSite: null, identity_confidence: 0,
+    identityVerdict: 'no_match', method: 'known_church', originalSiteWorks: null,
+    candidates: [], searchResults: [], searchDiagnostics: [], note: '', ...extra,
+  });
+
+  if (!provided) {
+    logger.warn(`known_church mode for "${input.name}" but NO website URL provided`);
+    return baseResult({ note: 'Known church mode requires an official website URL. Use market-discovery mode to find unknown churches.' });
+  }
+
+  logger.info(`known_church: anchoring on provided URL ${provided} (no broad discovery)`);
+  const ins = await inspectSite(provided, true); // render the provided URL
+  const host = hostOf(provided);
+  const path = pathOf(provided);
+  const isDir = isDirectoryUrl(provided);
+  const nm = nameMatch(ins.identityText || host, host, primaryTok, altTok);
+  const namePhrase = ins.reachable ? namePhraseMatch(ins.identityText, input.name, input.alternateName ?? null) : false;
+  const nameStrong = nm.strongFull || namePhrase;
+  const own = verifyOwnership(ins, 'original', nameStrong, ins.churchLike);
+  const kind = ins.reachable ? classifyKind(host, path, ins, nm.ratio, isDir, own.verified) : 'unknown';
+
+  const c: DiscoveryCandidate = {
+    url: ins.finalUrl || provided, host, source: 'original', provider: undefined,
+    reachable: ins.reachable, isDirectory: isDir, churchLike: ins.reachable ? ins.churchLike : null,
+    parked: ins.reachable ? ins.parked : null, kind,
+    nameMatch: Math.round(nm.ratio * 100) / 100, nameFull: nm.full, nameStrong, namePhrase,
+    ownershipSignals: ins.ownershipSignals, ownershipVerified: own.verified, ownershipReason: own.reason,
+    cityStatus: ins.reachable ? locationStatus(ins, input.city, input.state) : 'unknown',
+    identity_confidence: 0, identityVerdict: 'no_match', score: 0, accepted: false, reason: '',
+  };
+  const ev = evaluateIdentity(c, hasUsableName);
+  c.identity_confidence = ev.identity; c.identityVerdict = ev.verdict; c.score = ev.identity; c.reason = ev.reason;
+
+  // A church-owned page → verified. Directory/obituary/vendor/etc. → unverified
+  // (we keep the provided URL as the anchor but flag it; we never substitute).
+  const verified = own.verified && kind === 'official_church';
+  c.accepted = verified;
+  const status: WebsiteVerificationStatus = verified ? 'verified' : 'unverified';
+  const note = verified
+    ? `Known church: provided URL verified as church-owned (${own.reason}).`
+    : `website_unverified: the provided URL does not verify as church-owned (${own.reason}; classified ${kind}). Kept as the anchor — no substitute used. Provide a corrected URL or use market-discovery mode.`;
+
+  logger.info(`known_church: ${provided} → ${status} (${kind}, ownership ${own.verified ? 'VERIFIED' : 'no'})`);
+  return baseResult({
+    officialSite: provided, identity_confidence: c.identity_confidence,
+    identityVerdict: verified ? 'true_match' : 'uncertain',
+    method: `known_church (provided URL ${status})`,
+    originalSiteWorks: ins.reachable, candidates: [c],
+    websiteVerificationStatus: status, note,
+  });
+}
+
+/**
  * Discover the official church website with identity verification.
  * Returns the best candidate ONLY if its identity is confidently proven
  * (>= 65); otherwise officialSite is null (NO MATCH preferred over a confident
@@ -491,6 +561,12 @@ export async function discoverWebsite(input: ResearchInput): Promise<DiscoveryRe
   const primaryTok = distinctiveTokens(input.name);
   const altTok = distinctiveTokens(altName);
   const hasUsableName = primaryTok.length + altTok.length > 0;
+
+  // KNOWN-CHURCH MODE: anchor on the provided URL — do NOT run broad discovery.
+  const mode: InputMode = input.mode ?? (input.originalWebsite ? 'known_church' : 'market_discovery');
+  if (mode === 'known_church') {
+    return verifyKnownChurch(input, query, altQuery, primaryTok, altTok, hasUsableName);
+  }
 
   logger.info(`discover: "${query}"${altQuery ? ` | alt: "${altQuery}"` : ''}${hasUsableName ? '' : '  [WARN non-identifying name]'}`);
 
@@ -660,7 +736,9 @@ export async function discoverWebsite(input: ResearchInput): Promise<DiscoveryRe
         : 'NO MATCH — no reachable candidates found.';
 
   return {
-    query, altQuery, officialSite, identity_confidence, identityVerdict, method,
+    query, altQuery, inputMode: 'market_discovery', providedUrl: normalizeUrl(input.originalWebsite),
+    websiteVerificationStatus: officialSite ? 'verified' : 'not_applicable',
+    officialSite, identity_confidence, identityVerdict, method,
     originalSiteWorks, candidates, searchResults, searchDiagnostics, note,
   };
 }

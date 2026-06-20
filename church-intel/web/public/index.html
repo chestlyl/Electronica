@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Church Intelligence — Admin</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Church Intelligence <span id="mode" class="badge">—</span></h1>
+      <nav>
+        <button data-tab="churches" class="active">Churches</button>
+        <button data-tab="review">Review Queue</button>
+      </nav>
+    </header>
+
+    <main>
+      <!-- Churches tab -->
+      <section id="tab-churches">
+        <div class="filters">
+          <input id="search" placeholder="Search name…" />
+          <select id="activeStatus">
+            <option value="">Any status</option>
+            <option>Verified Active</option>
+            <option>Likely Active</option>
+            <option>Uncertain</option>
+            <option>Closed</option>
+            <option>Merged</option>
+          </select>
+          <label><input type="checkbox" id="missingWebsite" /> Missing website</label>
+          <label><input type="checkbox" id="missingEmail" /> Missing email</label>
+          <label><input type="checkbox" id="missingPastor" /> Missing pastor</label>
+          <label>Min MMC fit <input type="number" id="minMmcFit" min="0" max="100" style="width:4rem" /></label>
+          <button id="apply">Apply</button>
+        </div>
+
+        <div class="split">
+          <div id="list" class="list"></div>
+          <div id="detail" class="detail"><p class="muted">Select a church to see fields, evidence, and sources.</p></div>
+        </div>
+      </section>
+
+      <!-- Review tab -->
+      <section id="tab-review" hidden>
+        <div class="filters">
+          <select id="reviewStatus">
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="needs_more_research">Needs more research</option>
+          </select>
+          <button id="reloadReview">Reload</button>
+        </div>
+        <div id="reviewList" class="review-list"></div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

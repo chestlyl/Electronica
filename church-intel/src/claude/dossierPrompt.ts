@@ -148,14 +148,17 @@ const dossierSynthesisInner = z.object({
 export const dossierSynthesisSchema = z.preprocess(normalizeSynthesisRaw, dossierSynthesisInner);
 export type DossierSynthesis = z.infer<typeof dossierSynthesisInner>;
 
-export function renderFindings(findings: SourceFinding[], maxChars = 6000): string {
+export function renderFindings(findings: SourceFinding[], maxChars = 8000): string {
   const lines: string[] = [];
   for (const f of findings) {
     const body = (f.fetched ? f.text : f.snippet) ?? '';
+    // Staff/leadership pages carry the names+titles the synthesis needs; give them
+    // more room (1500 vs 400 chars) so pastor names past the first 400 aren't cut.
+    const bodyLimit = f.sourceType === 'staff_page' ? 1500 : 400;
     lines.push(
       `- [${f.sourceType} | access=${f.accessLevel} | fetched=${f.fetched} | rel=${f.reliability}] ${f.url}` +
         (f.title ? `\n   title: ${f.title}` : '') +
-        (body ? `\n   text: ${body.slice(0, 400)}` : '') +
+        (body ? `\n   text: ${body.slice(0, bodyLimit)}` : '') +
         (f.fields.length ? `\n   extracted: ${f.fields.map((x) => `${x.field_name}=${x.value}`).join('; ')}` : ''),
     );
   }

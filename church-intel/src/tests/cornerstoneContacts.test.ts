@@ -18,6 +18,12 @@
  * and extractFacts recovers the same contacts; and that per-link crawl
  * diagnostics are recorded either way.
  *
+ * Scenario C: the /contact page exposes email/phone ONLY via mailto:/tel: links
+ * (not in visible text), so the text-regex extractor misses them; the fallback
+ * folds the crawler's structured finding.fields into office_email/office_phone,
+ * preserving the finding's access level, and contactability becomes > 0. Plus a
+ * rule-5 check that a higher-confidence text email is not overwritten.
+ *
  * Plus a snippet-fallback case: when no subpages exist, snippet evidence still
  * yields the contacts (snippet beats null).
  *
@@ -69,7 +75,20 @@ const STAFF_JS = `<html><head><title>Our Staff</title></head><body>
 <p>Jacob Young is the Lead Pastor. Email connect@cornerstonechurch.info or call 330.644.3937.</p>
 </body></html>`;
 
-// Keyed by host+path so the two scenarios (bare host vs www host) don't collide.
+// ── Scenario C: contacts exposed ONLY via mailto:/tel: links (no literal
+// email/phone in the visible text). Mirrors the real /contact page.
+const HOME_C = `<html><head><title>Cornerstone Church</title></head><body>
+<nav><a href="/staff">Our Staff</a><a href="/contact">Contact</a></nav>
+<p>Welcome to Cornerstone Church in Akron, Ohio. We gather Sundays at 9 and 11 AM
+for worship and teaching as a church family in our city.</p></body></html>`;
+const STAFF_C = `<html><head><title>Our Staff</title></head><body>
+<div class="staff-card"><h3>Jacob Young</h3><p>Lead Pastor</p></div></body></html>`;
+const CONTACT_C = `<html><head><title>Contact</title></head><body>
+<h1>Get In Touch</h1><p>We would love to hear from you. Stop by this weekend.</p>
+<a href="mailto:connect@cornerstonechurch.info">Email Us</a>
+<a href="tel:+13306443937">Call Us</a></body></html>`;
+
+// Keyed by host+path so the scenarios don't collide.
 const SITES: Record<string, string> = {
   'cornerstonechurch.info/': HOME,
   'cornerstonechurch.info/o/7f3a': STAFF,
@@ -77,6 +96,9 @@ const SITES: Record<string, string> = {
   'cornerstonechurch.info/o/1a0b': ABOUT,
   'www.cornerstonechurch.info/': HOME_JS,
   'www.cornerstonechurch.info/staff': STAFF_JS,
+  'c.cornerstonechurch.info/': HOME_C,
+  'c.cornerstonechurch.info/staff': STAFF_C,
+  'c.cornerstonechurch.info/contact': CONTACT_C,
 };
 
 (globalThis as any).fetch = async (input: any) => {
@@ -168,6 +190,44 @@ async function main() {
   check('B: lead_pastor recovered via probe = Jacob Young', () => assert.strictEqual(factsB.lead_pastor?.value, 'Jacob Young'));
   check('B: office_email recovered via probe', () => assert.strictEqual(factsB.office_email?.value, 'connect@cornerstonechurch.info'));
   check('B: office_phone recovered via probe', () => assert.strictEqual(factsB.office_phone?.value, '330.644.3937'));
+
+  // ── Scenario C: mailto/tel-only contact page → fallback fills facts ───────
+  const { deriveContactability } = await import('../research/calibrationSet.js');
+  const ctxC = {
+    name: 'Cornerstone Church', city: 'Akron', state: 'OH',
+    originalWebsite: 'https://c.cornerstonechurch.info/', alternateName: null,
+    identity: {} as any,
+    officialSite: 'https://c.cornerstonechurch.info/',
+    research: new FetchResearch(),
+  };
+  const findingsC = await collectWebsite(ctxC as any);
+  const contactC = findingsC.find((f) => new URL(f.url).pathname === '/contact');
+  check('C: /contact page crawled', () => assert.ok(contactC));
+  check('C: visible text does NOT contain the email/phone (mailto/tel only)',
+    () => assert.ok(!(contactC?.text ?? '').includes('connect@cornerstonechurch.info') && !(contactC?.text ?? '').includes('3306443937')));
+  check('C: crawler captured email/phone into finding.fields',
+    () => assert.ok(contactC!.fields.some((x) => x.field_name === 'email') && contactC!.fields.some((x) => x.field_name === 'phone')));
+  const factsC = extractFacts(findingsC);
+  check('C: fallback fills office_email from mailto field', () => assert.strictEqual(factsC.office_email?.value, 'connect@cornerstonechurch.info'));
+  check('C: fallback fills office_phone from tel field', () => assert.strictEqual(factsC.office_phone?.value, '+13306443937'));
+  check('C: office_email preserves access level from the finding', () => assert.strictEqual(factsC.office_email?.access_level, 'live_official_site'));
+  check('C: contactability score > 0 with recovered contacts', () => {
+    const fields = { office_email: { value: factsC.office_email!.value, confidence: factsC.office_email!.confidence }, office_phone: { value: factsC.office_phone!.value, confidence: factsC.office_phone!.confidence }, lead_pastor: { value: factsC.lead_pastor?.value ?? null, confidence: 50 } } as any;
+    const ctb = deriveContactability({} as any, fields, 'live_official_site');
+    assert.ok(Number(ctb.value) > 0, `contactability=${ctb.value}`);
+  });
+
+  // Rule 5: a higher-confidence text-derived email is NOT overwritten by a
+  // lower-confidence structured field on the same finding.
+  const mixed = makeFinding({
+    sourceType: 'official_site', accessLevel: 'live_official_site', url: 'https://c.cornerstonechurch.info/about',
+    title: 'About', fetched: true, status: 200,
+    text: 'For ministry questions email office@cornerstonechurch.info anytime.',
+    fields: [{ field_name: 'email', value: 'noreply@vendor.example', confidence: 30, evidence_text: 'mailto', source_url: 'https://c.cornerstonechurch.info/about', source_type: 'official_site', access_level: 'live_official_site' }],
+  });
+  const factsMix = extractFacts([mixed]);
+  check('rule 5: higher-confidence text email beats low-confidence mailto field',
+    () => assert.strictEqual(factsMix.office_email?.value, 'office@cornerstonechurch.info'));
 
   // Snippet fallback: a thin live homepage + snippet evidence → contacts survive.
   const homepageOnly = makeFinding({

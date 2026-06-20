@@ -162,6 +162,18 @@ export function extractFacts(findings: SourceFinding[]): Facts {
     if (em) consider(f, 'office_email', em.value, em.confidence, em.ev);
     const ph = text.match(PHONE);
     if (ph) consider(f, 'office_phone', ph[0], 55, text.slice(0, 120));
+
+    // Fallback: fold the crawler's STRUCTURED contact fields (mailto/tel links the
+    // collector captured) into office_email/office_phone. Many sites expose
+    // contacts only as mailto:/tel: hrefs, so the literal value never appears in
+    // visible text. consider() keeps the best reliability × confidence, so a
+    // higher-confidence text-derived fact is never overwritten (and the finding's
+    // source_url / access_level / confidence are preserved).
+    for (const field of f.fields) {
+      if (field.value == null || field.value === '') continue;
+      if (field.field_name === 'email') consider(f, 'office_email', String(field.value), field.confidence, field.evidence_text || String(field.value));
+      else if (field.field_name === 'phone') consider(f, 'office_phone', String(field.value), field.confidence, field.evidence_text || String(field.value));
+    }
   }
 
   const out: Facts = {};

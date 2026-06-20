@@ -7,6 +7,7 @@ import {
 } from './dossier.js';
 import { collectWebsite } from './sources/website.js';
 import { collectSnippets } from './sources/snippets.js';
+import { extractFacts, type Facts } from './extractors.js';
 import { dossierSynthesisPrompt, type DossierSynthesis } from '../claude/dossierPrompt.js';
 import type { LlmProvider } from '../claude/client.js';
 import type { ResearchProvider } from './types.js';
@@ -36,6 +37,7 @@ export interface DossierBuild {
   conflicts: ResearchConflict[];
   contamination: string[];
   synthesis: DossierSynthesis;
+  facts: Facts;
   dossier: ResearchDossier;
   strategic: Partial<Church>;
   fieldEstimates: { field_name: string; value: string | number | null; confidence: number; evidence: string; access_level: EvidenceAccessLevel }[];
@@ -142,13 +144,14 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   const contamination = detectContamination(identity);
   const officialCrawled = officialSiteWasCrawled(findings);
   const accessLevel = dossierAccessLevel(findings);
+  const facts = extractFacts(findings);
 
   const { data: synthesis, usage } = await deps.llm.extractJson<DossierSynthesis>({
     system: dossierSynthesisPrompt.system,
     user: dossierSynthesisPrompt.user({
       name: target.name, city: target.city, state: target.state,
       officialSite: identity.officialSite, officialCrawled,
-      findings, conflicts, contamination,
+      findings, conflicts, contamination, facts,
     }),
     schema: dossierSynthesisPrompt.schema,
     maxTokens: 2200,
@@ -163,6 +166,12 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     const lvl = validLevel(f.access_level) ?? accessLevel;
     return { field_name: f.field_name, value: f.value, confidence: capConfidence(f.confidence, lvl), evidence: f.evidence, access_level: lvl };
   });
+  // Deterministic extractions (gap-fill: founded year, campuses, staff count,
+  // giving, app, staff contacts) — each capped by its own source access level.
+  for (const [k, fact] of Object.entries(facts)) {
+    const value = typeof fact.value === 'boolean' ? String(fact.value) : fact.value;
+    fieldEstimates.push({ field_name: k, value, confidence: capConfidence(fact.confidence, fact.access_level), evidence: fact.evidence, access_level: fact.access_level });
+  }
 
   const types = new Set(findings.map((f) => f.sourceType)).size;
   const coverage = Math.min(types / 8, 1);
@@ -215,7 +224,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   }
 
   return {
-    identity, findings, conflicts, contamination, synthesis, dossier, strategic,
+    identity, findings, conflicts, contamination, synthesis, facts, dossier, strategic,
     fieldEstimates, officialSite, accessLevel, officialCrawled,
     tokens: usage.inputTokens + usage.outputTokens,
     cost: usage.costEstimate,

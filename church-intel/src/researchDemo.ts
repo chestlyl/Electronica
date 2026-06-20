@@ -18,7 +18,9 @@ import type { DossierSynthesis } from './claude/dossierPrompt.js';
 
 // ── mocked search + pages ───────────────────────────────────────────────────
 const RESULTS: { url: string; title: string; snippet: string }[] = [
-  { url: 'https://www.cornerstonechurch.info/staff', title: 'Our Staff — Cornerstone Church', snippet: 'Jacob Young is the Lead Pastor at Cornerstone since the relaunch in August 2020. 2445 S Arlington Rd, Akron, OH.' },
+  { url: 'https://www.cornerstonechurch.info/staff', title: 'Our Staff — Cornerstone Church', snippet: 'Jacob Young is the Lead Pastor at Cornerstone since the relaunch in August 2020. Our staff team of 6. Email Connect@CornerstoneChurch.info or call (330) 644-3937. 2445 S Arlington Rd, Akron, OH.' },
+  { url: 'https://www.cornerstonechurch.info/our-history', title: 'Our History — Cornerstone Church', snippet: 'We began in 1980 with about 75 people. In 2020 Cornerstone Church celebrated 40 years and relaunched into a new season.' },
+  { url: 'https://www.cornerstonechurch.info/contact', title: 'Contact — Cornerstone Church', snippet: 'Cornerstone Church is one location at 2445 S Arlington Rd, Akron OH 44319. Sundays 9 & 11 AM. Give online. (330) 644-3937. Connect@CornerstoneChurch.info' },
   { url: 'https://www.linkedin.com/in/jcbyng', title: 'Jacob Young - Associate Pastor - Cornerstone Church', snippet: 'Associate Pastor at Cornerstone Church. Akron, Ohio.' },
   { url: 'https://www.instagram.com/cornerstonechurchsocial/', title: 'Cornerstone Church (@cornerstonechurchsocial) · Akron, OH', snippet: '1,098 followers. A place for people curious about Jesus but cautious about church.' },
   { url: 'https://www.facebook.com/CornerstoneChurchSocialPLX/', title: 'Cornerstone Church | Akron OH | Facebook', snippet: '1K followers. Sunday 9 & 11 AM.' },

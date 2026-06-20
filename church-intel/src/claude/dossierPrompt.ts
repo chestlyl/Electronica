@@ -80,7 +80,11 @@ RULES:
     name: string; city: string | null; state: string | null;
     officialSite: string | null; officialCrawled: boolean;
     findings: SourceFinding[]; conflicts: ResearchConflict[]; contamination: string[];
+    facts?: Record<string, { value: string | number | boolean; confidence: number; source_url: string }>;
   }): string {
+    const factLines = opts.facts && Object.keys(opts.facts).length
+      ? Object.entries(opts.facts).map(([k, v]) => `- ${k} = ${v.value} (conf ${v.confidence}, ${v.source_url})`).join('\n')
+      : '- none';
     return `CHURCH: ${opts.name}
 LOCATION: ${[opts.city, opts.state].filter(Boolean).join(', ') || 'unknown'}
 OFFICIAL SITE (identity): ${opts.officialSite ?? 'NOT CONFIDENTLY IDENTIFIED'}
@@ -91,6 +95,9 @@ ${opts.conflicts.length ? opts.conflicts.map((c) => `- ${c.field_name}: "${c.val
 
 CONTAMINATION FLAGS:
 ${opts.contamination.length ? opts.contamination.map((c) => `- ${c}`).join('\n') : '- none'}
+
+DETERMINISTIC EXTRACTIONS (regex over the evidence — confirm or override these):
+${factLines}
 
 EVIDENCE (${opts.findings.length} findings):
 ${renderFindings(opts.findings)}

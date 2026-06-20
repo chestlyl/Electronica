@@ -34,6 +34,7 @@ export function renderResearchContext(bundle: ResearchBundle, maxPageChars = 350
   lines.push(`SEARCH QUERY: ${bundle.query}`);
   lines.push(`OFFICIAL SITE (best guess): ${bundle.officialSite ?? 'unknown'}`);
   lines.push(`ORIGINAL SITE REACHABLE: ${bundle.originalSiteWorks ?? 'unknown'}`);
+  if (bundle.discoveryNote) lines.push(`DISCOVERY: ${bundle.discoveryNote}`);
   lines.push(`CRAWL METHOD: ${bundle.crawlMethod} (JS rendered: ${bundle.jsRendered})`);
   if (!bundle.jsRendered) {
     lines.push(

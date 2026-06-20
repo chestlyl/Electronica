@@ -9,6 +9,8 @@ import { verifyChurch, enrichChurch, scoreChurch } from './agents/index.js';
 import { processReviewQueue, setReviewStatus } from './review.js';
 import { exportResults } from './export.js';
 import { runDoctor, printDoctor } from './doctor.js';
+import { discoverWebsite } from './research/discovery.js';
+import { extractAltName } from './agents/index.js';
 import type { Store } from './db/store.js';
 import type { ChurchFilter, ReviewStatus } from './types.js';
 
@@ -42,6 +44,55 @@ program
   .action(async () => {
     const checks = await runDoctor();
     printDoctor(checks);
+  });
+
+// ── discover-church ────────────────────────────────────────────────────────
+program
+  .command('discover-church')
+  .description('Test website discovery only (no crawl, no Claude, no DB writes)')
+  .requiredOption('--id <id>', 'church id or original_row_id')
+  .action(async (opts) => {
+    const store = new SupabaseStore();
+    const id = await resolveId(store, opts.id);
+    const c = await store.getChurch(id);
+    if (!c) throw new Error(`church ${id} not found`);
+    const altName = extractAltName(c.notes);
+    const result = await discoverWebsite({
+      name: c.name ?? '',
+      city: c.city,
+      state: c.state,
+      originalWebsite: c.website_original,
+      originalPhone: c.phone_original,
+      originalEmail: c.email_original,
+      alternateName: altName,
+    });
+
+    console.log(`\nChurch:  ${c.name} (${c.city ?? ''}, ${c.state ?? ''})  [${c.original_row_id}]`);
+    console.log(`Seed website: ${c.website_original ?? '—'}   alt name: ${altName ?? '—'}`);
+    console.log(`Query:   ${result.query}`);
+    if (result.altQuery) console.log(`Alt q:   ${result.altQuery}`);
+
+    console.log('\nSearch providers:');
+    for (const d of result.searchDiagnostics) {
+      console.log(
+        `  ${d.ok ? 'ok ' : '-- '} ${d.provider.padEnd(18)} status=${String(d.status).padEnd(4)} results=${d.resultCount}${d.note ? `  (${d.note})` : ''}`,
+      );
+    }
+
+    console.log('\nCandidates (ranked):');
+    if (result.candidates.length === 0) console.log('  (none)');
+    for (const cand of result.candidates) {
+      console.log(
+        `  ${cand.accepted ? '✓' : '✗'} [${String(cand.score).padStart(3)}] ${cand.source.padEnd(12)}${cand.provider ? `(${cand.provider})` : ''} ${cand.url}`,
+      );
+      console.log(
+        `        reachable=${cand.reachable} churchLike=${cand.churchLike} directory=${cand.isDirectory} parked=${cand.parked}`,
+      );
+      console.log(`        ↳ ${cand.reason}`);
+    }
+
+    console.log(`\n→ Chosen: ${result.officialSite ?? 'NONE'}   via ${result.method}`);
+    console.log(`  ${result.note}\n`);
   });
 
 // ── verify-church / verify-batch ───────────────────────────────────────────

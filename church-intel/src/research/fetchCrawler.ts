@@ -114,7 +114,7 @@ export class FetchResearch implements ResearchProvider {
   }
 
   async research(input: ResearchInput): Promise<ResearchBundle> {
-    const { query, searchResults, officialSite, originalSiteWorks } =
+    const { query, searchResults, officialSite, originalSiteWorks, discoveryNote } =
       await discoverOfficialSite(input);
 
     const pages: PageContent[] = [];
@@ -180,6 +180,7 @@ export class FetchResearch implements ResearchProvider {
       crawlMethod: 'fetch_fallback',
       jsRendered: false,
       note,
+      discoveryNote,
     };
   }
 }

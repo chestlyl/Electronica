@@ -208,6 +208,10 @@ Run with `npm run cli -- <command>` (dev) or `church-intel <command>` after
 # Check readiness for real enrichment (PASS/WARN/FAIL + fixes)
 npm run cli -- doctor
 
+# Test website discovery only — no crawl, no Claude, no DB writes.
+# Prints search-provider diagnostics + ranked candidates with accept/reject reasons.
+npm run cli -- discover-church --id row-4
+
 # Import the seed spreadsheet (auto-detects columns, de-dupes, preserves originals)
 npm run cli -- import-spreadsheet --file data/Church_Data_v1.xlsx
 npm run cli -- import-spreadsheet --file data/Church_Data_v1.xlsx --limit 100
@@ -266,6 +270,23 @@ development/multiplication.
 
 **MMC Fit Score** = 30% multiplication language + 25% church planting activity +
 20% leadership development + 15% Kingdom collaboration + 10% openness/innovation.
+
+### Website discovery (`src/research/discovery.ts`)
+
+Finding the official site is the make-or-break step, so discovery draws on four
+sources, probes each for reachability + church-like content, and ranks them with
+logged reasons:
+
+1. **`website_original`** from the spreadsheet (verified reachable first)
+2. **`urlname`** seed (when it looks like a URL)
+3. **Direct domain guesses** from name + city (+ alt name) — e.g.
+   `abilenefirst.org`, `<city>naz.org`, `<city>first.church`
+4. **Multi-provider web search** — DuckDuckGo HTML/Lite → Bing → Mojeek, with a
+   browser User-Agent (the bot UA is what made DuckDuckGo return HTTP 202) and
+   per-provider diagnostics
+
+Directory/social hosts and parked domains are rejected with reasons. Use
+`discover-church --id <id>` to inspect the full candidate ranking for any church.
 
 ### Confidence & auto-update rules (`src/lib/confidence.ts`)
 

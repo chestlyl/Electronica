@@ -1,5 +1,6 @@
 import { config } from './config.js';
 import { chromiumInstalled } from './research/browser.js';
+import { multiSearch } from './research/searchProviders.js';
 
 type Status = 'PASS' | 'WARN' | 'FAIL' | 'SKIP';
 
@@ -12,7 +13,6 @@ interface Check {
 
 const SAMPLE_CHURCH_URL = process.env.DOCTOR_SAMPLE_URL || 'https://www.life.church';
 const ANTHROPIC_HOST = config.claude.baseUrl || 'https://api.anthropic.com';
-const SEARCH_URL = 'https://html.duckduckgo.com/html/?q=church';
 
 interface Probe {
   reachable: boolean;
@@ -123,13 +123,18 @@ export async function runDoctor(): Promise<Check[]> {
         : { name: 'Outbound HTTP', status: 'FAIL', detail: out.error || 'no response', fix: 'Check container/network egress; outbound HTTPS is required' },
   );
 
-  // 8: search endpoint
-  const search = await probe(SEARCH_URL);
-  checks.push(
-    search.reachable && !search.blocked && search.status === 200
-      ? { name: 'Search endpoint', status: 'PASS', detail: 'DuckDuckGo HTML endpoint reachable' }
-      : { name: 'Search endpoint', status: 'WARN', detail: search.blocked ? 'blocked by egress allowlist' : `unexpected response (status ${search.status}${search.error ? ', ' + search.error : ''})`, fix: 'Allowlist html.duckduckgo.com. Without search, enrichment can still use seed websites but cannot discover missing ones.' },
-  );
+  // 8: search — exercise the real multi-provider search layer
+  const { results, diagnostics } = await multiSearch('First Baptist Church Dallas TX', { limit: 5, minHosts: 99 });
+  const working = diagnostics.filter((d) => d.ok);
+  const reachable = diagnostics.filter((d) => d.status > 0);
+  const summary = diagnostics.map((d) => `${d.provider}=${d.status}/${d.resultCount}`).join('  ');
+  if (results.length > 0) {
+    checks.push({ name: 'Search providers', status: 'PASS', detail: `${working.length}/${diagnostics.length} engines returned results — ${summary}` });
+  } else if (reachable.length > 0) {
+    checks.push({ name: 'Search providers', status: 'WARN', detail: `engines reachable but returned 0 results (challenge/rate-limit) — ${summary}`, fix: 'Search is degraded; discovery will lean on seed websites + domain guesses. Retry later or run from a residential IP.' });
+  } else {
+    checks.push({ name: 'Search providers', status: 'FAIL', detail: `no search engine reachable — ${summary}`, fix: 'Allowlist html.duckduckgo.com, lite.duckduckgo.com, www.bing.com, www.mojeek.com (or open outbound egress).' });
+  }
 
   // 9: sample church website fetch
   const site = await probe(SAMPLE_CHURCH_URL);

@@ -10,6 +10,12 @@ import { runMultiplication } from './multiplication.js';
 
 export type { AgentContext } from './base.js';
 
+/** The importer stores the spreadsheet "Url Name" as "Seed alt name: X" in notes. */
+export function extractAltName(notes: string | null): string | null {
+  const m = notes?.match(/Seed alt name:\s*([^|]+)/i);
+  return m ? m[1].trim() : null;
+}
+
 function toResearchInput(c: Church): ResearchInput {
   return {
     name: c.name ?? '',
@@ -18,6 +24,7 @@ function toResearchInput(c: Church): ResearchInput {
     originalWebsite: c.website_original,
     originalPhone: c.phone_original,
     originalEmail: c.email_original,
+    alternateName: extractAltName(c.notes),
   };
 }
 

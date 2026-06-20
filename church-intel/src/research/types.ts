@@ -2,6 +2,8 @@ export interface SearchResult {
   title: string;
   url: string;
   snippet: string;
+  /** Which search engine returned this result (set by multiSearch). */
+  provider?: string;
 }
 
 export type CrawlMethod = 'playwright' | 'fetch_fallback' | 'none';
@@ -33,6 +35,8 @@ export interface ResearchBundle {
   jsRendered: boolean;
   /** Human-readable note when research was degraded or failed. */
   note?: string;
+  /** How the official site was discovered (provenance for the agents). */
+  discoveryNote?: string;
 }
 
 export interface ResearchInput {
@@ -42,6 +46,8 @@ export interface ResearchInput {
   originalWebsite: string | null;
   originalPhone: string | null;
   originalEmail: string | null;
+  /** Alternate church name / "Url Name" seed value, used to aid discovery. */
+  alternateName: string | null;
 }
 
 export interface ResearchProvider {

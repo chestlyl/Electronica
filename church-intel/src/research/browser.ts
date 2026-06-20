@@ -120,7 +120,7 @@ export class PlaywrightResearch implements ResearchProvider {
   }
 
   async research(input: ResearchInput): Promise<ResearchBundle> {
-    const { query, searchResults, officialSite, originalSiteWorks } =
+    const { query, searchResults, officialSite, originalSiteWorks, discoveryNote } =
       await discoverOfficialSite(input);
 
     const pages: PageContent[] = [];
@@ -163,6 +163,7 @@ export class PlaywrightResearch implements ResearchProvider {
       robotsBlockedUrls,
       crawlMethod: 'playwright',
       jsRendered: true,
+      discoveryNote,
     };
   }
 }

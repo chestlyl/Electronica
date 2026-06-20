@@ -1,6 +1,6 @@
 import { config } from '../config.js';
 import { logger } from '../lib/logger.js';
-import { webSearch, pickOfficialSite, isDirectoryUrl } from './search.js';
+import { discoverWebsite } from './discovery.js';
 import type { ResearchInput, SearchResult } from './types.js';
 
 /** Internal pages we care about, with the link keywords that identify them. */
@@ -60,28 +60,20 @@ export interface Discovery {
   searchResults: SearchResult[];
   officialSite: string | null;
   originalSiteWorks: boolean | null;
+  discoveryNote: string;
 }
 
 /**
- * Shared first step for any crawler: build the query, search, test the original
- * website, and pick the best official site. No browser required.
+ * Shared first step for any crawler: run the multi-source discovery pipeline and
+ * return the chosen official site plus context. No browser required.
  */
 export async function discoverOfficialSite(input: ResearchInput): Promise<Discovery> {
-  const query = [input.name, input.city, input.state, 'church'].filter(Boolean).join(' ');
-  logger.info(`research: "${query}"`);
-
-  const searchResults = await webSearch(query, 10);
-
-  const originalSite = normalizeUrl(input.originalWebsite);
-  let originalSiteWorks: boolean | null = null;
-  if (originalSite) originalSiteWorks = await checkReachable(originalSite);
-
-  let officialSite: string | null = null;
-  if (originalSite && originalSiteWorks && !isDirectoryUrl(originalSite)) {
-    officialSite = originalSite;
-  } else {
-    officialSite = pickOfficialSite(searchResults, input.name);
-  }
-
-  return { query, searchResults, officialSite, originalSiteWorks };
+  const result = await discoverWebsite(input);
+  return {
+    query: result.query,
+    searchResults: result.searchResults,
+    officialSite: result.officialSite,
+    originalSiteWorks: result.originalSiteWorks,
+    discoveryNote: result.note,
+  };
 }

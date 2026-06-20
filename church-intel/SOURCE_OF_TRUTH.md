@@ -19,9 +19,23 @@ Layer 3  NORMALIZATION    NormalizedEvidence         structured tables, no concl
 Layer 4  INTERPRETATION   Interpretation             THE ONLY conclusions; each
    │                      (interpret.ts)             references normalized evidence ids
    ▼
+Layer 4b STRATEGIC SCORING Strategic Scores (v1)     rubric over interpretation +
+   │                      (strategicScoring.ts)      normalized + signals + tech +
+   │                      REPORT-ONLY, not persisted  coverage; bands weak→strong
+   ▼
 Layer 5  REPORT / ENRICH  consume Interpretation     report, dossierApply (enrich),
                           (never re-derive)          calibration field map, dossier markdown
 ```
+
+**Strategic Scoring v1** (`strategicScoring.ts`) is a deterministic, report-only
+rubric layer. It reads only interpretation conclusions, normalized evidence,
+strategic signals, technology stack, and coverage — it never re-derives
+conclusions and is NOT written to Supabase. Each of the five dimensions outputs:
+score (0–100), band (0–25 weak / 26–50 emerging / 51–75 capable / 76–100 strong),
+confidence (capped by access level) + raw/uncapped confidence + cap reason,
+evidence consumed (with row ids), evidence missing, and a reason. Whenever
+strategic signals exist for a dimension, that dimension cannot report zero
+evidence (a baseline contribution cites the signal rows).
 
 The synthesis (Claude) is an **input to interpretation only** — it is never read
 directly as a conclusion by any consumer.

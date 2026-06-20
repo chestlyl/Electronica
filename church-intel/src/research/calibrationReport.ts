@@ -189,6 +189,23 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
       }
     }
 
+    // ── Strategic Scoring v1 (rubric-based, REPORT-ONLY — not written to DB) ───
+    const scores = r.strategicScores;
+    if (scores) {
+      L.push('### Strategic Scoring v1 (rubric)');
+      L.push('_Deterministic rubric over interpretation + normalized evidence + strategic signals + tech stack + coverage. Bands: 0–25 weak · 26–50 emerging · 51–75 capable · 76–100 strong. Report-only — not persisted._');
+      L.push('| dimension | score | band | confidence | cap | evidence consumed | evidence missing |');
+      L.push('|---|---|---|---|---|---|---|');
+      for (const d of ['digital_maturity', 'growth_orientation', 'change_readiness', 'organizational_capacity', 'contactability'] as const) {
+        const s = scores[d];
+        if (!s) continue;
+        const consumed = (s.evidenceConsumed.join('; ') || '—').replace(/\|/g, '/').slice(0, 140);
+        const missing = (s.evidenceMissing.join(', ') || '—').replace(/\|/g, '/').slice(0, 80);
+        const capNote = s.capped ? `capped→${s.confidence} (raw ${s.rawConfidence})` : 'uncapped';
+        L.push(`| ${d} | **${s.score}** | ${s.band} | ${Math.round(s.confidence)} | ${capNote} | ${consumed} | ${missing} |`);
+      }
+    }
+
     // ── Evidence layers (Layer 2 raw → Layer 3 normalized → Layer 4 conclusions) ─
     if (r.interpretation) {
       L.push('### Evidence layers');

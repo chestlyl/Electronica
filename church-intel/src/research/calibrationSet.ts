@@ -11,6 +11,7 @@ import type { PlatformHit } from './techStack.js';
 import type { StrategicSignal, Dimension } from './strategicSignals.js';
 import { normalizedCounts as normalizedCountsOf } from './evidenceModel.js';
 import type { Interpretation } from './evidenceModel.js';
+import type { StrategicScores } from './strategicScoring.js';
 
 // Re-exported for compatibility (the derivations now live in the interpretation
 // layer; calibration unit tests import deriveArchetype from here).
@@ -86,6 +87,8 @@ export interface CalibrationRow {
   strategicDimensionCounts: Record<Dimension, number>;
   /** Layer 4 conclusions — report + enrich consume this same object. */
   interpretation: Interpretation;
+  /** Strategic Scoring v1 — rubric-based, report-only. */
+  strategicScores: StrategicScores;
   /** Layer 2/3 instrumentation. */
   rawEvidenceCount: number;
   normalizedCounts: Record<string, number>;
@@ -130,6 +133,7 @@ export function rowFromBuild(entry: CalibrationEntry, build: DossierBuild): Cali
     strategicSignals: build.strategicSignals,
     strategicDimensionCounts: build.strategicDimensionCounts,
     interpretation: build.interpretation,
+    strategicScores: build.strategicScores,
     rawEvidenceCount: build.raw.length,
     normalizedCounts: normalizedCountsOf(build.normalized),
     digitalSummary: digitalEvidenceSummary(build.digital),

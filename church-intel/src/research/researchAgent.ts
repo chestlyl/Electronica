@@ -13,6 +13,7 @@ import { detectTechStack, type PlatformHit } from './techStack.js';
 import { detectStrategicSignals, dimensionCounts, type StrategicSignal, type Dimension } from './strategicSignals.js';
 import { toRawEvidence, normalizeEvidence } from './normalize.js';
 import { interpretDossier } from './interpret.js';
+import { scoreStrategic, type StrategicScores } from './strategicScoring.js';
 import { normalizedCounts, type RawEvidence, type NormalizedEvidence, type Interpretation } from './evidenceModel.js';
 import { computeCoverage, scoreConfidence, contactabilityConfidence, computeSourceCoverage, sourceCoverageSummary, type CoverageRow, type ScoreConfidence, type SourceCoverageRow } from './coverage.js';
 import { dossierSynthesisPrompt, type DossierSynthesis } from '../claude/dossierPrompt.js';
@@ -70,6 +71,8 @@ export interface DossierBuild {
   normalized: NormalizedEvidence;
   /** Layer 4 — the ONLY conclusions; report + enrich consume this same object. */
   interpretation: Interpretation;
+  /** Strategic Scoring v1 — rubric-based, REPORT-ONLY (not written to Supabase). */
+  strategicScores: StrategicScores;
   scoreConfidence: Record<string, ScoreConfidence>;
   tokens: number;
   cost: number;
@@ -314,6 +317,9 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     normalized, synthesis, facts, accessLevel, scoreConfidence: scoreConf,
     identity: { inputMode: identity.inputMode, websiteVerificationStatus: identity.websiteVerificationStatus, identityVerdict: identity.identityVerdict },
   });
+  // Strategic Scoring v1 (report-only): deterministic rubric over interpretation +
+  // normalized evidence + strategic signals + tech stack + coverage.
+  const strategicScores = scoreStrategic({ interpretation, normalized, coverage, accessLevel });
 
   // ── TEMPORARY INSTRUMENTATION (DOSSIER_DEBUG) — trace where contacts vanish ──
   if (process.env.DOSSIER_DEBUG) {
@@ -367,7 +373,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   return {
     identity, findings, conflicts, contamination, synthesis, facts, leadership, dossier, strategic,
     fieldEstimates, officialSite, accessLevel, officialCrawled, crawl, coverage, sourceCoverage, digital, techStack,
-    strategicSignals, strategicDimensionCounts, raw, normalized, interpretation, scoreConfidence: scoreConf,
+    strategicSignals, strategicDimensionCounts, raw, normalized, interpretation, strategicScores, scoreConfidence: scoreConf,
     tokens: usage.inputTokens + usage.outputTokens,
     cost: usage.costEstimate,
   };

@@ -5,7 +5,7 @@ import type { SourceFinding } from './dossier.js';
  * AI inference. Classifies every fetched URL and outbound link by hostname into a
  * known platform, with a category, confidence, and the evidence URL.
  */
-export type PlatformCategory = 'ChMS' | 'Giving' | 'App' | 'Communication' | 'Website' | 'Streaming' | 'Other';
+export type PlatformCategory = 'ChMS' | 'Giving' | 'App' | 'Communication' | 'Email' | 'Website' | 'Streaming' | 'Other';
 
 export interface PlatformHit {
   platform_name: string;
@@ -16,18 +16,21 @@ export interface PlatformHit {
 
 // host suffix → platform. Matched against the URL's hostname only.
 const TABLE: { host: RegExp; platform: string; category: PlatformCategory; confidence: number }[] = [
-  { host: /(^|\.)churchcenter\.com$|(^|\.)churchcenteronline\.com$|(^|\.)planningcenter(?:online)?\.com$|(^|\.)planning\.center$/i, platform: 'Planning Center', category: 'ChMS', confidence: 95 },
+  { host: /(^|\.)churchcenter\.com$|(^|\.)churchcenteronline\.com$/i, platform: 'Church Center / Planning Center', category: 'ChMS', confidence: 95 },
+  { host: /(^|\.)planningcenteronline\.com$|(^|\.)planningcenter\.com$|(^|\.)planning\.center$/i, platform: 'Planning Center', category: 'ChMS', confidence: 95 },
   { host: /(^|\.)pushpay\.com$/i, platform: 'Pushpay', category: 'Giving', confidence: 95 },
   { host: /(^|\.)subsplash\.com$|(^|\.)subspla\.sh$/i, platform: 'Subsplash', category: 'App', confidence: 95 },
   { host: /(^|\.)tithe\.ly$|(^|\.)tithely\.com$/i, platform: 'Tithely', category: 'Giving', confidence: 95 },
   { host: /(^|\.)breezechms\.com$/i, platform: 'Breeze', category: 'ChMS', confidence: 95 },
+  { host: /(^|\.)realm\.org$|(^|\.)onrealm\.org$|(^|\.)realmchurch\.com$/i, platform: 'ACS Realm', category: 'ChMS', confidence: 90 },
   { host: /(^|\.)flocknote\.com$/i, platform: 'Flocknote', category: 'Communication', confidence: 95 },
+  { host: /(^|\.)mailchimp\.com$|(^|\.)mailchimpsites\.com$|(^|\.)list-manage\.com$/i, platform: 'Mailchimp', category: 'Email', confidence: 90 },
   { host: /(^|\.)squarespace\.com$|(^|\.)squarespace-cdn\.com$|(^|\.)sqsp\.net$/i, platform: 'Squarespace', category: 'Website', confidence: 90 },
+  { host: /(^|\.)wixsite\.com$|(^|\.)wix\.com$/i, platform: 'Wix', category: 'Website', confidence: 85 },
+  // extras (deterministic, useful — not in the required list)
   { host: /(^|\.)givelify\.com$/i, platform: 'Givelify', category: 'Giving', confidence: 95 },
   { host: /(^|\.)easytithe\.com$/i, platform: 'EasyTithe', category: 'Giving', confidence: 90 },
-  { host: /(^|\.)onrealm\.org$|(^|\.)realmchurch\.com$/i, platform: 'Realm', category: 'ChMS', confidence: 90 },
   { host: /(^|\.)ccbchurch\.com$/i, platform: 'Church Community Builder', category: 'ChMS', confidence: 90 },
-  { host: /(^|\.)wixsite\.com$|(^|\.)wix\.com$/i, platform: 'Wix', category: 'Website', confidence: 85 },
   { host: /(^|\.)wordpress\.(?:com|org)$/i, platform: 'WordPress', category: 'Website', confidence: 80 },
 ];
 

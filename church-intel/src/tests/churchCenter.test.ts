@@ -69,15 +69,18 @@ async function main() {
   });
 
   // ── Technology-stack layer (deterministic hostname mapping) ───────────────
-  check('classifyPlatform maps known hosts', () => {
-    assert.strictEqual(classifyPlatform('https://x.churchcenter.com/a')?.platform, 'Planning Center');
+  check('classifyPlatform maps every required host', () => {
+    assert.strictEqual(classifyPlatform('https://x.churchcenter.com/a')?.platform, 'Church Center / Planning Center');
     assert.strictEqual(classifyPlatform('https://planningcenteronline.com')?.platform, 'Planning Center');
     assert.strictEqual(classifyPlatform('https://pushpay.com/g/abc')?.platform, 'Pushpay');
     assert.strictEqual(classifyPlatform('https://subsplash.com/x')?.platform, 'Subsplash');
     assert.strictEqual(classifyPlatform('https://tithe.ly/give')?.platform, 'Tithely');
     assert.strictEqual(classifyPlatform('https://breezechms.com')?.platform, 'Breeze');
+    assert.strictEqual(classifyPlatform('https://realm.org/x')?.platform, 'ACS Realm');
     assert.strictEqual(classifyPlatform('https://flocknote.com')?.platform, 'Flocknote');
+    assert.strictEqual(classifyPlatform('https://us1.mailchimp.com/x')?.platform, 'Mailchimp');
     assert.strictEqual(classifyPlatform('https://static1.squarespace.com/x.css')?.platform, 'Squarespace');
+    assert.strictEqual(classifyPlatform('https://church.wixsite.com/home')?.platform, 'Wix');
     assert.strictEqual(classifyPlatform('https://www.ofhchurch.com'), null);
   });
 
@@ -93,7 +96,7 @@ async function main() {
   });
   const stack = detectTechStack([home, snip]);
   const names = technologyStack(stack);
-  check('tech stack detects Planning Center (Church Center host)', () => assert.ok(names.includes('Planning Center')));
+  check('tech stack detects Church Center / Planning Center (Church Center host)', () => assert.ok(names.includes('Church Center / Planning Center')));
   check('tech stack detects Pushpay (outbound link)', () => assert.ok(names.includes('Pushpay')));
   check('tech stack detects Tithely (text host)', () => assert.ok(names.includes('Tithely')));
   check('tech stack detects Flocknote (text host)', () => assert.ok(names.includes('Flocknote')));
@@ -102,6 +105,36 @@ async function main() {
     for (const t of stack) { assert.ok(t.platform_name && t.category && t.confidence > 0 && /^https?:\/\//.test(t.evidence_url)); }
   });
   check('no duplicate platforms', () => assert.strictEqual(new Set(names).size, names.length));
+
+  // ── OFH regression: the exact live Church Center URL ──────────────────────
+  const ofh: SourceFinding = makeFinding({
+    sourceType: 'search', accessLevel: 'search_snippets',
+    url: 'https://our-finest-hour-church.churchcenter.com/people/forms/929885',
+    title: 'Our Finest Hour Church, Inc.', fetched: false, status: 200,
+    snippet: 'Our Finest Hour Church, Inc. Calendar Give Groups Log in. Form: email phone address. assets@ofhchurch.com 9182791243',
+  });
+  const ofhStack = detectTechStack([ofh]);
+  const ofhSig = detectDigitalSignals([ofh]);
+  const ofhFacts = extractFacts([ofh]);
+  check('OFH: tech stack = Church Center / Planning Center', () => assert.deepStrictEqual(technologyStack(ofhStack), ['Church Center / Planning Center']));
+  check('OFH: platform hit has the exact churchcenter evidence_url', () => assert.ok(ofhStack[0].evidence_url.includes('our-finest-hour-church.churchcenter.com')));
+  check('OFH: Planning Center / Church Center app facts set', () => {
+    assert.strictEqual(ofhFacts.app_status?.value, 'active');
+    assert.strictEqual(ofhFacts.app_provider?.value, 'Church Center / Planning Center');
+    assert.strictEqual(ofhFacts.church_management_platform?.value, 'Planning Center');
+  });
+  check('OFH: Give / Groups / Calendar detected from nav', () => {
+    assert.ok(ofhSig.online_giving && ofhSig.groups_platform_present && ofhSig.calendar_platform_present);
+    assert.strictEqual(ofhFacts.online_giving_present?.value, true);
+    assert.strictEqual(ofhFacts.groups_platform_present?.value, true);
+    assert.strictEqual(ofhFacts.calendar_platform_present?.value, true);
+  });
+  check('OFH: form + login present on the page evidence', () => { assert.match(ofh.snippet ?? '', /\bform\b/i); assert.match(ofh.snippet ?? '', /\blog ?in\b/i); });
+  check('OFH: Church Center is SUPPORTING evidence, not the official site', () => {
+    // techStack/digital are platform evidence only; identity (sourceType) is unchanged.
+    assert.notStrictEqual(ofh.sourceType, 'official_site');
+    assert.strictEqual(ofh.accessLevel, 'search_snippets');
+  });
 
   console.log(failures ? `\nFAILED (${failures})` : '\nALL PASSED');
   process.exit(failures ? 1 : 0);

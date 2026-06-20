@@ -33,6 +33,13 @@ function autoVariance(row: CalibrationRow): string[] {
   if (row.lifecycle.confidence < 50) out.push('lifecycle classification is low-confidence');
   if (row.archetype.confidence < 50) out.push('archetype classification is low-confidence');
   if (row.accessLevel !== 'live_official_site') out.push(`confidence capped — best evidence was ${row.accessLevel}, not the live official site`);
+  // Interpreted conclusion capped BELOW its underlying evidence (e.g. live staff
+  // evidence outranks the access cap) — surface the loss for calibration.
+  const I = row.interpretation;
+  const evidenceLeadConf = Math.max(0, ...(row.leadership ?? []).filter((l) => l.isLead).map((l) => l.confidence));
+  if (I && I.lead_pastors.value.length && evidenceLeadConf > I.lead_pastors.confidence) {
+    out.push(`confidence capped — lead pastor evidence conf ${Math.round(evidenceLeadConf)} reduced to interpreted ${Math.round(I.lead_pastors.confidence)} by the ${row.accessLevel} cap`);
+  }
   return out;
 }
 

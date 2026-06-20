@@ -1,0 +1,36 @@
+{
+  "name": "church-intel",
+  "version": "1.0.0",
+  "description": "Church Intelligence Platform for Million Member Church — verify, enrich, and score churches from a legacy spreadsheet using Supabase, Playwright, and Claude.",
+  "type": "module",
+  "bin": {
+    "church-intel": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "cli": "tsx src/cli.ts",
+    "demo": "tsx src/demo.ts",
+    "dashboard": "tsx web/server.ts",
+    "postinstall": "playwright install chromium || true"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.65.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "playwright": "^1.48.0",
+    "xlsx": "^0.18.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.7.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

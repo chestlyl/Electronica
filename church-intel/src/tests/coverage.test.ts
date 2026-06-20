@@ -1,6 +1,10 @@
 /**
  * Minimum-evidence coverage + coverage-aware confidence (Cornerstone regression).
  *
+ * PROVENANCE: Cornerstone contact/staff values here are USER-PROVIDED; the
+ * findings (page text, giving-platform mentions) are SYNTHETIC fixtures used to
+ * exercise the coverage logic. No value here was discovered by the tool.
+ *
  * The bug: the system produced strategic scores BEFORE successfully extracting
  * staff intelligence. These tests assert the system now KNOWS whether it has
  * enough evidence:

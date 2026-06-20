@@ -1,4 +1,5 @@
 <!-- SAMPLE: single church, OFFLINE mock data. Real runs cover all 10. -->
+> ⚠️ **PROVENANCE WARNING — SYNTHETIC SAMPLE.** Every specific value below (attendance, founded year, follower counts, budget, scores, etc.) is illustrative mock data generated offline, **not discovered or verified**. The only real Cornerstone values are user-provided (name/city/state, lead pastor Jacob Young, the office email and phone). Do not cite any number here as a fact about this church.
 
 # Calibration Report
 _generated 2026-06-20T13:51:42.568Z · 1 churches_

@@ -1,5 +1,7 @@
 # Research Agent Design
 
+> ⚠️ **PROVENANCE NOTE.** Any Cornerstone Church values appearing in this design doc are illustrative examples (mock/synthetic), **not discovered or verified facts**. Only user-provided values are real.
+
 > Status: **proposed** (design only — no implementation yet)
 > Supersedes the single-site crawl-then-extract flow for enrichment.
 

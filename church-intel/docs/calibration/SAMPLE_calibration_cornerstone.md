@@ -1,4 +1,5 @@
 <!-- ILLUSTRATIVE: ground truth is sample data, not verified with the church. -->
+> ⚠️ **PROVENANCE WARNING — SYNTHETIC SAMPLE.** All specific figures below are illustrative mock/placeholder data, **not discovered or verified**. Only user-provided values (name/city/state, lead pastor Jacob Young, office email/phone) are real. Do not cite any number here as a fact about this church.
 
 # Calibration report — Cornerstone Church (SAMPLE / illustrative ground truth)
 _generated 2026-06-20T05:45:01.608Z · evidence access: **search_snippets** (confidence cap **65**)_

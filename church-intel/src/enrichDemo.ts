@@ -3,6 +3,11 @@
  * (no network / Supabase / Claude). Shows exactly which fields auto-update vs.
  * go to review vs. evidence-only under the conservative rules.
  *
+ * ⚠️ PROVENANCE: this demo reuses the SYNTHETIC Cornerstone fixture from
+ * researchDemo.ts plus a synthetic mock scoring response below. No value here is
+ * tool-discovered; only the user-provided Cornerstone fields (name/city, lead
+ * pastor, email, phone) are real.
+ *
  *   npm run enrich-demo
  */
 import { rmSync } from 'node:fs';
@@ -17,13 +22,13 @@ const DB = 'data/output/enrich_demo_db.json';
 /** Combined mock LLM: dossier synthesis + multiplication scoring. */
 function responder(opts: ExtractOptions<unknown>): unknown {
   if (opts.system.includes('building a DOSSIER')) return synthesize(opts);
-  // multiplication/scoring agent
+  // multiplication/scoring agent — SYNTHETIC mock output (not discovered).
   return {
     church_planting_activity: 15, disciple_making: 55, leadership_development: 45,
     residency_internship: 10, mission_sending: 50, kingdom_collaboration: 40,
     innovation: 45, multiplication_orientation: 35, digital_reach: 50,
-    explanation: 'Revitalizing church; modest multiplication signals.',
-    evidence: [{ field_name: 'multiplication', proposed_value: 'moderate', evidence_text: 'discipleship + missions', source_url: 'https://www.cornerstonechurch.info', confidence_score: 60 }],
+    explanation: '[SYNTHETIC mock scoring output — not based on real evidence.]',
+    evidence: [{ field_name: 'multiplication', proposed_value: 'moderate', evidence_text: '[SYNTHETIC mock evidence]', source_url: 'https://www.cornerstonechurch.info', confidence_score: 60 }],
   };
 }
 

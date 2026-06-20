@@ -29,6 +29,10 @@ const PAGES: Record<string, string> = {
   'christchurch.org': `<title>Christ Church</title><h1>Christ Church</h1><p>We are a church. Plan your visit. Give online. Sermons.${PAD}</p>`,
   // the REAL church (church-provided URL, exact name phrase, target city)
   'cccaz.org': `<title>Christ's Community Church | Glendale, AZ</title><h1>Christ's Community Church</h1><p>A church in Glendale, AZ. Plan your visit. Give online. Sermons.${PAD}</p>`,
+  // Our Finest Hour — the church's OWN site (church-owned domain, Coweta OK)
+  'ofhchurch.com': `<title>Our Finest Hour Church | Coweta, OK</title><nav><a href="/give">Give</a><a href="/sermons">Sermons</a><a href="/visit">Plan a Visit</a></nav><h1>Our Finest Hour Church</h1><p>We are a church in Coweta, OK. Plan your visit. Give online. Sermons.${PAD}</p>`,
+  // a general-directory LISTING of the same church — must NOT be taken for the church
+  'oklahomachurches.com': `<title>Our Finest Hour - Oklahoma Churches Directory</title><h1>Our Finest Hour</h1><p>Directory listing for Our Finest Hour, a church in Coweta, OK. Browse and find churches near you.${PAD}</p>`,
 };
 
 const SEARCH = ['html.duckduckgo.com', 'lite.duckduckgo.com', 'www.bing.com', 'www.mojeek.com'];
@@ -120,6 +124,36 @@ async function main() {
     assert.strictEqual(rReal.identityVerdict, 'true_match');
     const real = rReal.candidates.find((c) => /cccaz\.org/.test(c.host));
     assert.ok(real && real.namePhrase && real.cityStatus === 'match', `phrase=${real?.namePhrase} city=${real?.cityStatus}`);
+  });
+
+  // Our Finest Hour: the church-owned domain must win over the directory listing.
+  const ofhResults = [
+    { url: 'https://www.oklahomachurches.com/our-finest-hour-coweta', title: 'Our Finest Hour - Oklahoma Churches' },
+    { url: 'https://www.ofhchurch.com/', title: 'Our Finest Hour Church' },
+  ];
+  const rOFH = await run(
+    { name: 'Our Finest Hour', city: 'Coweta', state: 'OK', originalWebsite: null, originalPhone: null, originalEmail: null, alternateName: null },
+    ofhResults,
+  );
+  check('OFH: ofhchurch.com becomes officialSite (church-owned beats directory)', () => {
+    assert.ok(rOFH.officialSite && /ofhchurch\.com/.test(rOFH.officialSite), `officialSite=${rOFH.officialSite}`);
+    assert.strictEqual(rOFH.identityVerdict, 'true_match');
+  });
+  check('OFH: oklahomachurches.com is general_directory, supporting only', () => {
+    const dir = rOFH.candidates.find((c) => /oklahomachurches/.test(c.host));
+    assert.ok(dir && dir.kind === 'general_directory', `kind=${dir?.kind}`);
+    assert.notStrictEqual(dir?.identityVerdict, 'true_match');
+  });
+
+  // If ONLY a directory exists, discovery returns no official site (not the directory).
+  const rDirOnly = await run(
+    { name: 'Our Finest Hour', city: 'Coweta', state: 'OK', originalWebsite: null, originalPhone: null, originalEmail: null, alternateName: null },
+    [{ url: 'https://www.oklahomachurches.com/our-finest-hour-coweta', title: 'Our Finest Hour - Oklahoma Churches' }],
+  );
+  check('OFH: directory-only → NO official site (directory is not the church)', () => {
+    assert.ok(!rDirOnly.officialSite, `officialSite=${rDirOnly.officialSite}`);
+    const dir = rDirOnly.candidates.find((c) => /oklahomachurches/.test(c.host));
+    assert.ok(dir && dir.kind === 'general_directory' && dir.identityVerdict !== 'true_match');
   });
 
   console.log(failures ? `\nFAILED (${failures})` : '\nALL PASSED');

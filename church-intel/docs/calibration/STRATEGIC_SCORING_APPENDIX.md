@@ -1,5 +1,7 @@
 # Strategic Scoring — Calibration Appendix
 
+> ⚠️ **PROVENANCE WARNING.** Cornerstone figures used as examples in this appendix are illustrative mock/placeholder values, **not discovered or verified facts** about the church. Only user-provided values (name/city/state, lead pastor, office email/phone) are real.
+
 _Subject: Cornerstone Church (Akron, OH). Scores from the live run:
 digital_maturity 55 · growth_orientation 68 · change_readiness 72 · staff_depth 40._
 

@@ -7,12 +7,21 @@ const DIRECTORY_HOSTS = [
   'yelp.com', 'yellowpages.com', 'mapquest.com', 'tripadvisor.com',
   'churchfinder.com', 'uschurch.org', 'find-a-church', 'wikipedia.org',
   'linkedin.com', 'ein.org', 'causeiq.com', 'tiktok.com',
+  // church-listing / review / tax-record directories (NOT a church's own site)
+  'joinmychurch.com', 'faithstreet.com', 'churchangel.com', 'alluschurches.com',
+  'unitedstateschurches.com', 'christianchurchsearch.com', 'taxexemptworld.com',
+  'guidestar.org', 'propublica.org', 'manta.com',
 ];
+
+// Generic listing hosts: "<place>churches.com/org/net" (plural) — e.g.
+// oklahomachurches.com, alluschurches.com. Individual churches are virtually
+// always singular ("...church.com"), so the plural form signals a directory.
+const DIRECTORY_HOST_RE = /[a-z]churches\.(com|org|net)$/i;
 
 export function isDirectoryUrl(url: string): boolean {
   try {
     const h = new URL(url).hostname.replace(/^www\./, '');
-    return DIRECTORY_HOSTS.some((d) => h.includes(d));
+    return DIRECTORY_HOSTS.some((d) => h.includes(d)) || DIRECTORY_HOST_RE.test(h);
   } catch {
     return true;
   }

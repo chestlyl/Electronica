@@ -1,6 +1,10 @@
 /**
  * Staff-card extraction (rendered-DOM staff pages) — Cornerstone fixture.
  *
+ * PROVENANCE: the staff names/titles below are USER-PROVIDED (the user pasted
+ * the browser-visible roster); the surrounding page HTML/structure is SYNTHETIC.
+ * No value here was discovered by the tool.
+ *
  * Uses the real browser-visible staff names/titles from Cornerstone's /staff
  * page (which a plain fetch only sees as a ~884-char Squarespace nav shell).
  * Verifies:

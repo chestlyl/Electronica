@@ -8,7 +8,8 @@ export type CandidateSource = 'original' | 'urlname' | 'domain_guess' | 'search'
 export type CandidateKind =
   | 'official_church'      // an individual church's own website
   | 'denom_directory'      // denominational/association directory listing this church
-  | 'general_directory'    // yelp/facebook/yellowpages etc.
+  | 'general_directory'    // yelp/yellowpages/oklahomachurches etc. — a LISTING, not the church
+  | 'social_profile'       // facebook/instagram/youtube/linkedin profile of the church
   | 'resource'             // parachurch / bible-study / sermon resource — not a church
   | 'vendor_reference'     // contractor/architect/builder/vendor page ABOUT a church
   | 'media_reference'      // news/media article ABOUT a church
@@ -71,6 +72,11 @@ const RESOURCE_HOSTS = [
 const VENDOR_HOST = /construct|builder|contractor|architect|engineer|roofing|hvac|interior|consult(ing|ants?)?|realty|realestate|signage|landscap|plumb|electric|paving|millwork|cabinetry|flooring|concrete|drywall|glass|steel|mechanical|integrat|designbuild|avsystems|soundsystem|propertie?s/i;
 const VENDOR_CONTENT = /portfolio|case stud|our (work|projects)|completed (project|in|the)|general contractor|design[- ]build|scope of work|square feet|sq\.? ?ft|project (gallery|profile|details)|we (built|designed|constructed|completed)|client[:s]|architectural/i;
 const VENDOR_PATH = /\/portfolio\/|\/projects?\/|\/our-work\/|\/work\/|\/case-stud/i;
+const SOCIAL_HOST = /(^|\.)(facebook|instagram|twitter|tiktok|linkedin|threads|vimeo)\.com$|(^|\.)x\.com$|(^|\.)(youtube\.com|youtu\.be)$/i;
+// Church-listing / review / tax-record directories — a LISTING of churches, not
+// any single church's own site (e.g. oklahomachurches.com, faithstreet.com).
+const GENERAL_DIRECTORY_HOST = /(oklahomachurches|joinmychurch|faithstreet|churchangel|alluschurches|unitedstateschurches|christianchurchsearch|taxexemptworld|churchfinder|uschurch|findachurch|guidestar|propublica|causeiq|yelp|yellowpages|mapquest|tripadvisor|manta)/i;
+const DIRECTORY_HOST_RE = /[a-z]churches\.(com|org|net)$/i;
 const MEDIA_HOST = /(^|\.)(news|tribune|times|herald|gazette|chronicle|journal|patch|cbs|abc|nbc|fox|click2houston|communityimpact|press|magazine|dailymail|guardian|reuters|apnews|axios|patheos)/i;
 const MEDIA_CONTENT = /staff (writer|reporter)|by [a-z]+ [a-z]+, (staff|correspondent)|published (on|at)|read more|subscribe to (our )?newsletter|advertisement|all rights reserved.*(news|media)|originally appeared/i;
 const MEDIA_PATH = /\/news\/|\/article\/|\/story\/|\/stories\/|\/20\d\d\/\d\d\//;
@@ -320,7 +326,11 @@ function classifyKind(host: string, path: string, ins: SiteInspection, ratio: nu
   if (MEDIA_HOST.test(host) || (MEDIA_CONTENT.test(ins.bodyText) && MEDIA_PATH.test(path))) {
     return 'media_reference';
   }
-  if (isDir) return 'general_directory';
+  // Social profile of the church (supports identity, but is not the official site).
+  if (SOCIAL_HOST.test(host)) return 'social_profile';
+  // A church LISTING/directory — decisive on host, BEFORE the church-owned check,
+  // so a directory page with church-like content can never be taken for the church.
+  if (isDir || GENERAL_DIRECTORY_HOST.test(host) || DIRECTORY_HOST_RE.test(host)) return 'general_directory';
 
   const dirPath = /church-directory|\/directory\/|find-a-church|\/churches?\//i.test(path);
   const denomHost = /(naz|nazarene|umc|sbc|district|presbytery|diocese|conference|assembliesofgod|\bag\.org|\.cog\.)/i.test(host);
@@ -391,7 +401,8 @@ function evaluateIdentity(
   switch (c.kind) {
     case 'official_church': id += 15; r.push('official church website(+15)'); break;
     case 'denom_directory': id += 25; r.push('denominational directory confirmation(+25)'); break;
-    case 'general_directory': id -= 10; r.push('general directory/social(-10)'); break;
+    case 'general_directory': id -= 10; r.push('general directory listing(-10)'); break;
+    case 'social_profile': id -= 8; r.push('social/platform profile(-8)'); break;
     case 'resource': id -= 30; r.push('church resource, not a church(-30)'); break;
     default: id -= 5; r.push('unclassified / not church-owned(-5)');
   }
@@ -399,12 +410,14 @@ function evaluateIdentity(
   if (c.reachable) { id += 5; r.push('reachable(+5)'); }
   if (c.churchLike) { id += 5; r.push('church content(+5)'); }
 
-  // Identity can only be PROVEN by the church's own site or a directory that
-  // confirms it. Anything else (a page that merely mentions the church) is
-  // capped below the acceptance bar — NO MATCH beats a false positive.
-  if (c.kind !== 'official_church' && c.kind !== 'denom_directory') {
+  // SELECTION RULE: only the church's OWN site can BE the official site. A
+  // directory (general OR denominational), social profile, or any page that
+  // merely lists/mentions the church may SUPPORT identity but is capped below the
+  // acceptance bar — it can never be selected as the official site. If only such
+  // sources exist, discovery returns NO MATCH rather than crawling a directory.
+  if (c.kind !== 'official_church') {
     id = Math.min(id, UNCERTAIN_THRESHOLD - 1);
-    r.push('not a church-owned site or directory → capped (cannot be true_match)');
+    r.push(`${c.kind} can support identity but cannot BE the official site → capped (cannot be true_match)`);
   }
 
   // FALSE-POSITIVE GATE: a candidate may reach true_match ONLY with a strong
@@ -524,7 +537,9 @@ export async function discoverWebsite(input: ResearchInput): Promise<DiscoveryRe
   const original = candidates.find((c) => c.source === 'original');
   const originalSiteWorks = original ? original.reachable : input.originalWebsite ? false : null;
 
-  const winner = candidates.find((c) => c.accepted) ?? null;
+  // Only a church-OWNED site may be selected as the official site (directories
+  // and profiles support identity but never become "the church").
+  const winner = candidates.find((c) => c.accepted && c.kind === 'official_church') ?? null;
   const best = candidates[0] ?? null;
   const officialSite = winner?.url ?? null;
   // On NO MATCH, report the best candidate's score (not a misleading 0) so the

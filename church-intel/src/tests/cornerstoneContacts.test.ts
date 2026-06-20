@@ -2,6 +2,10 @@
  * Regression: contact recovery for sites whose nav uses opaque URL paths with
  * descriptive anchor text (e.g. Cornerstone Church).
  *
+ * PROVENANCE: Jacob Young / connect@cornerstonechurch.info / 330.644.3937 are
+ * USER-PROVIDED; the page HTML is SYNTHETIC fixture structure. Nothing here was
+ * tool-discovered.
+ *
  * Guards against the rendered-DOM-upgrade regression where link categorization
  * dropped anchor text (`categorizeLink(pathname, '')`) and the staff/connect
  * subpages were no longer crawled — nulling lead_pastor / office_email /

@@ -1,4 +1,5 @@
 import { roleFromTitle, stripHonorific } from './staffCards.js';
+import { isChurchCenterUrl } from './digitalSignals.js';
 import type { SourceFinding } from './dossier.js';
 import type { EvidenceAccessLevel } from '../types.js';
 
@@ -189,6 +190,18 @@ export function extractFacts(findings: SourceFinding[]): Facts {
       const value = target === 'staff_count' ? Number(field.value) : String(field.value);
       if (target === 'staff_count' && !Number.isFinite(value as number)) continue;
       consider(f, target, value, field.confidence, field.evidence_text || String(field.value));
+    }
+
+    // Church Center URL → structured Planning Center / Church Center platform facts.
+    // (Supporting platform evidence; never identity ownership — see digitalSignals.)
+    if (isChurchCenterUrl(f.url)) {
+      const t = `${f.title ?? ''} ${(f.fetched ? f.text : f.snippet) ?? ''} ${f.url}`;
+      consider(f, 'app_status', 'active', 80, 'Church Center (Planning Center) instance');
+      consider(f, 'app_provider', 'Church Center / Planning Center', 80, f.url);
+      consider(f, 'church_management_platform', 'Planning Center', 80, `Church Center URL: ${f.url}`);
+      if (/\bgive\b/i.test(t)) consider(f, 'online_giving_present', true, 70, 'Church Center Give');
+      if (/\bgroups?\b/i.test(t)) consider(f, 'groups_platform_present', true, 70, 'Church Center Groups');
+      if (/\bcalendar\b/i.test(t)) consider(f, 'calendar_platform_present', true, 70, 'Church Center Calendar');
     }
   }
 

@@ -197,6 +197,7 @@ RULES:
     findings: SourceFinding[]; conflicts: ResearchConflict[]; contamination: string[];
     facts?: Record<string, { value: string | number | boolean; confidence: number; source_url: string }>;
     digital?: string;
+    sourceCoverage?: string;
   }): string {
     const factLines = opts.facts && Object.keys(opts.facts).length
       ? Object.entries(opts.facts).map(([k, v]) => `- ${k} = ${v.value} (conf ${v.confidence}, ${v.source_url})`).join('\n')
@@ -217,6 +218,9 @@ ${factLines}
 
 DIGITAL SIGNALS DETECTED (evidence for digital_maturity — weigh, do not fabricate beyond these):
 - ${opts.digital ?? 'not assessed'}
+
+SOURCE COVERAGE (which source TYPES this dossier gathered — triangulate across them, do not rely on the official site alone):
+- ${opts.sourceCoverage ?? 'not assessed'}
 
 EVIDENCE (${opts.findings.length} findings):
 ${renderFindings(opts.findings)}

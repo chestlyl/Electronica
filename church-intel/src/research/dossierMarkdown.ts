@@ -27,6 +27,8 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   }
   const covLine = (b.coverage ?? []).map((c) => `${c.category}${c.useful ? '✓' : c.fetched ? '~' : '✗'}`).join(' ');
   if (covLine) L.push(`- Coverage (✓ useful / ~ fetched / ✗ missing): ${covLine}`);
+  const srcLine = (b.sourceCoverage ?? []).map((s) => `${s.category}${s.present ? '✓' : '✗'}`).join(' ');
+  if (srcLine) L.push(`- Source breadth: ${srcLine}`);
   if (b.digital) L.push(`- Digital signals: ${digitalEvidenceSummary(b.digital)}`);
   L.push(`- Lead pastor: ${s.lead_pastor ?? '—'} · Denomination: ${s.denomination ?? '—'} · Lifecycle: **${s.lifecycle_stage}**`);
   L.push(`- ${s.identity_summary}`);

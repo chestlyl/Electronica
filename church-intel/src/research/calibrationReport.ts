@@ -139,6 +139,18 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
       L.push(`- digital signals → ${r.digitalSummary ?? '—'}`);
     }
 
+    // ── Source coverage (research breadth — did we go beyond the official site?) ─
+    const sc = r.sourceCoverage ?? [];
+    if (sc.length) {
+      L.push('### Source coverage');
+      L.push('_Multi-source research breadth — official-site evidence is triangulated, not relied on alone._');
+      L.push('| source type | present | count | detail |');
+      L.push('|---|---|---|---|');
+      for (const s of sc) L.push(`| ${s.category} | ${s.present ? '✓' : '✗'} | ${s.count || (s.present ? '✓' : 0)} | ${s.note} |`);
+      const beyond = sc.filter((s) => s.category !== 'official site' && s.present).length;
+      L.push(`- breadth: ${beyond}/7 non-official source types present`);
+    }
+
     L.push('### Contacts');
     L.push('| role | name | email | phone | confidence |');
     L.push('|---|---|---|---|---|');

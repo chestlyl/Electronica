@@ -16,7 +16,7 @@ import assert from 'node:assert';
 import { makeFinding, type SourceFinding } from '../research/dossier.js';
 import type { Facts, Fact } from '../research/extractors.js';
 import { detectDigitalSignals } from '../research/digitalSignals.js';
-import { computeCoverage, scoreConfidence, contactabilityConfidence } from '../research/coverage.js';
+import { computeCoverage, scoreConfidence, contactabilityConfidence, computeSourceCoverage } from '../research/coverage.js';
 
 let failures = 0;
 function check(label: string, fn: () => void) {
@@ -92,6 +92,36 @@ async function main() {
     const missing = badCov.filter((c) => c.required && !c.useful).map((c) => c.category);
     assert.ok(missing.includes('staff') && missing.includes('contact') && missing.includes('about'));
   });
+
+  // ── Source-TYPE coverage: research breadth beyond the official site ──────────
+  const mk = (sourceType: any, access: any, url: string, snippet = '') =>
+    makeFinding({ sourceType, accessLevel: access, url, fetched: access === 'live_official_site', status: 200, snippet, text: snippet, category: sourceType === 'staff_page' ? 'staff' : sourceType === 'official_site' ? 'home' : undefined });
+  const multi: SourceFinding[] = [
+    mk('official_site', 'live_official_site', 'https://www.cornerstonechurch.info/', 'Welcome. Church Center app. Give online.'),
+    mk('staff_page', 'live_official_site', 'https://www.cornerstonechurch.info/staff', 'Jacob Young Lead Pastor'),
+    mk('facebook', 'search_snippets', 'https://facebook.com/cornerstone'),
+    mk('instagram', 'search_snippets', 'https://instagram.com/cornerstone'),
+    mk('youtube', 'search_snippets', 'https://youtube.com/@cornerstone'),
+    mk('job_posting', 'search_snippets', 'https://ministryjobs.com/job/abc'),
+    mk('denom_directory', 'search_snippets', 'https://nazarene.org/church/abc'),
+    mk('news_media', 'search_snippets', 'https://akronnews.com/story'),
+  ];
+  const multiDigital = detectDigitalSignals(multi);
+  const srcCov = computeSourceCoverage(multi, multiDigital);
+  const present = (cat: string) => srcCov.find((s) => s.category === cat)?.present;
+  check('source coverage: official site present', () => assert.ok(present('official site')));
+  check('source coverage: staff page present', () => assert.ok(present('staff page')));
+  check('source coverage: social present', () => assert.ok(present('social')));
+  check('source coverage: video/sermons present', () => assert.ok(present('video/sermons')));
+  check('source coverage: jobs present', () => assert.ok(present('jobs')));
+  check('source coverage: app/platform present (Church Center)', () => assert.ok(present('app/platform')));
+  check('source coverage: directory/network present', () => assert.ok(present('directory/network')));
+  check('source coverage: news/articles present', () => assert.ok(present('news/articles')));
+
+  // Website-only research → breadth is low (the Cornerstone failure mode).
+  const websiteOnly = computeSourceCoverage(badFindings, detectDigitalSignals(badFindings));
+  const beyond = websiteOnly.filter((s) => s.category !== 'official site' && s.present).length;
+  check('website-only research reports low breadth', () => assert.ok(beyond <= 1, `beyond=${beyond}`));
 
   console.log(failures ? `\nFAILED (${failures})` : '\nALL PASSED');
   process.exit(failures ? 1 : 0);

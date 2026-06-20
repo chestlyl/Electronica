@@ -83,13 +83,20 @@ function extract(klass: Klass, url: string, text: string): ExtractedField[] {
 export async function collectSnippets(ctx: ResearchContext): Promise<SourceFinding[]> {
   const officialHost = ctx.officialSite ? host(ctx.officialSite) : null;
   const base = [ctx.name, ctx.city, ctx.state].filter(Boolean).join(' ');
+  // Deliberate multi-source research pass: one targeted query per source TYPE a
+  // human researcher would check, so the dossier triangulates rather than relying
+  // on the official site alone. Results are deduped + classified by source type.
   const queries = [
-    `${base} church`,
+    `${base} church`,                                              // general
     officialHost ? `site:${officialHost}` : `${ctx.name} ${ctx.city ?? ''} pastor`,
-    `${base} pastor staff leadership`,
-    `${base} attendance members weekly`,
-    `${base} youtube facebook instagram app giving livestream`,
-    `${base} jobs hiring pastor position`,
+    `${base} pastor staff leadership team`,                        // staff
+    `${base} attendance members weekly service times`,            // size
+    `${base} facebook instagram`,                                 // social profiles
+    `${base} youtube sermons livestream watch online`,            // video / sermons
+    `${base} church center subsplash planning center app giving`, // app / platform
+    `${base} jobs hiring pastor position careers`,                // job postings
+    `${base} network association denomination district`,          // denominational / network
+    `${ctx.name} ${ctx.city ?? ''} news article announcement`,    // news / articles
   ].filter((q): q is string => !!q && q.trim().length > 3);
 
   const byUrl = new Map<string, SearchResult>();

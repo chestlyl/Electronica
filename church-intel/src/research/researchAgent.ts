@@ -9,7 +9,7 @@ import { collectWebsite } from './sources/website.js';
 import { collectSnippets } from './sources/snippets.js';
 import { extractFacts, debugExtractionTrace, type Facts } from './extractors.js';
 import { detectDigitalSignals, digitalEvidenceSummary, type DigitalSignals } from './digitalSignals.js';
-import { computeCoverage, scoreConfidence, contactabilityConfidence, type CoverageRow, type ScoreConfidence } from './coverage.js';
+import { computeCoverage, scoreConfidence, contactabilityConfidence, computeSourceCoverage, sourceCoverageSummary, type CoverageRow, type ScoreConfidence, type SourceCoverageRow } from './coverage.js';
 import { dossierSynthesisPrompt, type DossierSynthesis } from '../claude/dossierPrompt.js';
 import { logger } from '../lib/logger.js';
 import type { LlmProvider } from '../claude/client.js';
@@ -49,6 +49,7 @@ export interface DossierBuild {
   officialCrawled: boolean;
   crawl: CrawlDiagnostics;
   coverage: CoverageRow[];
+  sourceCoverage: SourceCoverageRow[];
   digital: DigitalSignals;
   scoreConfidence: Record<string, ScoreConfidence>;
   tokens: number;
@@ -186,6 +187,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   // honest confidence + the synthesis prompt — does not change score formulas).
   const digital = detectDigitalSignals(findings);
   const coverage = computeCoverage(findings, crawl.links, facts, digital);
+  const sourceCoverage = computeSourceCoverage(findings, digital);
 
   const { data: synthesis, usage } = await deps.llm.extractJson<DossierSynthesis>({
     system: dossierSynthesisPrompt.system,
@@ -193,6 +195,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
       name: target.name, city: target.city, state: target.state,
       officialSite: identity.officialSite, officialCrawled, renderedDomUsed: crawl.renderedDomUsed,
       findings, conflicts, contamination, facts, digital: digitalEvidenceSummary(digital),
+      sourceCoverage: sourceCoverageSummary(sourceCoverage),
     }),
     schema: dossierSynthesisPrompt.schema,
     maxTokens: 2200,
@@ -294,7 +297,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
 
   return {
     identity, findings, conflicts, contamination, synthesis, facts, dossier, strategic,
-    fieldEstimates, officialSite, accessLevel, officialCrawled, crawl, coverage, digital, scoreConfidence: scoreConf,
+    fieldEstimates, officialSite, accessLevel, officialCrawled, crawl, coverage, sourceCoverage, digital, scoreConfidence: scoreConf,
     tokens: usage.inputTokens + usage.outputTokens,
     cost: usage.costEstimate,
   };

@@ -1,4 +1,4 @@
-import type { SourceFinding } from './dossier.js';
+import type { SourceFinding, SourceType } from './dossier.js';
 import type { LinkDiagnostic } from './types.js';
 import type { Facts } from './extractors.js';
 import type { DigitalSignals } from './digitalSignals.js';
@@ -119,4 +119,51 @@ export function contactabilityConfidence(coverage: CoverageRow[]): ScoreConfiden
   if (c?.useful && staff?.useful) return conf('High', 'contact + staff intelligence collected');
   if (c?.useful || staff?.useful) return conf('Medium', 'partial contact/staff intelligence');
   return conf('Low', 'no contact email/phone or staff roles collected');
+}
+
+// ── source-TYPE coverage (research breadth, distinct from page coverage) ──────
+/**
+ * Did the research reach BEYOND the official website? Summarizes which source
+ * TYPES the multi-source pass actually gathered, so the dossier triangulates
+ * official-site evidence instead of relying on it alone. Diagnostic — no schema.
+ */
+export interface SourceCoverageRow { category: string; present: boolean; count: number; note: string }
+
+function hostsOf(fs: SourceFinding[]): string[] {
+  return [...new Set(fs.map((f) => { try { return new URL(f.url).hostname.replace(/^www\./, ''); } catch { return f.url; } }))];
+}
+
+export function computeSourceCoverage(findings: SourceFinding[], digital: DigitalSignals): SourceCoverageRow[] {
+  const ofType = (...types: SourceType[]) => findings.filter((f) => types.includes(f.sourceType));
+  const official = findings.filter((f) => f.accessLevel === 'live_official_site' && f.fetched);
+  const staff = ofType('staff_page');
+  const social = ofType('facebook', 'instagram', 'linkedin');
+  const video = ofType('youtube', 'sermon_livestream');
+  const jobs = ofType('job_posting');
+  const directory = ofType('denom_directory', 'church_directory');
+  const news = ofType('news_media');
+
+  const row = (category: string, fs: SourceFinding[], presentExtra = false, noteExtra = ''): SourceCoverageRow => ({
+    category,
+    present: fs.length > 0 || presentExtra,
+    count: fs.length,
+    note: fs.length ? hostsOf(fs).slice(0, 4).join(', ') : (noteExtra || '—'),
+  });
+
+  const appPresent = digital.platforms.length > 0 || digital.church_app;
+  return [
+    row('official site', official),
+    row('staff page', staff),
+    row('social', social),
+    row('video/sermons', video, digital.youtube || digital.livestream || digital.podcast,
+      [digital.livestream && 'livestream', digital.youtube && 'YouTube', digital.podcast && 'podcast'].filter(Boolean).join(', ')),
+    row('jobs', jobs),
+    { category: 'app/platform', present: appPresent, count: digital.platforms.length, note: appPresent ? (digital.platforms.join(', ') || 'app referenced') : '—' },
+    row('directory/network', directory),
+    row('news/articles', news),
+  ];
+}
+
+export function sourceCoverageSummary(rows: SourceCoverageRow[]): string {
+  return rows.map((r) => `${r.category}: ${r.present ? 'yes' : 'no'}`).join(' · ');
 }

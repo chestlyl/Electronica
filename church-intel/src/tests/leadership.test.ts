@@ -78,6 +78,58 @@ Worship Director`;
     assert.deepStrictEqual(names, ['Alice Doe', 'Bob Roe']);
   });
 
+  // ── OFH paired co-pastors (the exact live rendered staff text) ────────────
+  const { rowFromBuild } = await import('../research/calibrationSet.js');
+  const { renderCalibrationReport } = await import('../research/calibrationReport.js');
+  const { buildCornerstoneOffline } = await import('../researchDemo.js');
+
+  const OFH = `Our Pastors
+
+Pastor Dan & Jennifer Zirkle
+Lead Pastor & Worship Director
+
+Pastor Dan is the Senior Pastor of Our Finest Hour Church. Jennifer serves alongside her husband as Co-Pastor, Administrator, and Worship Director.`;
+  const ofhCards = extractStaffCards(OFH);
+  check('OFH: extractStaffCards returns exactly Dan/Lead Pastor + Jennifer/Worship Director', () => {
+    assert.deepStrictEqual(ofhCards, [
+      { name: 'Dan Zirkle', title: 'Lead Pastor' },
+      { name: 'Jennifer Zirkle', title: 'Worship Director' },
+    ]);
+  });
+  check('OFH: cards do NOT include garbage (Our Staff / Pastor Dan / of Our / and leads)', () => {
+    const names = ofhCards.map((c) => c.name);
+    for (const bad of ['Our Staff', 'Our Pastors', 'Pastor Dan', 'of Our', 'and leads']) assert.ok(!names.includes(bad), `unexpected card name ${bad}`);
+  });
+
+  const ofhFinding: SourceFinding = makeFinding({
+    sourceType: 'staff_page', accessLevel: 'live_official_site', url: 'https://www.ofhchurch.com/staff',
+    fetched: true, status: 200, title: 'Our Pastors', text: OFH.replace(/\s+/g, ' '), staffCards: ofhCards,
+  });
+  const ofhLeaders = aggregateLeadership([ofhFinding]);
+  const ofhLeads = leadPastors(ofhLeaders);
+  const dan = ofhLeads.find((l) => l.name === 'Dan Zirkle');
+  const jen = ofhLeads.find((l) => l.name === 'Jennifer Zirkle');
+
+  check('OFH: both lead pastors returned', () => assert.deepStrictEqual(ofhLeads.map((l) => l.name).sort(), ['Dan Zirkle', 'Jennifer Zirkle']));
+  check('OFH: Dan is lead via Lead/Senior Pastor', () => { assert.ok(dan?.isLead); assert.match(`${dan?.title} ${dan?.evidence}`, /lead pastor|senior pastor/i); });
+  check('OFH: Jennifer is lead via Co-Pastor evidence', () => { assert.ok(jen?.isLead); assert.match(`${jen?.title} ${jen?.evidence}`, /co[\s-]?pastor/i); });
+  check('OFH: leaders preserve sourceUrl, title, evidence, confidence', () => {
+    for (const l of ofhLeads) { assert.ok(l.sourceUrl.includes('ofhchurch.com')); assert.ok(l.title); assert.ok(l.evidence); assert.ok(l.confidence > 0); }
+  });
+  check('OFH: no garbage leaders (Pastor Dan / of Our / and leads / Our Pastors)', () => {
+    const names = ofhLeaders.map((l) => l.name);
+    for (const bad of ['Pastor Dan', 'of Our', 'and leads', 'Our Pastors', 'Our Staff']) assert.ok(!names.includes(bad), `unexpected leader ${bad}`);
+  });
+
+  // Report renders "Lead pastor(s): Dan Zirkle; Jennifer Zirkle" from leadership.
+  const { build } = await buildCornerstoneOffline();
+  const row: any = rowFromBuild({ id: 'our-finest-hour-coweta', name: 'Our Finest Hour', city: 'Broken Arrow', state: 'OK', url: 'https://www.ofhchurch.com/' }, build);
+  row.leadership = ofhLeaders;
+  const md = renderCalibrationReport([row], {});
+  check('OFH: report renders "Lead pastor(s): Dan Zirkle; Jennifer Zirkle"', () => {
+    assert.ok(/Lead pastor\(s\):\*\*\s*Dan Zirkle; Jennifer Zirkle/.test(md), md.split('\n').find((l) => /Lead pastor\(s\)/.test(l)) ?? 'no lead pastor line');
+  });
+
   console.log(failures ? `\nFAILED (${failures})` : '\nALL PASSED');
   process.exit(failures ? 1 : 0);
 }

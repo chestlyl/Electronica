@@ -1,4 +1,4 @@
-import { roleFromTitle } from './staffCards.js';
+import { roleFromTitle, stripHonorific } from './staffCards.js';
 import type { SourceFinding } from './dossier.js';
 import type { EvidenceAccessLevel } from '../types.js';
 
@@ -258,10 +258,29 @@ function findLeadersInText(text: string): { name: string; title: string }[] {
  * then text mentions), deduped by person. Does NOT let the first match win —
  * returns every leader, with co-lead/lead pastors flagged. Leads sorted first.
  */
+// Capitalized stop-words that signal a prose fragment, not a person ("of Our",
+// "and leads"). Used to reject text-extracted "names".
+const NAME_STOPWORDS = new Set(['of', 'and', 'the', 'our', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'with', 'as', 'is', 'are', 'his', 'her', 'their', 'we', 'us', 'you', 'by', 'from']);
+function escapeRe(s: string): string { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+/**
+ * Resolve a text-extracted name to a real person. Drops prose fragments; maps a
+ * lone given name to a full name already known from staff cards (the roster).
+ */
+function resolvePerson(rawName: string, roster: Map<string, string>): string | null {
+  const name = stripHonorific(rawName).replace(/\s+/g, ' ').trim();
+  const toks = name.split(' ').filter(Boolean);
+  if (!toks.length || toks.some((t) => NAME_STOPWORDS.has(t.toLowerCase()))) return null;
+  if (toks.length >= 2) return name;                       // a plausible full name
+  return roster.get(toks[0].toLowerCase()) ?? null;        // given-only → roster full name
+}
+
+const LEAD_TITLE_GROUP = '(co[\\s-]?lead\\s+pastors?|co[\\s-]?pastors?|lead\\s+pastors?|senior\\s+pastors?)';
+
 export function aggregateLeadership(findings: SourceFinding[]): LeaderCandidate[] {
   const byName = new Map<string, LeaderCandidate>();
   const consider = (rawName: string, title: string, sourceUrl: string, baseConf: number, evidence: string) => {
-    const name = rawName.replace(/\s+/g, ' ').trim();
+    const name = stripHonorific(rawName).replace(/\s+/g, ' ').trim();
     if (name.length < 3) return;
     const isLead = LEAD_TITLE_RE.test(title);
     const role = roleFromTitle(title)?.field ?? (/pastor/i.test(title) ? 'pastor' : 'leader');
@@ -271,21 +290,52 @@ export function aggregateLeadership(findings: SourceFinding[]): LeaderCandidate[
     if (!ex) {
       byName.set(key, { name, title: title.trim(), role, isLead, sourceUrl, confidence: conf, evidence });
     } else {
+      const wasLead = LEAD_TITLE_RE.test(ex.title);
       ex.isLead = ex.isLead || isLead;
-      if (conf > ex.confidence) { ex.confidence = conf; ex.title = title.trim(); ex.role = role; ex.sourceUrl = sourceUrl; ex.evidence = evidence; }
+      // Prefer higher-confidence evidence, but always surface a lead/co title.
+      if (conf > ex.confidence || (isLead && !wasLead)) {
+        ex.confidence = Math.max(ex.confidence, conf);
+        ex.title = title.trim(); ex.role = role; ex.sourceUrl = sourceUrl; ex.evidence = evidence;
+      }
     }
   };
+
+  // PHASE 1 — staff cards (authoritative; paired names already expanded to 2).
   for (const f of findings) {
     const rel = f.reliability ?? 0.5;
-    const cards = f.staffCards ?? [];
-    for (const card of cards) {
+    for (const card of f.staffCards ?? []) {
       consider(card.name, card.title, f.url, Math.round(rel * 80), `Staff card: ${card.name} — ${card.title}`);
     }
-    // Staff cards are the clean, authoritative source for a page; only scan free
-    // text for findings that DON'T have cards (snippets, un-rendered pages).
-    if (cards.length) continue;
+  }
+  // Roster of known people (given name → full name) from the cards.
+  const roster = new Map<string, string>();
+  for (const l of byName.values()) {
+    const first = l.name.split(' ')[0].toLowerCase();
+    if (first.length >= 2 && !roster.has(first)) roster.set(first, l.name);
+  }
+
+  // PHASE 2 — prose evidence (ALWAYS runs, even when cards exist), merged in.
+  for (const f of findings) {
+    const rel = f.reliability ?? 0.5;
     const text = `${f.title ?? ''} ${(f.fetched ? f.text : f.snippet) ?? ''}`.replace(/\s+/g, ' ').trim();
-    if (text) for (const lc of findLeadersInText(text)) consider(lc.name, lc.title, f.url, Math.round(rel * 70), lc.title);
+    if (!text) continue;
+    // (a) full-name "Name — Title" mentions, sanitized + roster-resolved.
+    for (const lc of findLeadersInText(text)) {
+      const person = resolvePerson(lc.name, roster);
+      if (person) consider(person, lc.title, f.url, Math.round(rel * 70), lc.title);
+    }
+    // (b) given-name BIO mentions for KNOWN roster people (e.g. "Jennifer serves
+    // ... as Co-Pastor"). Requires a bio connective (is/as/serves as) between the
+    // name and the title, so a collapsed staff-card adjacency ("Jennifer Zirkle
+    // Lead Pastor") is NOT mis-attributed. Bounded to the roster → no garbage.
+    for (const [given, full] of roster) {
+      // Bio verb must IMMEDIATELY follow the given name ("Jennifer serves…",
+      // "Dan is…"); a staff-card adjacency ("Jennifer Zirkle Lead Pastor") has a
+      // surname (not a verb) next, so it won't bridge into the next person's bio.
+      const re = new RegExp(`\\b${escapeRe(given)}\\s+(?:is|are|was|serves?|serving|served|leads?|leading|also|currently|now|has|have|joined|became|stepped)\\b[\\s\\S]{0,50}?\\b${LEAD_TITLE_GROUP}\\b`, 'i');
+      const m = text.match(re);
+      if (m) consider(full, m[1], f.url, Math.round(rel * 68), m[0].slice(0, 160));
+    }
   }
   return [...byName.values()].sort((a, b) => (Number(b.isLead) - Number(a.isLead)) || (b.confidence - a.confidence));
 }

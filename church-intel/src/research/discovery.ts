@@ -32,6 +32,8 @@ export interface DiscoveryCandidate {
   nameStrong: boolean;          // exact name PHRASE present, or full match on a >=2-token name
   namePhrase: boolean;          // the full multi-word church name appears contiguously
   ownershipSignals: number;     // church-owned nav/first-person markers (0..n)
+  ownershipVerified: boolean;   // PROVED it is the church's OWN site (not a mention)
+  ownershipReason: string;      // why ownership was / wasn't verified
   cityStatus: LocationStatus;   // does the candidate place itself in THIS city/state?
   identity_confidence: number;  // 0..100 — "this is THE site for THIS church"
   identityVerdict: IdentityVerdict;
@@ -57,10 +59,12 @@ export interface DiscoveryResult {
 /** Accept a candidate as the official site only at/above this identity score. */
 const ACCEPT_THRESHOLD = 65;
 const UNCERTAIN_THRESHOLD = 45;
+/** How many nominated candidates get an ownership-verification crawl. */
+const VERIFY_N = 10;
 
 const CHURCH_TERMS = /church|worship|sermon|pastor|ministr|service times|gospel|congregation|nazarene|sunday|small group|discipleship/i;
 const PARKED_TERMS = /domain (is )?for sale|buy this domain|this domain is parked|parked free|godaddy|sedoparking|hugedomains|namecheap|website coming soon|under construction/i;
-const OWN_CHURCH_MARKERS = /plan (your|a) visit|service times|what to expect|join us (this )?sunday|our (church|services|pastor)|give online|i'?m new|connect card|weekend services/gi;
+const OWN_CHURCH_MARKERS = /\bplan (your|a) visit\b|\bservice times\b|\bwhat to expect\b|\bjoin us (this )?sunday\b|\bour (church|services|pastor)\b|\bgive online\b|\bi'?m new\b|\bconnect card\b|\bweekend services\b/gi;
 // Church-OWNED navigation/links — present when the church runs the site itself.
 const NAV_CHURCH_ITEMS = /\b(give|giving|donate|tithe|sermons?|messages|watch ?(live)?|plan (your|a) visit|i'?m new|im new|ministr(y|ies)|small ?groups?|life ?groups?|connect|next steps|events|prayer requests?|service times|what to expect|our beliefs|new here)\b/i;
 const RESOURCE_HOSTS = [
@@ -314,38 +318,77 @@ function locationStatus(ins: SiteInspection, city: string | null, state: string 
   return 'unknown';
 }
 
-function classifyKind(host: string, path: string, ins: SiteInspection, ratio: number, isDir: boolean, source: CandidateSource, nameFull: boolean): CandidateKind {
+/**
+ * Host-only pre-classification (PHASE 1, no fetch): identifies third-party
+ * classes that can SUPPORT identity but can never BE the church — vendor, media,
+ * social, directory, resource. Returns null for hosts that must EARN the
+ * official-church label through ownership verification.
+ */
+function preClassifyHost(host: string, isDir: boolean): CandidateKind | null {
   if (RESOURCE_HOSTS.some((h) => host === h || host.endsWith('.' + h))) return 'resource';
-
-  // Vendor: contractor/architect/builder/etc. describing a church PROJECT.
-  // Host keyword is decisive; otherwise require portfolio-style content + path.
-  if (VENDOR_HOST.test(host) || (VENDOR_CONTENT.test(ins.bodyText) && VENDOR_PATH.test(path))) {
-    return 'vendor_reference';
-  }
-  // Media/news article ABOUT a church.
-  if (MEDIA_HOST.test(host) || (MEDIA_CONTENT.test(ins.bodyText) && MEDIA_PATH.test(path))) {
-    return 'media_reference';
-  }
-  // Social profile of the church (supports identity, but is not the official site).
+  if (VENDOR_HOST.test(host)) return 'vendor_reference';
+  if (MEDIA_HOST.test(host)) return 'media_reference';
   if (SOCIAL_HOST.test(host)) return 'social_profile';
-  // A church LISTING/directory — decisive on host, BEFORE the church-owned check,
-  // so a directory page with church-like content can never be taken for the church.
+  if (isDir || GENERAL_DIRECTORY_HOST.test(host) || DIRECTORY_HOST_RE.test(host)) return 'general_directory';
+  return null;
+}
+
+/**
+ * Nomination priority (PHASE 1, search/provenance evidence only — no ownership).
+ * Provided URLs first, then real search hits, then SPECULATIVE domain guesses last
+ * (guesses must not crowd actual search results out of the verification budget).
+ */
+function nominationScore(source: CandidateSource, host: string, primaryTok: string[], altTok: string[]): number {
+  let s = source === 'original' ? 100 : source === 'urlname' ? 90 : source === 'search' ? 50 : 35; // domain_guess = 35
+  if ([...primaryTok, ...altTok].some((t) => t.length >= 3 && host.includes(t))) s += 25; // host echoes the name
+  return s;
+}
+
+/**
+ * OWNERSHIP VERIFICATION (PHASE 2). Decides whether a page PROVES it is the
+ * church's OWN site rather than a page that merely MENTIONS the church (obituary,
+ * article, listing, vendor). This is the gate that must pass before a candidate
+ * can be crowned. Generalizes to any entity: "is this the entity's own site?".
+ */
+function verifyOwnership(ins: SiteInspection, source: CandidateSource, nameAsIdentity: boolean, churchLike: boolean): { verified: boolean; reason: string } {
+  if (!ins.reachable) return { verified: false, reason: 'unreachable — cannot verify ownership' };
+  if (ins.parked) return { verified: false, reason: 'parked/placeholder — not an owned site' };
+  const provided = source === 'original' || source === 'urlname';
+  const sig = ins.ownershipSignals;
+  if (provided) {
+    // The spreadsheet nominated this URL — the strongest ownership claim. Confirm
+    // it presents AS the church (name is its own identity, or first-party church
+    // signals), not a parked/empty page.
+    if (churchLike && (nameAsIdentity || sig >= 1)) return { verified: true, reason: 'church-provided URL confirmed by first-party church signals' };
+    return { verified: false, reason: 'church-provided URL but no first-party church signals to confirm ownership' };
+  }
+  // Third-party-discovered (search/guess): must PROVE first-party ownership — the
+  // church name must be the SITE's own identity AND it must carry church-owned
+  // signals on its own origin. A page that only MENTIONS the church fails here.
+  if (nameAsIdentity && sig >= 1) return { verified: true, reason: 'site identity IS the church + church-owned signals (give/sermons/visit/first-person)' };
+  if (sig >= 3) return { verified: true, reason: 'strong first-party church-owned signals on its own origin' };
+  return { verified: false, reason: 'no ownership proof — church name is not this site’s identity and/or no church-owned signals (only a mention/reference)' };
+}
+
+/**
+ * Final classification (PHASE 3). Disqualifier classes first (host or content),
+ * then the OWNERSHIP GATE: a page is `official_church` ONLY if it proved it is the
+ * church's own site. Matching the name + having church words is NOT ownership.
+ */
+function classifyKind(host: string, path: string, ins: SiteInspection, ratio: number, isDir: boolean, ownershipVerified: boolean): CandidateKind {
+  if (RESOURCE_HOSTS.some((h) => host === h || host.endsWith('.' + h))) return 'resource';
+  if (VENDOR_HOST.test(host) || (VENDOR_CONTENT.test(ins.bodyText) && VENDOR_PATH.test(path))) return 'vendor_reference';
+  if (MEDIA_HOST.test(host) || (MEDIA_CONTENT.test(ins.bodyText) && MEDIA_PATH.test(path))) return 'media_reference';
+  if (SOCIAL_HOST.test(host)) return 'social_profile';
   if (isDir || GENERAL_DIRECTORY_HOST.test(host) || DIRECTORY_HOST_RE.test(host)) return 'general_directory';
 
   const dirPath = /church-directory|\/directory\/|find-a-church|\/churches?\//i.test(path);
   const denomHost = /(naz|nazarene|umc|sbc|district|presbytery|diocese|conference|assembliesofgod|\bag\.org|\.cog\.)/i.test(host);
   if (dirPath || (denomHost && ratio > 0)) return 'denom_directory';
 
-  // A site is the church's OWN site if it carries church-owned signals
-  // (give/sermons/visit/ministries nav, first-person markers) OR if it is a
-  // church-provided URL / an exact name match to a church-like site. Ownership
-  // signals are not always detectable on JS-rendered sites, so provenance +
-  // exact name can also establish identity — vendor/media/resource/directory
-  // are already excluded above, and city-conflict / name-mismatch are penalized
-  // downstream.
-  const churchProvided = source === 'original' || source === 'urlname';
-  if (ins.ownershipSignals >= 2) return 'official_church';
-  if (ins.churchLike && (churchProvided || nameFull)) return 'official_church';
+  // OWNERSHIP GATE — only a verified church-owned site is official. Everything that
+  // merely references the church remains unknown (capped below the bar downstream).
+  if (ownershipVerified) return 'official_church';
   return 'unknown';
 }
 
@@ -486,20 +529,69 @@ export async function discoverWebsite(input: ResearchInput): Promise<DiscoveryRe
     .map((url) => ({ url, source: 'domain_guess' as CandidateSource, provider: undefined as string | undefined }));
 
   const allSeeds = [...seeds, ...guessSeeds];
-  // Render-escalate only church-provided URLs (bounded cost); rank everything
-  // else with plain fetch.
-  const inspections = await mapPool(allSeeds, 5, (s) => inspectSite(s.url, s.source === 'original' || s.source === 'urlname'));
 
-  const candidates: DiscoveryCandidate[] = allSeeds.map((s, idx) => {
-    const ins = inspections[idx];
+  // ── PHASE 1: NOMINATE (search + provenance evidence only — NO ownership claim) ──
+  // Host-only pre-classification flags third-party classes (vendor/media/social/
+  // directory/resource) that can support identity but never BE the church.
+  const nominees = allSeeds.map((s) => {
     const host = hostOf(s.url);
-    const path = pathOf(s.url);
     const isDir = isDirectoryUrl(s.url);
+    return {
+      s, host, path: pathOf(s.url), isDir,
+      provided: s.source === 'original' || s.source === 'urlname',
+      hostKind: preClassifyHost(host, isDir),
+      nom: nominationScore(s.source, host, primaryTok, altTok),
+    };
+  });
+
+  // Eligible = NOT a disqualified third-party host. Always verify church-provided
+  // URLs and every real search hit (the primary nominees); speculative domain
+  // guesses are bounded to the top-N so they can't crowd out real candidates.
+  const verifyUrls = new Set<string>();
+  for (const n of nominees) if (n.hostKind === null && n.s.source !== 'domain_guess') verifyUrls.add(n.s.url);
+  const guessNominees = nominees.filter((n) => n.hostKind === null && n.s.source === 'domain_guess').sort((a, b) => b.nom - a.nom);
+  for (const n of guessNominees.slice(0, VERIFY_N)) verifyUrls.add(n.s.url);
+
+  // ── PHASE 2: OWNERSHIP-VERIFICATION CRAWL (only nominated, non-disqualified) ──
+  // Render-escalate church-provided URLs. We do NOT crawl directories/vendors/etc.
+  const toVerify = nominees.filter((n) => verifyUrls.has(n.s.url));
+  const insList = await mapPool(toVerify, 5, (n) => inspectSite(n.s.url, n.provided));
+  const insByUrl = new Map<string, SiteInspection>();
+  toVerify.forEach((n, i) => insByUrl.set(n.s.url, insList[i]));
+
+  // ── PHASE 3: FINAL IDENTITY SCORING + CROWN ──
+  const candidates: DiscoveryCandidate[] = nominees.map((n) => {
+    const { s, host, path, isDir } = n;
+    const ins = insByUrl.get(s.url);
+
+    if (!ins) {
+      // Not crawled: a disqualified third-party host, or a nominee beyond top-N. It
+      // may SUPPORT identity but can never be the official site.
+      const nm0 = nameMatch(host, host, primaryTok, altTok);
+      const c: DiscoveryCandidate = {
+        url: s.url, host, source: s.source, provider: s.provider,
+        reachable: null, isDirectory: isDir, churchLike: null, parked: null,
+        kind: n.hostKind ?? 'unknown',
+        nameMatch: Math.round(nm0.ratio * 100) / 100, nameFull: nm0.full, nameStrong: false, namePhrase: false,
+        ownershipSignals: 0, ownershipVerified: false,
+        ownershipReason: n.hostKind ? `${n.hostKind} host — references the church but is not crawled and cannot be it` : 'not selected for ownership verification',
+        cityStatus: 'unknown', identity_confidence: 0, identityVerdict: 'no_match', score: 0, accepted: false, reason: '',
+      };
+      const ev = evaluateIdentity(c, hasUsableName);
+      c.identity_confidence = ev.identity; c.identityVerdict = ev.verdict; c.score = ev.identity;
+      c.accepted = ev.verdict === 'true_match' && c.kind === 'official_church'; c.reason = ev.reason;
+      return c;
+    }
+
     const nm = nameMatch(ins.identityText || host, host, primaryTok, altTok);
-    const namePhrase = ins.reachable ? namePhraseMatch(`${ins.identityText} ${ins.bodyText}`, input.name, altName) : false;
+    // namePhrase is matched against the SITE's OWN identity (title/og/h1) only, so a
+    // page that merely mentions the name in body prose does NOT look like the church.
+    const namePhrase = ins.reachable ? namePhraseMatch(ins.identityText, input.name, altName) : false;
     const nameStrong = nm.strongFull || namePhrase;
+    const nameAsIdentity = nameStrong; // the church name IS this site's own identity
     const cityStatus = ins.reachable ? locationStatus(ins, input.city, input.state) : 'unknown';
-    const kind = ins.reachable ? classifyKind(host, path, ins, nm.ratio, isDir, s.source, nm.full) : 'unknown';
+    const own = verifyOwnership(ins, s.source, nameAsIdentity, ins.churchLike);
+    const kind = ins.reachable ? classifyKind(host, path, ins, nm.ratio, isDir, own.verified) : 'unknown';
 
     const c: DiscoveryCandidate = {
       url: ins.finalUrl || s.url,
@@ -516,6 +608,8 @@ export async function discoverWebsite(input: ResearchInput): Promise<DiscoveryRe
       nameStrong,
       namePhrase,
       ownershipSignals: ins.ownershipSignals,
+      ownershipVerified: own.verified,
+      ownershipReason: own.reason,
       cityStatus,
       identity_confidence: 0,
       identityVerdict: 'no_match',
@@ -527,7 +621,8 @@ export async function discoverWebsite(input: ResearchInput): Promise<DiscoveryRe
     c.identity_confidence = ev.identity;
     c.identityVerdict = ev.verdict;
     c.score = ev.identity;
-    c.accepted = ev.verdict === 'true_match';
+    // A candidate can only be CROWNED if it proved ownership (kind official_church).
+    c.accepted = ev.verdict === 'true_match' && c.kind === 'official_church';
     c.reason = ev.reason;
     return c;
   });
@@ -553,7 +648,7 @@ export async function discoverWebsite(input: ResearchInput): Promise<DiscoveryRe
   logger.info(`discover: ${candidates.length} candidates, ${officialSite ? `MATCH ${officialSite}` : 'NO MATCH'} via ${method}`);
   for (const c of candidates.slice(0, 8)) {
     logger.info(`  ${c.accepted ? '✓' : '✗'} [id ${String(c.identity_confidence).padStart(3)}] ${c.identityVerdict.padEnd(11)} ${c.source}/${c.kind} ${c.url}`);
-    logger.info(`        name=${c.nameMatch}${c.nameFull ? '(full)' : ''} city=${c.cityStatus} — ${c.reason}`);
+    logger.info(`        name=${c.nameMatch}${c.nameFull ? '(full)' : ''} city=${c.cityStatus} ownership=${c.ownershipVerified ? 'VERIFIED' : 'no'} — ${c.reason}`);
   }
 
   const note = winner

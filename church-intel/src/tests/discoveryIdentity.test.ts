@@ -33,6 +33,10 @@ const PAGES: Record<string, string> = {
   'ofhchurch.com': `<title>Our Finest Hour Church | Coweta, OK</title><nav><a href="/give">Give</a><a href="/sermons">Sermons</a><a href="/visit">Plan a Visit</a></nav><h1>Our Finest Hour Church</h1><p>We are a church in Coweta, OK. Plan your visit. Give online. Sermons.${PAD}</p>`,
   // a general-directory LISTING of the same church — must NOT be taken for the church
   'oklahomachurches.com': `<title>Our Finest Hour - Oklahoma Churches Directory</title><h1>Our Finest Hour</h1><p>Directory listing for Our Finest Hour, a church in Coweta, OK. Browse and find churches near you.${PAD}</p>`,
+  // THE ACTUAL OFH FAILURE: a funeral-home OBITUARY that MENTIONS the church (name
+  // even in the title) but is NOT the church's own site — no church-owned nav, no
+  // first-person church markers. It must never be crowned as the official church.
+  'brownfamilycares.com': `<title>Our Finest Hour Church Service — Elverta Griffin Obituary | Brown Family Cares</title><nav><a href="/obituaries">Obituaries</a><a href="/flowers">Send Flowers</a><a href="/preplanning">Plan a Funeral</a></nav><h1>Elverta Griffin</h1><p>A funeral service for Elverta Griffin of Coweta, OK will be held at Our Finest Hour Church. Brown Family Cares is honored to serve the family. Send flowers or share a memory.</p>`,
 };
 
 const SEARCH = ['html.duckduckgo.com', 'lite.duckduckgo.com', 'www.bing.com', 'www.mojeek.com'];
@@ -143,6 +147,34 @@ async function main() {
     const dir = rOFH.candidates.find((c) => /oklahomachurches/.test(c.host));
     assert.ok(dir && dir.kind === 'general_directory', `kind=${dir?.kind}`);
     assert.notStrictEqual(dir?.identityVerdict, 'true_match');
+  });
+
+  // THE OFH FAILURE (regression): a funeral-home obituary mentioning the church —
+  // even with the church name in its <title> — must NOT outrank the church's own
+  // domain. Only ownership verification (church-owned nav / first-person markers on
+  // its own site) may crown a winner; a mention can't. Before the ownership-gate
+  // architecture this obituary was selected as official_church @ identity 95.
+  const rObit = await run(
+    { name: 'Our Finest Hour', city: 'Coweta', state: 'OK', originalWebsite: null, originalPhone: null, originalEmail: null, alternateName: null },
+    [
+      { url: 'https://www.brownfamilycares.com/obituaries/Elverta-Griffin', title: 'Our Finest Hour Church Service — Elverta Griffin Obituary' },
+      { url: 'https://www.ofhchurch.com/', title: 'Our Finest Hour Church' },
+    ],
+  );
+  check('OFH-obituary: ofhchurch.com (ownership-verified) is the official site', () => {
+    assert.ok(rObit.officialSite && /ofhchurch\.com/.test(rObit.officialSite), `officialSite=${rObit.officialSite}`);
+    assert.strictEqual(rObit.identityVerdict, 'true_match');
+  });
+  check('OFH-obituary: brownfamilycares.com is REJECTED as a church-owned property', () => {
+    const obit = rObit.candidates.find((c) => /brownfamilycares/.test(c.host));
+    assert.ok(obit, 'obituary candidate missing');
+    assert.strictEqual(obit!.ownershipVerified, false);
+    assert.notStrictEqual(obit!.kind, 'official_church');
+    assert.notStrictEqual(obit!.identityVerdict, 'true_match');
+  });
+  check('OFH-obituary: the ownership-verified winner is the church domain', () => {
+    const win = rObit.candidates.find((c) => c.accepted);
+    assert.ok(win && /ofhchurch\.com/.test(win.host) && win.ownershipVerified, `winner=${win?.host} verified=${win?.ownershipVerified}`);
   });
 
   // If ONLY a directory exists, discovery returns no official site (not the directory).

@@ -446,13 +446,13 @@ docs/calibration/cornerstone_claude_baseline.json
 docs/calibration/cornerstone_ground_truth.template.json
 ```
 
-## 16. Open questions for sign-off
-1. **Dossier cardinality** — one current dossier per church (overwrite/update) vs
-   keep a history of dossiers? (Proposed: one current row + history via runs.)
-2. **Claude budget** — synthesis is one larger call per church; OK for the cost
-   target, or gate behind a flag for batch runs?
-3. **Social/job sources** — rely on **search snippets** (no login scraping), as
-   designed? (Recommended: yes — matches the ethics constraints and the
-   Cornerstone method.)
-4. **`research-dossier --url` without a stored church** — build-and-print only, or
-   auto-create a `churches` row? (Proposed: print only unless `--save`.)
+## 16. Decisions (locked)
+1. **Dossier cardinality** — **one current dossier per church** (update in place);
+   change history lives in `enrichment_runs` + `church_evidence`.
+2. **Claude budget** — **always synthesize** (one synthesis call per church on
+   every research run); acceptable for the cost target.
+3. **Social / job / LinkedIn sourcing** — **search snippets only** (no
+   login-gated scraping); honest, lower confidence, matches the ethics constraints
+   and the Cornerstone method.
+4. **`research-dossier --url` with no matching church** — **print only**; persist
+   only when `--save` is passed (which then creates/links a `churches` row).

@@ -271,6 +271,15 @@ program
             logger.info(`    ${d.selected ? '◉' : '○'}${d.fetched ? 'F' : ' '} [${d.category ?? '—'}] "${(d.anchorText || '').slice(0, 24)}" → ${d.resolvedUrl || d.href}${d.fetched ? ` (text ${d.textLength}${d.hasStaffContactSignal ? ', staff/contact✓' : ''})` : ''}${d.discovery === 'fallback_probe' ? ' [probe]' : ''}`);
           }
           if (links.length && !links.some((d) => d.fetched && d.hasStaffContactSignal)) logger.warn('    ⚠ no crawled page held staff/contact data');
+          // TEMPORARY INSTRUMENTATION (DOSSIER_DEBUG): calibration-row contacts ==
+          // the exact values the report renders (report reads row.fields directly).
+          if (process.env.DOSSIER_DEBUG) {
+            const rf = row.fields;
+            logger.info('  — calibrationRow.contacts (== final report values) —');
+            logger.info(`    lead_pastor  = ${rf.lead_pastor?.value ?? '—'} (conf ${rf.lead_pastor?.confidence ?? '—'})`);
+            logger.info(`    office_email = ${rf.office_email?.value ?? '—'} (conf ${rf.office_email?.confidence ?? '—'})`);
+            logger.info(`    office_phone = ${rf.office_phone?.value ?? '—'} (conf ${rf.office_phone?.confidence ?? '—'})`);
+          }
           logger.info(`  → ${row.officialSite ?? 'NO MATCH'} · archetype ${row.archetype.value} · access ${build.accessLevel} · tokens ${build.tokens}`);
         } catch (err) {
           logger.error(`  ${e.id} failed: ${(err as Error).message}`);

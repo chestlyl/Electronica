@@ -7,8 +7,9 @@ import {
 } from './dossier.js';
 import { collectWebsite } from './sources/website.js';
 import { collectSnippets } from './sources/snippets.js';
-import { extractFacts, type Facts } from './extractors.js';
+import { extractFacts, debugExtractionTrace, type Facts } from './extractors.js';
 import { dossierSynthesisPrompt, type DossierSynthesis } from '../claude/dossierPrompt.js';
+import { logger } from '../lib/logger.js';
 import type { LlmProvider } from '../claude/client.js';
 import type { LinkDiagnostic, ResearchProvider } from './types.js';
 import type {
@@ -254,6 +255,23 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     online_attendance_estimate: synthesis.online_attendance_estimate,
     online_attendance_confidence: capConfidence(synthesis.online_attendance_confidence, accessLevel),
   };
+
+  // ── TEMPORARY INSTRUMENTATION (DOSSIER_DEBUG) — trace where contacts vanish ──
+  if (process.env.DOSSIER_DEBUG) {
+    logger.info(`\n══ DOSSIER_DEBUG: ${target.name} ══`);
+    logger.info('— per-finding extraction trace (regex-over-text vs finding.fields) —');
+    for (const l of debugExtractionTrace(findings)) logger.info(l);
+    logger.info('— build.facts (the ONLY source for report/enrich office_email & office_phone) —');
+    logger.info(`  facts.lead_pastor  = ${facts.lead_pastor?.value ?? '—'}`);
+    logger.info(`  facts.office_email = ${facts.office_email?.value ?? '—'}`);
+    logger.info(`  facts.office_phone = ${facts.office_phone?.value ?? '—'}`);
+    logger.info('— synthesis (Claude) — report lead_pastor = synthesis.lead_pastor ?? facts.lead_pastor —');
+    logger.info(`  synthesis.lead_pastor = ${JSON.stringify(synthesis.lead_pastor)}`);
+    logger.info('— fetched page text (first 2000 chars each) —');
+    for (const f of findings.filter((x) => x.fetched)) {
+      logger.info(`  ▼ ${f.url} (textLen=${(f.text ?? '').length})\n${(f.text ?? '').slice(0, 2000)}\n  ▲`);
+    }
+  }
 
   return {
     identity, findings, conflicts, contamination, synthesis, facts, dossier, strategic,

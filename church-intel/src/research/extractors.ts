@@ -168,3 +168,26 @@ export function extractFacts(findings: SourceFinding[]): Facts {
   for (const [k, v] of Object.entries(best)) out[k] = v.fact;
   return out;
 }
+
+/**
+ * TEMPORARY INSTRUMENTATION (no behavior change). Per-finding trace showing what
+ * the extractFacts regexes see vs. what the crawler captured into finding.fields.
+ * Used by buildDossier when DOSSIER_DEBUG is set; safe to delete.
+ */
+export function debugExtractionTrace(findings: SourceFinding[]): string[] {
+  const lines: string[] = [];
+  for (const f of findings) {
+    const text = `${f.title ?? ''} ${(f.fetched ? f.text : f.snippet) ?? ''}`.replace(/\s+/g, ' ').trim();
+    const lp = findRole(text, ROLE_RE[0].source);
+    const titleHit = /\b(lead|senior|associate|executive|founding)\s+pastor\b/i.test(text);
+    const em = officeEmail(text);
+    const ph = text.match(PHONE);
+    const structuredEmail = f.fields.filter((x) => x.field_name === 'email').map((x) => x.value);
+    const structuredPhone = f.fields.filter((x) => x.field_name === 'phone').map((x) => x.value);
+    lines.push(`  • [${f.fetched ? 'FETCH' : 'snip '}] ${f.sourceType} ${f.url}`);
+    lines.push(`      textLen=${text.length}`);
+    lines.push(`      regex-over-text: lead_pastor=${lp ? JSON.stringify(lp.name) : '—'} pastorTitle=${titleHit ? 'Y' : 'N'} email=${em ? em.value : '—'} phone=${ph ? ph[0] : '—'}`);
+    lines.push(`      finding.fields: [${f.fields.map((x) => x.field_name).join(', ') || 'none'}]  mailto-field=${structuredEmail.join('|') || '—'}  tel-field=${structuredPhone.join('|') || '—'}`);
+  }
+  return lines;
+}

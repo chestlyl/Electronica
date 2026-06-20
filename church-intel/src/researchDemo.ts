@@ -17,6 +17,7 @@
  *   npm run research-demo
  */
 import { MockLlmProvider, type ExtractOptions } from './claude/client.js';
+import { config } from './config.js';
 import { ResilientResearch } from './research/resilient.js';
 import { buildDossier, type ResearchTarget } from './research/researchAgent.js';
 import { renderDossierMarkdown } from './research/dossierMarkdown.js';
@@ -71,6 +72,13 @@ export async function buildCornerstoneOffline() {
 }
 
 export function installMockFetch() {
+  // Make the fixture HERMETIC. The mock only intercepts globalThis.fetch; a real
+  // headless browser (Playwright) would bypass it and hit the live internet,
+  // turning the intentionally-blocked Cornerstone site into a live_official_site
+  // finding (which flips accessLevel and drops the capped-confidence warning).
+  // Forcing the fetch-fallback path guarantees no real network call regardless of
+  // whether Chromium is installed, so offline tests are deterministic everywhere.
+  config.research.forceFetchFallback = true;
   (globalThis as any).fetch = async (input: any) => {
     const url = typeof input === 'string' ? input : input.url;
     const h = new URL(url).hostname;

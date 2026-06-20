@@ -286,7 +286,7 @@ function locationStatus(ins: SiteInspection, city: string | null, state: string 
   return 'unknown';
 }
 
-function classifyKind(host: string, path: string, ins: SiteInspection, ratio: number, isDir: boolean): CandidateKind {
+function classifyKind(host: string, path: string, ins: SiteInspection, ratio: number, isDir: boolean, source: CandidateSource, nameFull: boolean): CandidateKind {
   if (RESOURCE_HOSTS.some((h) => host === h || host.endsWith('.' + h))) return 'resource';
 
   // Vendor: contractor/architect/builder/etc. describing a church PROJECT.
@@ -304,10 +304,16 @@ function classifyKind(host: string, path: string, ins: SiteInspection, ratio: nu
   const denomHost = /(naz|nazarene|umc|sbc|district|presbytery|diocese|conference|assembliesofgod|\bag\.org|\.cog\.)/i.test(host);
   if (dirPath || (denomHost && ratio > 0)) return 'denom_directory';
 
-  // A site is the church's OWN site only if it carries church-owned signals
-  // (give/sermons/visit/ministries nav, first-person markers). Otherwise it is
-  // merely a page that mentions a church — not the church itself.
+  // A site is the church's OWN site if it carries church-owned signals
+  // (give/sermons/visit/ministries nav, first-person markers) OR if it is a
+  // church-provided URL / an exact name match to a church-like site. Ownership
+  // signals are not always detectable on JS-rendered sites, so provenance +
+  // exact name can also establish identity — vendor/media/resource/directory
+  // are already excluded above, and city-conflict / name-mismatch are penalized
+  // downstream.
+  const churchProvided = source === 'original' || source === 'urlname';
   if (ins.ownershipSignals >= 2) return 'official_church';
+  if (ins.churchLike && (churchProvided || nameFull)) return 'official_church';
   return 'unknown';
 }
 
@@ -439,7 +445,7 @@ export async function discoverWebsite(input: ResearchInput): Promise<DiscoveryRe
     const isDir = isDirectoryUrl(s.url);
     const nm = nameMatch(ins.identityText || host, host, primaryTok, altTok);
     const cityStatus = ins.reachable ? locationStatus(ins, input.city, input.state) : 'unknown';
-    const kind = ins.reachable ? classifyKind(host, path, ins, nm.ratio, isDir) : 'unknown';
+    const kind = ins.reachable ? classifyKind(host, path, ins, nm.ratio, isDir, s.source, nm.full) : 'unknown';
 
     const c: DiscoveryCandidate = {
       url: ins.finalUrl || s.url,
@@ -477,7 +483,9 @@ export async function discoverWebsite(input: ResearchInput): Promise<DiscoveryRe
   const winner = candidates.find((c) => c.accepted) ?? null;
   const best = candidates[0] ?? null;
   const officialSite = winner?.url ?? null;
-  const identity_confidence = winner?.identity_confidence ?? 0;
+  // On NO MATCH, report the best candidate's score (not a misleading 0) so the
+  // dossier shows how close discovery got.
+  const identity_confidence = winner ? winner.identity_confidence : (best?.identity_confidence ?? 0);
   const identityVerdict: IdentityVerdict = winner ? 'true_match' : best ? best.identityVerdict : 'no_match';
   const method = winner
     ? `${winner.source}${winner.provider ? `:${winner.provider}` : ''}/${winner.kind} (identity ${winner.identity_confidence})`

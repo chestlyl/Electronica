@@ -35,7 +35,7 @@ other kind is capped below the acceptance bar (cannot become a `true_match`).
 
 | kind | meaning | can be true_match? |
 |---|---|---|
-| `official_church` | the church's **own** site (carries church-owned nav: give/sermons/visit/ministries + first-person markers) | ✅ |
+| `official_church` | the church's **own** site — established by church-owned nav (give/sermons/visit/ministries + first-person markers), **or** by a church-provided URL / exact name match to a church-like site (ownership nav is often JS-rendered and undetectable by a plain fetch) | ✅ |
 | `denom_directory` | a denominational/district directory entry confirming this church | ✅ |
 | `general_directory` | yelp/facebook/yellowpages profile | ❌ (capped) |
 | `resource` | parachurch / bible-study / sermon resource | ❌ (capped) |
@@ -50,8 +50,10 @@ A candidate is rejected outright when:
 - the domain belongs to a **contractor, architect, builder, consultant, vendor,
   news site, or media outlet** (`vendor_reference` / `media_reference`);
 - the page is **describing** a church rather than **representing** it (third-person);
-- the page lacks **church-owned signals** — navigation/links to give, sermons,
-  service times, plan-a-visit, ministries, events, staff (ownership signals < 2).
+- the page lacks **church-owned signals** AND is neither a church-provided URL
+  nor an exact name match (a page that merely *mentions* a church). A
+  church-provided URL or exact name match to a church-like site is sufficient on
+  its own; ownership nav only boosts confidence.
 
 Plus the basic gates → identity 0 / `no_match`: unreachable, parked/placeholder
 domain, or a **non-identifying church name** (blank or garbage like `26:16:00`).

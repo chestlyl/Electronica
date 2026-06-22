@@ -1,6 +1,7 @@
 import { digitalEvidenceSummary } from './digitalSignals.js';
 import { strategicSignalSummary } from './strategicSignals.js';
 import { strategicScoreSummary } from './strategicScoring.js';
+import { recommendationSummary } from './recommendationEngine.js';
 import type { DossierBuild, ResearchTarget } from './researchAgent.js';
 
 function fmtPct(n: number | null | undefined): string {
@@ -35,6 +36,7 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   if (b.techStack?.length) L.push(`- Technology stack: ${b.techStack.map((t) => `${t.platform_name} (${t.category})`).join(', ')}`);
   if (b.strategicSignals?.length) L.push(`- Strategic signals: ${strategicSignalSummary(b.strategicSignals)}`);
   if (b.strategicScores) L.push(`- Strategic scoring v1 (rubric, report-only): ${strategicScoreSummary(b.strategicScores)}`);
+  if (b.recommendations) L.push(`- Strategic recommendation: ${recommendationSummary(b.recommendations)}`);
   const leadLine = b.interpretation.lead_pastors.value.length ? b.interpretation.lead_pastors.value.join('; ') : '—';
   L.push(`- Lead pastor(s): ${leadLine} · Denomination: ${b.interpretation.denomination.value ?? '—'} · Lifecycle: **${b.interpretation.lifecycle_stage.value}**`);
   if (b.interpretation.address.value) L.push(`- Address: ${b.interpretation.address.value}`);

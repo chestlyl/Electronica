@@ -206,6 +206,34 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
       }
     }
 
+    // ── Strategic Recommendations (deterministic engine — interpretation-only) ─
+    const rec = r.recommendations;
+    if (rec) {
+      const ev = (refs: { id: string; detail: string }[]) => refs.map((e) => `${e.id} (${e.detail})`).join('; ') || '—';
+      L.push('## Strategic Recommendations');
+      L.push(`_Deterministic recommendation engine — interpretation-layer inputs only. Overall confidence ${Math.round(rec.confidence)} (evidence ${rec.evidence_refs.length})._`);
+      L.push('');
+      L.push(`### Engagement Priority\n**${rec.engagement_priority.value.toUpperCase()}** _(conf ${Math.round(rec.engagement_priority.confidence)})_`);
+      L.push(`Evidence: ${ev(rec.engagement_priority.evidence_refs)}`);
+      L.push(`### Recommended First Conversation\n**${rec.recommended_first_conversation.value}** _(conf ${Math.round(rec.recommended_first_conversation.confidence)})_`);
+      L.push(`Evidence: ${ev(rec.recommended_first_conversation.evidence_refs)}`);
+      L.push(`### Recommended Entry Point\n**${rec.recommended_entry_point.value}** _(conf ${Math.round(rec.recommended_entry_point.confidence)})_`);
+      L.push(`Evidence: ${ev(rec.recommended_entry_point.evidence_refs)}`);
+      L.push(`### Likely Pain Points\n${rec.likely_pain_points.value.map((v) => `- ${v}`).join('\n') || '- none'}`);
+      L.push(`Evidence: ${ev(rec.likely_pain_points.evidence_refs)}`);
+      L.push(`### Likely Growth Constraints\n${rec.likely_growth_constraints.value.map((v) => `- ${v}`).join('\n') || '- none'}`);
+      L.push(`Evidence: ${ev(rec.likely_growth_constraints.evidence_refs)}`);
+      L.push(`### Recommended Product Fit\n${rec.recommended_product_fit.value.map((v) => `- ${v}`).join('\n') || '- none'}`);
+      L.push(`Evidence: ${ev(rec.recommended_product_fit.evidence_refs)}`);
+      L.push(`### Partnership Probability\n**${rec.partnership_probability.value}%** _(conf ${Math.round(rec.partnership_probability.confidence)})_`);
+      L.push(`Evidence: ${ev(rec.partnership_probability.evidence_refs)}`);
+      L.push('### Recommendation Dimensions');
+      for (const [k, d] of Object.entries(rec.dimensions)) {
+        L.push(`- **${k}**: ${d.level}${d.findings.length ? ` — ${d.findings.join('; ')}` : ''} _(evidence: ${d.evidence_refs.map((e: { id: string }) => e.id).join(', ') || '—'})_`);
+      }
+      L.push('');
+    }
+
     // ── Evidence layers (Layer 2 raw → Layer 3 normalized → Layer 4 conclusions) ─
     if (r.interpretation) {
       L.push('### Evidence layers');

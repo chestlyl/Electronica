@@ -23,6 +23,11 @@ Layer 4b STRATEGIC SCORING Strategic Scores (v1)     rubric over interpretation 
    │                      (strategicScoring.ts)      normalized + signals + tech +
    │                      REPORT-ONLY, not persisted  coverage; bands weak→strong
    ▼
+Layer 4c RECOMMENDATION    RecommendationEngineResult  deterministic rules over
+   │                      (recommendationEngine.ts)   interpretation + normalized +
+   │                      REPORT-ONLY, no Claude       scores + signals + tech;
+   │                                                   every rec cites evidence_refs
+   ▼
 Layer 5  REPORT / ENRICH  consume Interpretation     report, dossierApply (enrich),
                           (never re-derive)          calibration field map, dossier markdown
 ```

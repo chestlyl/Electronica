@@ -14,6 +14,7 @@ import { detectStrategicSignals, dimensionCounts, type StrategicSignal, type Dim
 import { toRawEvidence, normalizeEvidence } from './normalize.js';
 import { interpretDossier } from './interpret.js';
 import { scoreStrategic, type StrategicScores } from './strategicScoring.js';
+import { runRecommendationEngine, type RecommendationEngineResult } from './recommendationEngine.js';
 import { normalizedCounts, type RawEvidence, type NormalizedEvidence, type Interpretation } from './evidenceModel.js';
 import { computeCoverage, scoreConfidence, contactabilityConfidence, computeSourceCoverage, sourceCoverageSummary, type CoverageRow, type ScoreConfidence, type SourceCoverageRow } from './coverage.js';
 import { dossierSynthesisPrompt, type DossierSynthesis } from '../claude/dossierPrompt.js';
@@ -73,6 +74,8 @@ export interface DossierBuild {
   interpretation: Interpretation;
   /** Strategic Scoring v1 — rubric-based, REPORT-ONLY (not written to Supabase). */
   strategicScores: StrategicScores;
+  /** Strategic Recommendation Engine (Phase 2) — deterministic, report-only. */
+  recommendations: RecommendationEngineResult;
   scoreConfidence: Record<string, ScoreConfidence>;
   tokens: number;
   cost: number;
@@ -320,6 +323,13 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   // Strategic Scoring v1 (report-only): deterministic rubric over interpretation +
   // normalized evidence + strategic signals + tech stack + coverage.
   const strategicScores = scoreStrategic({ interpretation, normalized, coverage, accessLevel });
+  // Strategic Recommendation Engine (report-only): deterministic rules over the
+  // interpretation layer ONLY (interpretation + normalized + scores + signals +
+  // tech stack). No raw findings, no Claude.
+  const recommendations = runRecommendationEngine({
+    interpretation, normalized, scores: strategicScores, strategicSignals,
+    dimensionCounts: strategicDimensionCounts, technologyStack: techStack, accessLevel,
+  });
 
   // ── TEMPORARY INSTRUMENTATION (DOSSIER_DEBUG) — trace where contacts vanish ──
   if (process.env.DOSSIER_DEBUG) {
@@ -373,7 +383,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   return {
     identity, findings, conflicts, contamination, synthesis, facts, leadership, dossier, strategic,
     fieldEstimates, officialSite, accessLevel, officialCrawled, crawl, coverage, sourceCoverage, digital, techStack,
-    strategicSignals, strategicDimensionCounts, raw, normalized, interpretation, strategicScores, scoreConfidence: scoreConf,
+    strategicSignals, strategicDimensionCounts, raw, normalized, interpretation, strategicScores, recommendations, scoreConfidence: scoreConf,
     tokens: usage.inputTokens + usage.outputTokens,
     cost: usage.costEstimate,
   };

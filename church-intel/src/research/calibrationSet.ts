@@ -12,6 +12,7 @@ import type { StrategicSignal, Dimension } from './strategicSignals.js';
 import { normalizedCounts as normalizedCountsOf } from './evidenceModel.js';
 import type { Interpretation } from './evidenceModel.js';
 import type { StrategicScores } from './strategicScoring.js';
+import type { RecommendationEngineResult } from './recommendationEngine.js';
 
 // Re-exported for compatibility (the derivations now live in the interpretation
 // layer; calibration unit tests import deriveArchetype from here).
@@ -89,6 +90,8 @@ export interface CalibrationRow {
   interpretation: Interpretation;
   /** Strategic Scoring v1 — rubric-based, report-only. */
   strategicScores: StrategicScores;
+  /** Strategic Recommendation Engine (Phase 2) — deterministic, report-only. */
+  recommendations: RecommendationEngineResult;
   /** Layer 2/3 instrumentation. */
   rawEvidenceCount: number;
   normalizedCounts: Record<string, number>;
@@ -134,6 +137,7 @@ export function rowFromBuild(entry: CalibrationEntry, build: DossierBuild): Cali
     strategicDimensionCounts: build.strategicDimensionCounts,
     interpretation: build.interpretation,
     strategicScores: build.strategicScores,
+    recommendations: build.recommendations,
     rawEvidenceCount: build.raw.length,
     normalizedCounts: normalizedCountsOf(build.normalized),
     digitalSummary: digitalEvidenceSummary(build.digital),

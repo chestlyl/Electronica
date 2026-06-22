@@ -1,48 +1,56 @@
 # The Principles
 
 A personal AI decision-making agent that reasons exclusively through your own
-library of principles. Talk to it about a decision and it answers only through
-your principles — never general advice — and ends every response with a clear
-RECOMMENDATION. Add new principles anytime; stress-test them against the model.
+library of principles. Bring a decision; the agent reasons only through your
+principles (never general advice) and ends every response with a clear
+`RECOMMENDATION`. Add new principles anytime and stress-test them against the
+model.
 
-## Setup
+Your principles library lives in your browser (`localStorage`). The server is
+stateless — it only injects the principles you send into the model's system
+prompt for each call.
 
-1. Install dependencies:
+## Deploy to the web (no terminal needed)
 
-   ```
-   npm install
-   ```
+You will need two accounts: an **Anthropic** account (for the API key) and a
+**Render** account (free; hosts the app). Total time: ~10 minutes.
 
-2. Add your Anthropic API key:
+### 1. Get an Anthropic API key
 
-   ```
-   cp .env.example .env
-   ```
+1. Go to **https://console.anthropic.com** and sign up / sign in.
+2. Click **Billing** → add a payment method. You can set a low monthly limit
+   (e.g. $5). Usage is pennies per conversation.
+3. Click **API Keys** → **Create Key** → copy the long `sk-ant-...` string
+   somewhere safe. You will only see it once.
 
-   Then open `.env` and paste your key after `ANTHROPIC_API_KEY=`.
+### 2. Deploy on Render
 
-3. Start the app:
+1. Go to **https://dashboard.render.com/blueprints** and sign in with GitHub.
+   When prompted, give Render access to your `Electronica` repository.
+2. Click **New Blueprint Instance** and select the `Electronica` repo.
+3. Render reads `render.yaml` and proposes a free web service. When it asks
+   for `ANTHROPIC_API_KEY`, paste the key from step 1.
+4. Click **Apply**. Render builds and starts the app — takes ~2–3 minutes.
+5. When status turns green, click the URL at the top (it looks like
+   `the-principles-xxxx.onrender.com`). Bookmark it.
 
-   ```
-   npm start
-   ```
+The free Render plan sleeps the app after ~15 minutes of inactivity. The first
+request after a sleep takes ~30 seconds to wake up; everything after is fast.
 
-4. Open it in your browser:
+## Run on your own computer instead
 
-   ```
-   http://localhost:3000
-   ```
+1. `npm install`
+2. `cp .env.example .env`, then paste your key after `ANTHROPIC_API_KEY=` in `.env`
+3. `npm start`
+4. Open **http://localhost:3000**
 
 ## Sections
 
-- **Advise** — a full conversation with the agent. It reasons only through your
-  principles and ends every response with a `RECOMMENDATION`.
+- **Advise** — full conversation with the agent. Ends every response with a
+  `RECOMMENDATION` block in gold.
 - **Library** — every principle, numbered `P01`, `P02`, … Click one to expand
-  its Statement, Stress Test, Connections, and Insight.
-- **Add Principle** — write a principle and either **Save** it immediately
-  (works without an API key) or **Stress Test** it (refines the language,
-  finds where it fails, connects it to existing principles, surfaces one
-  insight) and confirm before saving.
+  Statement / Stress Test / Connections / Insight.
+- **Add Principle** — **Save** stores immediately in your browser. **Stress
+  Test** calls the model, shows a preview card, and saves on confirm.
 
-Principles persist in `principles.json` between sessions. The app ships with 7
-seed principles. Saving never requires an API key; Advise and Stress Test do.
+The app ships with 7 seed principles that load the first time you open it.

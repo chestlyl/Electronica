@@ -7,30 +7,26 @@ const Anthropic = require("@anthropic-ai/sdk");
 
 const PORT = process.env.PORT || 3000;
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-4-7";
-const PRINCIPLES_FILE = path.join(__dirname, "principles.json");
+const SEEDS_FILE = path.join(__dirname, "principles.json");
 
 const app = express();
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "2mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/fonts", express.static(path.join(__dirname, "fonts")));
 
-function readPrinciples() {
-  try {
-    return JSON.parse(fs.readFileSync(PRINCIPLES_FILE, "utf8"));
-  } catch {
-    return [];
+let seedsCache = null;
+function readSeeds() {
+  if (!seedsCache) {
+    seedsCache = JSON.parse(fs.readFileSync(SEEDS_FILE, "utf8"));
   }
-}
-
-function writePrinciples(principles) {
-  fs.writeFileSync(PRINCIPLES_FILE, JSON.stringify(principles, null, 2) + "\n");
+  return seedsCache;
 }
 
 function anthropic() {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     const err = new Error(
-      "No Anthropic API key. Add ANTHROPIC_API_KEY to your .env file."
+      "No Anthropic API key is set on the server. Add ANTHROPIC_API_KEY in your hosting dashboard."
     );
     err.statusCode = 400;
     throw err;
@@ -44,9 +40,9 @@ function buildSystemPrompt(principles) {
       (p, i) =>
         `P${String(i + 1).padStart(2, "0")} — ${p.name}\n` +
         `Statement: ${p.refined}\n` +
-        `Stress Test: ${p.stressTest}\n` +
-        `Connections: ${p.connections}\n` +
-        `Insight: ${p.insight}`
+        `Stress Test: ${p.stressTest || "—"}\n` +
+        `Connections: ${p.connections || "—"}\n` +
+        `Insight: ${p.insight || "—"}`
     )
     .join("\n\n");
 
@@ -65,47 +61,19 @@ RULES:
 - Always end with: RECOMMENDATION: followed by a direct actionable recommendation. No hedging. One clear direction.`;
 }
 
-app.get("/api/principles", (req, res) => {
-  res.json(readPrinciples());
-});
-
-app.post("/api/principles", (req, res) => {
-  const { name, refined, stressTest, connections, insight, raw } = req.body || {};
-  const statement = (refined || raw || "").trim();
-  if (!statement) {
-    return res.status(400).json({ error: "A principle statement is required." });
-  }
-
-  const principles = readPrinciples();
-  let finalName = (name || "").trim();
-  if (!finalName) {
-    finalName = statement
-      .split(/\s+/)
-      .slice(0, 4)
-      .join(" ")
-      .replace(/[.,;:!?]+$/, "");
-  }
-
-  const principle = {
-    id: `p-${Date.now()}`,
-    name: finalName,
-    refined: statement,
-    stressTest: (stressTest || "").trim(),
-    connections: (connections || "").trim(),
-    insight: (insight || "").trim(),
-    dateAdded: new Date().toISOString().slice(0, 10),
-  };
-
-  principles.push(principle);
-  writePrinciples(principles);
-  res.json(principle);
+app.get("/api/seeds", (req, res) => {
+  res.json(readSeeds());
 });
 
 app.post("/api/chat", async (req, res) => {
   try {
-    const messages = Array.isArray(req.body?.messages) ? req.body.messages : [];
-    if (messages.length === 0) {
+    const { messages, principles } = req.body || {};
+    if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: "No messages provided." });
+    }
+    const lib = Array.isArray(principles) ? principles : [];
+    if (lib.length === 0) {
+      return res.status(400).json({ error: "No principles to reason through." });
     }
 
     const client = anthropic();
@@ -115,7 +83,7 @@ app.post("/api/chat", async (req, res) => {
       system: [
         {
           type: "text",
-          text: buildSystemPrompt(readPrinciples()),
+          text: buildSystemPrompt(lib),
           cache_control: { type: "ephemeral" },
         },
       ],
@@ -143,7 +111,10 @@ app.post("/api/refine", async (req, res) => {
       return res.status(400).json({ error: "Nothing to stress test." });
     }
 
-    const existing = readPrinciples().map((p) => `${p.name}: ${p.refined}`);
+    const existing = Array.isArray(req.body?.existing)
+      ? req.body.existing.map((p) => `${p.name}: ${p.refined}`)
+      : [];
+
     const client = anthropic();
     const response = await client.messages.create({
       model: MODEL,

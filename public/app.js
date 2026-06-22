@@ -6,9 +6,40 @@ navButtons.forEach((btn) => {
     const target = btn.dataset.section;
     navButtons.forEach((b) => b.classList.toggle("active", b === btn));
     sections.forEach((s) => s.classList.toggle("active", s.id === target));
-    if (target === "library") loadLibrary();
+    if (target === "library") renderLibrary();
   });
 });
+
+/* ---------- Storage (localStorage) ---------- */
+const STORAGE_KEY = "principles_library_v1";
+
+function getLibrary() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return null;
+}
+
+function setLibrary(principles) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(principles));
+}
+
+async function ensureLibrary() {
+  let lib = getLibrary();
+  if (lib && lib.length) return lib;
+  const res = await fetch("/api/seeds");
+  lib = await res.json();
+  setLibrary(lib);
+  return lib;
+}
+
+function addPrinciple(p) {
+  const lib = getLibrary() || [];
+  lib.push(p);
+  setLibrary(lib);
+  return p;
+}
 
 /* ---------- Advise ---------- */
 const chatMessages = document.getElementById("chat-messages");
@@ -58,10 +89,11 @@ chatForm.addEventListener("submit", async (e) => {
   chatSend.disabled = true;
 
   try {
+    const principles = await ensureLibrary();
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: history }),
+      body: JSON.stringify({ messages: history, principles }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Request failed.");
@@ -92,12 +124,11 @@ function field(label, value) {
   return f;
 }
 
-async function loadLibrary() {
+async function renderLibrary() {
   libraryList.textContent = "";
   let principles;
   try {
-    const res = await fetch("/api/principles");
-    principles = await res.json();
+    principles = await ensureLibrary();
   } catch {
     libraryList.textContent = "Could not load principles.";
     return;
@@ -158,35 +189,40 @@ function setStatus(text, cls) {
   addStatus.className = "add-status" + (cls ? " " + cls : "");
 }
 
-async function savePrinciple(payload) {
-  const res = await fetch("/api/principles", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Save failed.");
-  return data;
+function buildPrinciple({ name, refined, stressTest, connections, insight }) {
+  const statement = (refined || "").trim();
+  let finalName = (name || "").trim();
+  if (!finalName) {
+    finalName = statement
+      .split(/\s+/)
+      .slice(0, 4)
+      .join(" ")
+      .replace(/[.,;:!?]+$/, "");
+  }
+  return {
+    id: `p-${Date.now()}`,
+    name: finalName,
+    refined: statement,
+    stressTest: (stressTest || "").trim(),
+    connections: (connections || "").trim(),
+    insight: (insight || "").trim(),
+    dateAdded: new Date().toISOString().slice(0, 10),
+  };
 }
 
-btnSave.addEventListener("click", async () => {
+btnSave.addEventListener("click", () => {
   const raw = addRaw.value.trim();
   if (!raw) {
     setStatus("Write a principle first.", "error");
     return;
   }
-  btnSave.disabled = true;
-  try {
-    const saved = await savePrinciple({ name: addName.value.trim(), raw });
-    setStatus(`Saved "${saved.name}".`, "success");
-    addName.value = "";
-    addRaw.value = "";
-    preview.textContent = "";
-  } catch (err) {
-    setStatus(err.message, "error");
-  } finally {
-    btnSave.disabled = false;
-  }
+  const saved = addPrinciple(
+    buildPrinciple({ name: addName.value, refined: raw })
+  );
+  setStatus(`Saved "${saved.name}".`, "success");
+  addName.value = "";
+  addRaw.value = "";
+  preview.textContent = "";
 });
 
 btnStress.addEventListener("click", async () => {
@@ -199,10 +235,11 @@ btnStress.addEventListener("click", async () => {
   setStatus("Stress testing…");
   preview.textContent = "";
   try {
+    const existing = await ensureLibrary();
     const res = await fetch("/api/refine", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ raw }),
+      body: JSON.stringify({ raw, existing }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Stress test failed.");
@@ -233,27 +270,18 @@ function renderPreview(data) {
   row.className = "confirm-row";
   const confirm = document.createElement("button");
   confirm.textContent = "Confirm & Save";
-  confirm.addEventListener("click", async () => {
-    confirm.disabled = true;
-    try {
-      const saved = await savePrinciple({
-        name: data.name,
-        refined: data.refined,
-        stressTest: data.stressTest,
-        connections: data.connections,
-        insight: data.insight,
-      });
-      setStatus(`Saved "${saved.name}".`, "success");
-      addName.value = "";
-      addRaw.value = "";
-      preview.textContent = "";
-    } catch (err) {
-      setStatus(err.message, "error");
-      confirm.disabled = false;
-    }
+  confirm.addEventListener("click", () => {
+    const saved = addPrinciple(buildPrinciple(data));
+    setStatus(`Saved "${saved.name}".`, "success");
+    addName.value = "";
+    addRaw.value = "";
+    preview.textContent = "";
   });
   row.appendChild(confirm);
   card.appendChild(row);
 
   preview.appendChild(card);
 }
+
+/* warm cache so first interaction is instant */
+ensureLibrary().catch(() => {});

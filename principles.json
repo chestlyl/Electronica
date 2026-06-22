@@ -1,0 +1,65 @@
+[
+  {
+    "id": "seed-1",
+    "name": "The Black Hole Pattern",
+    "refined": "Narcissistic dynamics follow a predictable three-stage sequence: attraction, event horizon, rejection. The warning signs exist in the attraction phase — before the point of no return. Build your early warning system there, not at rejection.",
+    "stressTest": "Fails when used to pathologize normal leadership confidence, or when the environment not the person is the primary source of the toxic dynamic.",
+    "connections": "Directly connects to Read People and Systems — the environment cultivates the pattern as much as the individual.",
+    "insight": "High performers are disproportionately vulnerable because what draws the Black Hole in is what makes you exceptional.",
+    "dateAdded": "2026-05-16"
+  },
+  {
+    "id": "seed-2",
+    "name": "True Failure Definition",
+    "refined": "Failure is not losing this one. Failure is losing the ability to play the next game. Any outcome that preserves position, resources, credibility, and optionality is not a true failure — it is a setback with tuition.",
+    "stressTest": "Fails when used to rationalize avoiding necessary commitment. Preserving optionality can become sophisticated avoidance.",
+    "connections": "Defines the floor for the Historian's Gate — the failure you protect against is specifically the one that closes the road forward.",
+    "insight": "This reframes risk tolerance entirely. The question is never could this go wrong — it is does this threaten my ability to keep playing.",
+    "dateAdded": "2026-05-16"
+  },
+  {
+    "id": "seed-3",
+    "name": "Strategy Is Dynamic",
+    "refined": "Strategy is dynamic choices navigating a shifting landscape toward a fixed destination. Variables are never static. The same choice that causes failure in one environment causes success in another. Read the landscape constantly — not just at the start.",
+    "stressTest": "Fails when used to justify inconsistency or avoid accountability. The variables shifted can become a rationalization for poor execution.",
+    "connections": "Foundational premise under the Four Heroes framework. Why Tonto is the most important hero during execution.",
+    "insight": "Most post-mortems assign blame to the wrong variable. Chamberlain's failure wasn't appeasement — it was stopping watching the landscape after he made the decision.",
+    "dateAdded": "2026-05-16"
+  },
+  {
+    "id": "seed-4",
+    "name": "Read People And Systems",
+    "refined": "Never evaluate a leader in isolation. Always read the system they operate within simultaneously. The same person in a different environment may be exactly who you need. Certain conditions cultivate narcissistic tendencies even in people who would never cross the clinical threshold otherwise.",
+    "stressTest": "Fails when used to excuse individual bad behavior by attributing it entirely to environment.",
+    "connections": "Extension of the Black Hole Pattern. You are not choosing a person — you are choosing a person-in-a-system.",
+    "insight": "Due diligence on any potential partner or mentor must include auditing their environment — who holds them accountable, what feedback do they actually receive.",
+    "dateAdded": "2026-05-16"
+  },
+  {
+    "id": "seed-5",
+    "name": "The Historian's Gate",
+    "refined": "Before executing, ask: if I am the historian looking back at this failure five years from now — what did I misread about the landscape? Define failure as what closes the road forward. Identify the 2-3 load-bearing variables to monitor. Time-box the analysis. Then hand off to execution without looking back.",
+    "stressTest": "Fails when it becomes a recurring analysis during execution rather than a one-time gate. Fails when it produces a static list of things to avoid rather than dynamic signals to monitor.",
+    "connections": "Outputs feed directly into Tonto — the load-bearing variables identified here become the watchtower signals during execution.",
+    "insight": "The reframe from what must not happen to what did I misread about the landscape makes this dynamic rather than static — fits a forward-oriented thinker's native language.",
+    "dateAdded": "2026-05-16"
+  },
+  {
+    "id": "seed-6",
+    "name": "Framework vs Mental Model",
+    "refined": "A framework is external — you consult it. A mental model is a framework internalized that runs on default. The goal of any framework is to internalize it through repeated stress testing against real scenarios until it activates automatically before conscious thought engages.",
+    "stressTest": "Internalization requires real scenarios with real stakes, not hypotheticals. Stress testing against imagined situations produces better frameworks but not mental models.",
+    "connections": "Meta-principle governing how all other principles should be used. The Black Hole Pattern is already a mental model. The Four Heroes is currently a framework.",
+    "insight": "Pain accelerates internalization. The Black Hole Pattern became a mental model because the cost of the lesson was high enough to make the pattern permanently visible.",
+    "dateAdded": "2026-05-16"
+  },
+  {
+    "id": "seed-7",
+    "name": "Culture Hire Direction",
+    "refined": "If you want to continue a culture hire from within. If you want to change a culture hire from without. The hiring decision is not just about the role — it is a vote on which direction the culture should move.",
+    "stressTest": "Fails when the existing culture is toxic — in that case hiring from within accelerates the problem. Fails when the outside hire lacks enough cultural fluency to lead effectively.",
+    "connections": "Connects to Read People and Systems — the hire does not just fill a role, they enter a system and either reinforce or disrupt it.",
+    "insight": "Most leaders make this decision based on candidate quality alone. The prior question — do we want continuity or change — should be answered before the search begins.",
+    "dateAdded": "2026-05-16"
+  }
+]

@@ -8,5 +8,6 @@
   { "id": "transformation-bixby",         "name": "Transformation Church",     "city": "Bixby",       "state": "OK", "url": null },
   { "id": "king-of-kings-omaha",          "name": "King of Kings",             "city": "Omaha",       "state": "NE", "url": null },
   { "id": "macedonia-baptist-springfield","name": "Macedonia Baptist Church",  "city": "Springfield", "state": "MO", "url": null },
-  { "id": "catalyst-springfield",         "name": "Catalyst Church",           "city": "Springfield", "state": "MO", "url": null }
+  { "id": "catalyst-springfield",         "name": "Catalyst Church",           "city": "Springfield", "state": "MO", "url": null },
+  { "id": "renew-communities-berea",      "name": "Renew Communities",         "city": "Berea",       "state": "OH", "url": "https://renewcommunities.com" }
 ]

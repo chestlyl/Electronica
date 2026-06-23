@@ -84,6 +84,41 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   L.push(`| online_attendance_estimate | ${s.online_attendance_estimate ?? '—'} | ${fmtPct(b.strategic.online_attendance_confidence ?? null)} | capped @ ${cap} |`);
   L.push('');
 
+  // ── Strategic Scoring (explainable, per dimension) ──────────────────────────
+  if (b.strategicScores) {
+    L.push('## Strategic Scoring (explainable)');
+    L.push('_Score = sum of APPLIED positive factors (each cites evidence). Negative factors are evidence-backed gap candidates with a recommended deduction, NOT yet applied (pending calibration). Bands: 0–25 weak · 26–50 emerging · 51–75 capable · 76–100 strong._');
+    for (const d of ['digital_maturity', 'growth_orientation', 'change_readiness', 'organizational_capacity', 'contactability'] as const) {
+      const sc = b.strategicScores[d];
+      if (!sc) continue;
+      L.push('');
+      L.push(`### ${d.replace(/_/g, ' ')}: ${sc.score} (${sc.band})  ·  confidence ${fmtPct(sc.confidence)}${sc.capped ? ` (capped from raw ${sc.rawConfidence})` : ''}`);
+      L.push('**Positive factors**');
+      if (!sc.positive_factors.length) L.push('- _(none)_');
+      for (const f of sc.positive_factors) L.push(`- ${f.label} (+${f.points}) — evidence: ${f.evidence_refs.join(', ')}`);
+      L.push('**Negative factors** _(candidate deductions — not applied)_');
+      if (!sc.negative_factors.length) L.push('- _(none)_');
+      for (const f of sc.negative_factors) L.push(`- ${f.label} (${f.points}) — evidence: ${f.evidence_refs.join(', ')}`);
+      L.push(`**Top drivers:** ${sc.top_factors.map((f) => `${f.label} (+${f.points})`).join(', ') || '—'}`);
+    }
+    L.push('');
+  }
+
+  // ── Strategic Recommendations (deterministic, interpretation-only) ──────────
+  if (b.recommendations) {
+    const r = b.recommendations;
+    const ev = (refs: { id: string }[]) => refs.map((e) => e.id).join(', ') || '—';
+    L.push('## Strategic Recommendations');
+    L.push(`- **Engagement priority:** ${r.engagement_priority.value} _(evidence: ${ev(r.engagement_priority.evidence_refs)})_`);
+    L.push(`- **First conversation:** ${r.recommended_first_conversation.value} _(evidence: ${ev(r.recommended_first_conversation.evidence_refs)})_`);
+    L.push(`- **Entry point:** ${r.recommended_entry_point.value} _(evidence: ${ev(r.recommended_entry_point.evidence_refs)})_`);
+    L.push(`- **Likely growth constraints:** ${r.likely_growth_constraints.value.join(', ') || '—'} _(evidence: ${ev(r.likely_growth_constraints.evidence_refs)})_`);
+    L.push(`- **Likely pain points:** ${r.likely_pain_points.value.join(', ') || '—'}`);
+    L.push(`- **Product fit:** ${r.recommended_product_fit.value.join(', ') || '—'}`);
+    L.push(`- **Partnership probability:** ${r.partnership_probability.value}% · overall confidence ${fmtPct(r.confidence)}`);
+    L.push('');
+  }
+
   // Field estimates (from synthesis)
   if (b.fieldEstimates.length) {
     L.push('## Field estimates');

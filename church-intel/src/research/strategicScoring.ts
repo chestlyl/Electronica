@@ -24,16 +24,34 @@ import type { EvidenceAccessLevel } from '../types.js';
 
 export type Band = 'weak' | 'emerging' | 'capable' | 'strong';
 
+/**
+ * A single explainable factor. `points` is signed: positive factors are APPLIED
+ * to the score; negative factors are evidence-backed GAP candidates with a
+ * recommended deduction (points < 0) that is NOT applied to the current score
+ * (calibration baseline stays stable until the negative weights are confirmed).
+ */
+export interface ScoreFactor {
+  id: string;
+  label: string;
+  points: number;            // + applied / − recommended-but-not-applied
+  applied: boolean;
+  evidence_refs: string[];   // normalized row ids (positives) / inspected source (negatives)
+  detail: string;
+}
+
 export interface ScoredDimension {
   dimension: Dimension;
-  score: number;            // 0–100 (rubric-derived)
+  score: number;            // 0–100 (sum of APPLIED positive factors, clamped)
   band: Band;
   confidence: number;       // capped by best evidence access level
   rawConfidence: number;    // uncapped (evidence-volume driven)
   capped: boolean;
   capReason?: string;
-  evidenceConsumed: string[]; // human-readable, each with the evidence row ids + points
-  evidenceMissing: string[];  // rubric inputs that were absent (what would raise the score)
+  positive_factors: ScoreFactor[];
+  negative_factors: ScoreFactor[];   // gap candidates (recommended deductions, not yet applied)
+  top_factors: ScoreFactor[];        // applied factors sorted by contribution (which drove the score)
+  evidenceConsumed: string[]; // back-compat (derived from positive_factors)
+  evidenceMissing: string[];  // back-compat (derived from negative_factors)
   reason: string;
 }
 
@@ -57,22 +75,27 @@ const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 
 // ── internal rubric builder: accumulates evidence-traceable contributions ─────
 class Rubric {
-  private parts: { points: number; label: string; ids: string[] }[] = [];
-  readonly missing: string[] = [];
+  readonly positives: { points: number; label: string; ids: string[] }[] = [];
+  readonly negatives: { deduction: number; label: string }[] = [];
   add(points: number, label: string, ids: string[] = []): void {
-    if (points > 0) this.parts.push({ points, label, ids });
+    if (points > 0) this.positives.push({ points, label, ids });
   }
-  miss(label: string): void { this.missing.push(label); }
-  /** Add a contribution if rows exist, else record what's missing. */
+  /** Record an evidence-backed gap. Recommended deduction defaults to ~40% of the
+   *  capability's positive weight (a principled default, NOT applied to the score). */
+  miss(label: string, deduction = 5): void { this.negatives.push({ deduction, label }); }
+  /** Add a contribution if rows exist, else record the gap (with a recommended deduction). */
   want(rows: NormalizedRow[], points: number, label: string, missingLabel: string): void {
     if (rows.length) this.add(points, `${label}: ${rows.map((r) => r.value).join(', ')}`, rows.map((r) => r.id));
-    else this.miss(missingLabel);
+    else this.miss(missingLabel, Math.max(3, Math.round(points * 0.4)));
   }
-  get score(): number { return clamp(this.parts.reduce((s, p) => s + p.points, 0)); }
-  get count(): number { return this.parts.length; }
-  get consumed(): string[] { return this.parts.map((p) => `${p.label} [${p.ids.join(',') || '—'}] (+${p.points})`); }
-  get labels(): string[] { return this.parts.map((p) => p.label); }
+  get score(): number { return clamp(this.positives.reduce((s, p) => s + p.points, 0)); }
+  get count(): number { return this.positives.length; }
+  get consumed(): string[] { return this.positives.map((p) => `${p.label} [${p.ids.join(',') || '—'}] (+${p.points})`); }
+  get labels(): string[] { return this.positives.map((p) => p.label); }
+  get missing(): string[] { return this.negatives.map((n) => n.label); }
 }
+
+function slug(s: string): string { return s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''); }
 
 export function scoreStrategic(input: ScoringInput): StrategicScores {
   const { interpretation: I, normalized: N, coverage, accessLevel } = input;
@@ -96,10 +119,20 @@ export function scoreStrategic(input: ScoringInput): StrategicScores {
     const confidence = Math.min(rawConfidence, cap);
     const capped = rawConfidence > cap;
     const band = bandOf(score);
-    const reason = `${band} (${score}): ${r.labels.join('; ') || 'no qualifying evidence'}${r.missing.length ? ` · missing: ${r.missing.join(', ')}` : ''}`;
+    const reason = `${band} (${score}): ${r.labels.join('; ') || 'no qualifying evidence'}${r.missing.length ? ` · gaps: ${r.missing.join(', ')}` : ''}`;
+    const positive_factors: ScoreFactor[] = r.positives.map((p) => ({
+      id: `pos_${slug(p.label).slice(0, 40)}`, label: p.label, points: p.points, applied: true,
+      evidence_refs: p.ids.length ? p.ids : ['interpretation'], detail: `+${p.points}`,
+    }));
+    const negative_factors: ScoreFactor[] = r.negatives.map((n) => ({
+      id: `neg_${slug(n.label).slice(0, 40)}`, label: n.label, points: -n.deduction, applied: false,
+      evidence_refs: ['inspected:normalized_evidence'], detail: `−${n.deduction} (candidate, not applied)`,
+    }));
+    const top_factors = [...positive_factors].sort((a, b) => b.points - a.points).slice(0, 5);
     return {
       dimension: dim, score, band, confidence, rawConfidence, capped,
       capReason: capped ? `raw ${rawConfidence} capped to ${cap} by best evidence access level (${accessLevel})` : undefined,
+      positive_factors, negative_factors, top_factors,
       evidenceConsumed: r.consumed, evidenceMissing: r.missing, reason,
     };
   };

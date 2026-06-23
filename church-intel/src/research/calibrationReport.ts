@@ -204,6 +204,24 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
         const capNote = s.capped ? `capped→${s.confidence} (raw ${s.rawConfidence})` : 'uncapped';
         L.push(`| ${d} | **${s.score}** | ${s.band} | ${Math.round(s.confidence)} | ${capNote} | ${consumed} | ${missing} |`);
       }
+
+      // ── Explainability: per-dimension positive / negative factor breakdown ──
+      L.push('');
+      L.push('#### Score explainability (why each score — auditable factor breakdown)');
+      L.push('_Negative factors are evidence-backed GAP candidates with recommended deductions; they are NOT yet applied to the score (pending calibration)._');
+      for (const d of ['digital_maturity', 'growth_orientation', 'change_readiness', 'organizational_capacity', 'contactability'] as const) {
+        const s = scores[d];
+        if (!s) continue;
+        L.push(`- **${d}: ${s.score}** (${s.band})`);
+        L.push(`  - Positive factors:`);
+        if (!s.positive_factors.length) L.push('    - _(none)_');
+        for (const f of s.positive_factors) L.push(`    - ${f.label} (+${f.points}) — evidence: ${f.evidence_refs.join(', ')}`);
+        L.push(`  - Negative factors (candidate deductions, not applied):`);
+        if (!s.negative_factors.length) L.push('    - _(none)_');
+        for (const f of s.negative_factors) L.push(`    - ${f.label} (${f.points}) — evidence: ${f.evidence_refs.join(', ')}`);
+        const drivers = s.top_factors.map((f) => `${f.label} (+${f.points})`).join(', ');
+        L.push(`  - Top drivers: ${drivers || '—'}`);
+      }
     }
 
     // ── Strategic Recommendations (deterministic engine — interpretation-only) ─

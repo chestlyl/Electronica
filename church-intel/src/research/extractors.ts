@@ -62,6 +62,28 @@ function staffCount(text: string): { count: number; confidence: number; ev: stri
   return null;
 }
 
+/**
+ * Deterministically detect a PUBLICLY STATED (reported) attendance number, so the
+ * dossier can distinguish a reported fact from an inferred estimate. Conservative
+ * patterns that require explicit attendance language (never a stray number).
+ */
+export function reportedAttendance(text: string): { value: number; confidence: number; ev: string } | null {
+  const pats = [
+    /\b(?:average|avg\.?|weekly|weekend|sunday)\s+attendance\s*(?:of|is|:|=|—|–|at)?\s*(?:about|around|approximately|roughly|~)?\s*([\d,]{2,7})\b/i,
+    /\b(?:attendance|congregation|worshipers?|attendees?)\s+of\s+(?:about|around|approximately|roughly|~)?\s*([\d,]{2,7})\b/i,
+    /\b([\d,]{2,7})\s+(?:people|members|attendees|worshipers?)\s+(?:attend|gather|worship|each|every)\b/i,
+    /\b(?:we (?:average|run)|averaging|running|draws?|sees?)\s+(?:about|around|approximately|roughly|~)?\s*([\d,]{2,7})\b\s*(?:people|in attendance|on sundays?|each weekend|weekly|every week)/i,
+  ];
+  for (const re of pats) {
+    const m = text.match(re);
+    if (m) {
+      const n = parseInt(m[1].replace(/,/g, ''), 10);
+      if (n >= 10 && n <= 100000) return { value: n, confidence: 85, ev: m[0].replace(/\s+/g, ' ').slice(0, 90) };
+    }
+  }
+  return null;
+}
+
 function giving(text: string, url: string): { confidence: number; ev: string; provider: string | null } | null {
   const hay = `${text} ${url}`.toLowerCase();
   const present = /\b(give online|online giving|give now|donate|giving|ways to give)\b/.test(hay) || /\/give|\/giving|\/donate/.test(url);
@@ -160,6 +182,10 @@ export function extractFacts(findings: SourceFinding[]): Facts {
 
     const sc = staffCount(text);
     if (sc) consider(f, 'staff_count', sc.count, sc.confidence, sc.ev);
+
+    // Reported (publicly stated) attendance — kept distinct from inferred estimates.
+    const ra = reportedAttendance(text);
+    if (ra) consider(f, 'reported_attendance', ra.value, ra.confidence, ra.ev);
 
     const gv = giving(text, f.url);
     if (gv) { consider(f, 'online_giving_present', true, gv.confidence, gv.ev); if (gv.provider) consider(f, 'giving_provider', gv.provider, 55, gv.ev); }

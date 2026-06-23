@@ -68,6 +68,8 @@ export interface CalibrationRow {
   inputMode: string;
   providedUrl: string | null;
   websiteVerificationStatus: string;
+  /** Plain-language reason verification failed (empty when verified). */
+  verificationIssue: string;
   identityVerdict: string;
   identity_confidence: number;
   contaminationFlags: string[];
@@ -111,6 +113,12 @@ export function rowFromBuild(entry: CalibrationEntry, build: DossierBuild): Cali
     inputMode: build.identity.inputMode,
     providedUrl: build.identity.providedUrl,
     websiteVerificationStatus: build.identity.websiteVerificationStatus,
+    verificationIssue: build.identity.websiteVerificationStatus === 'verified' ? '' : (() => {
+      const note = build.identity.note ?? '';
+      const m = note.match(/classified (\w+)/i);
+      if (m && m[1] !== 'official_church') return `provided URL classified as a ${m[1].replace(/_/g, ' ')} rather than a church-owned website`;
+      return note.replace(/^website_unverified:\s*/i, '').split('.')[0].trim() || 'could not verify the site is church-owned';
+    })(),
     identityVerdict: build.identity.identityVerdict,
     identity_confidence: build.identity.identity_confidence,
     contaminationFlags: build.contamination,

@@ -81,6 +81,15 @@ export interface Conclusion<T> {
   access_level: EvidenceAccessLevel;
 }
 
+/** Attendance is a first-class strategic metric — explainable, with explicit
+ *  reported-vs-inferred provenance and the evidence that supports the estimate. */
+export type AttendanceSource = 'reported' | 'inferred' | 'unknown';
+export interface AttendanceFactor {
+  factor: string;             // staff_count | church_center_usage | service_times | …
+  detail: string;
+  evidence_ids: string[];
+}
+
 export interface Interpretation {
   lead_pastors: Conclusion<string[]>;
   executive_pastor: Conclusion<string | null>;
@@ -92,6 +101,11 @@ export interface Interpretation {
   address: Conclusion<string | null>;
   denomination: Conclusion<string | null>;
   attendance_estimate: Conclusion<number | null>;
+  // Average Weekend Attendance provenance + explainability (single source of truth).
+  attendance_source: AttendanceSource;
+  attendance_range: { min: number | null; max: number | null };
+  attendance_evidence: AttendanceFactor[];
+  attendance_reasoning: string;
   lifecycle_stage: Conclusion<string>;
   archetype: Conclusion<string>;
   digital_maturity_score: Conclusion<number | null>;

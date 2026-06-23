@@ -1,6 +1,5 @@
 import { digitalEvidenceSummary } from './digitalSignals.js';
 import { strategicSignalSummary } from './strategicSignals.js';
-import { strategicScoreSummary } from './strategicScoring.js';
 import { recommendationSummary } from './recommendationEngine.js';
 import type { DossierBuild, ResearchTarget } from './researchAgent.js';
 
@@ -8,86 +7,78 @@ function fmtPct(n: number | null | undefined): string {
   return n == null ? '—' : String(Math.round(n));
 }
 
+/** Plain-language reason a website failed verification (from the identity note),
+ *  surfaced instead of the internal directory/vendor/verdict classification. */
+function verificationIssue(b: DossierBuild): string {
+  const note = b.identity.note ?? '';
+  const m = note.match(/classified (\w+)/i);
+  const kind = m?.[1];
+  if (kind && kind !== 'official_church') return `provided URL classified as a ${kind.replace(/_/g, ' ')} rather than a church-owned website`;
+  const cleaned = note.replace(/^website_unverified:\s*/i, '').split('.')[0].trim();
+  return cleaned || 'could not verify the site is owned by this church';
+}
+
 export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): string {
   const s = b.synthesis;
+  const I = b.interpretation;
   const L: string[] = [];
   L.push(`# Research Dossier — ${target.name}`);
   L.push(`_${[target.city, target.state].filter(Boolean).join(', ') || 'location unknown'} · generated ${new Date().toISOString()}_`);
   L.push('');
 
-  // Identity
-  L.push('## Identity');
-  L.push(`- Official site: **${b.officialSite ?? 'NOT CONFIDENTLY IDENTIFIED'}** (discovery verdict: ${b.identity.identityVerdict}, identity_confidence ${fmtPct(b.identity.identity_confidence)})`);
-  L.push(`- Official DOM fetched: **${b.officialCrawled ? 'yes' : 'NO — reconstructed from indexed snippets / third-party sources'}**`);
-  L.push(`- Best evidence access level: **${b.accessLevel}** → confidence is capped accordingly`);
-  L.push(`- Crawl: official DOM fetched **${b.crawl.officialDomFetched ? 'yes' : 'no'}** · rendered DOM used **${b.crawl.renderedDomUsed ? 'yes' : 'no'}** (${b.crawl.crawlMethod}) · raw_text ${b.crawl.rawTextLength} → rendered_text ${b.crawl.renderedTextLength} (gain ×${b.crawl.renderedGainRatio})`);
-  const links = b.crawl.links ?? [];
-  if (links.length) {
-    L.push('- Crawl link trace (anchor → URL · category · selected/fetched · staff/contact signal):');
-    for (const d of links) {
-      L.push(`  - ${d.selected ? '◉' : '○'}${d.fetched ? ' fetched' : ''} [${d.category ?? '—'}] "${(d.anchorText || '').slice(0, 30)}" → ${d.resolvedUrl || d.href}${d.fetched ? ` · text ${d.textLength}${d.hasStaffContactSignal ? ' · staff/contact✓' : ''}` : ''}${d.discovery === 'fallback_probe' ? ' · [probe]' : ''}`);
-    }
-  }
-  const covLine = (b.coverage ?? []).map((c) => `${c.category}${c.useful ? '✓' : c.fetched ? '~' : '✗'}`).join(' ');
-  if (covLine) L.push(`- Coverage (✓ useful / ~ fetched / ✗ missing): ${covLine}`);
-  const srcLine = (b.sourceCoverage ?? []).map((s) => `${s.category}${s.present ? '✓' : '✗'}`).join(' ');
-  if (srcLine) L.push(`- Source breadth: ${srcLine}`);
-  if (b.digital) L.push(`- Digital signals: ${digitalEvidenceSummary(b.digital)}`);
-  if (b.techStack?.length) L.push(`- Technology stack: ${b.techStack.map((t) => `${t.platform_name} (${t.category})`).join(', ')}`);
-  if (b.strategicSignals?.length) L.push(`- Strategic signals: ${strategicSignalSummary(b.strategicSignals)}`);
-  if (b.strategicScores) L.push(`- Strategic scoring v1 (rubric, report-only): ${strategicScoreSummary(b.strategicScores)}`);
-  if (b.recommendations) L.push(`- Strategic recommendation: ${recommendationSummary(b.recommendations)}`);
-  const leadLine = b.interpretation.lead_pastors.value.length ? b.interpretation.lead_pastors.value.join('; ') : '—';
-  L.push(`- Lead pastor(s): ${leadLine} · Denomination: ${b.interpretation.denomination.value ?? '—'} · Lifecycle: **${b.interpretation.lifecycle_stage.value}**`);
-  if (b.interpretation.address.value) L.push(`- Address: ${b.interpretation.address.value}`);
-  L.push(`- ${s.identity_summary}`);
-  if (!b.officialCrawled) {
-    L.push('');
-    L.push('> ⚠️ I could not fetch the official website. Findings below come from indexed search snippets and third-party sources, so confidence is **capped**.');
+  // ── 1. Church Identity (trustworthiness, not internal classification) ───────
+  const verified = b.identity.websiteVerificationStatus === 'verified';
+  L.push('## 1. Church Identity');
+  L.push(`- **Official website:** ${b.officialSite ?? 'NOT IDENTIFIED'}`);
+  L.push(`- **Website verified:** ${verified ? 'true' : 'false'}`);
+  if (!verified && b.officialSite) L.push(`- **Verification issue:** ${verificationIssue(b)}`);
+  if (I.denomination.value) L.push(`- Denomination: ${I.denomination.value}`);
+  if (I.address.value) L.push(`- Location: ${I.address.value}`);
+  L.push(`- Lifecycle: **${I.lifecycle_stage.value}** · Archetype: ${I.archetype.value}`);
+  L.push(`- _internal trust:_ known_church_verified ${I.known_church_verified} · identity_confidence ${fmtPct(b.identity.identity_confidence)}`);
+  if (!b.officialCrawled) L.push('> ⚠️ Official website DOM was not fetched; evidence is from indexed snippets/third-party sources, so confidence is **capped**.');
+  L.push('');
+
+  // ── 2. Church Size — Average Weekend Attendance is a first-class metric ──────
+  const awa = I.attendance_estimate.value;
+  const range = I.attendance_range;
+  const rangeStr = range.min != null && range.max != null ? ` (range ${range.min}–${range.max})` : '';
+  const campuses = b.facts.campus_count?.value ?? '—';
+  L.push('## 2. Church Size');
+  L.push(`- **Average Weekend Attendance:** ${awa ?? 'unknown'}${rangeStr}`);
+  L.push(`- attendance_confidence: ${fmtPct(I.attendance_estimate.confidence)} · attendance_source: **${I.attendance_source}**`);
+  L.push(`- staff_count: ${I.staff_count.value ?? 'unknown'} · campuses: ${campuses}`);
+  L.push('### Attendance reasoning');
+  L.push(`- ${I.attendance_reasoning}`);
+  if (I.attendance_evidence.length) {
+    L.push('- attendance_evidence:');
+    for (const a of I.attendance_evidence) L.push(`  - ${a.factor}: ${a.detail}${a.evidence_ids.length ? ` [${a.evidence_ids.join(', ')}]` : ''}`);
   }
   L.push('');
 
-  // Summaries
-  L.push('## Summary');
-  L.push(`- **Research:** ${s.research_summary}`);
-  L.push(`- **Digital:** ${s.digital_summary}`);
-  L.push(`- **Staff:** ${s.staff_summary}`);
-  L.push(`- **Growth:** ${s.growth_summary}`);
-  L.push(`- **Lifecycle:** ${s.lifecycle_summary}`);
+  // ── 3. Leadership ───────────────────────────────────────────────────────────
+  L.push('## 3. Leadership');
+  L.push(`- Lead pastor(s): ${I.lead_pastors.value.join('; ') || '—'}`);
+  L.push(`- Executive pastor: ${I.executive_pastor.value ?? '—'} · Operations: ${I.operations_leader.value ?? '—'} · Communications: ${I.communications_leader.value ?? '—'}`);
+  L.push(`- Office email: ${I.office_email.value ?? '—'} · Office phone: ${I.office_phone.value ?? '—'}`);
+  if (b.leadership?.length) L.push(`- All leaders found: ${b.leadership.map((l) => `${l.name} (${l.title}${l.isLead ? ', LEAD' : ''})`).join('; ')}`);
   L.push('');
 
-  // Sources
-  L.push(`## Sources used (${b.findings.length})`);
-  L.push('| source type | access level | reliability | fetched | url |');
-  L.push('|---|---|---|---|---|');
-  for (const f of b.findings) {
-    L.push(`| ${f.sourceType} | ${f.accessLevel} | ${f.reliability.toFixed(2)} | ${f.fetched ? 'yes' : 'snippet'} | ${f.url} |`);
-  }
-  L.push('');
-  L.push(`Source mix: ${b.dossier.official_source_count} official · ${b.dossier.secondary_source_count} secondary · research_confidence **${fmtPct(b.dossier.research_confidence)}**`);
+  // ── 4. Technology Stack ─────────────────────────────────────────────────────
+  L.push('## 4. Technology Stack');
+  if (b.techStack?.length) for (const t of b.techStack) L.push(`- ${t.platform_name} (${t.category}) — confidence ${t.confidence}`);
+  else L.push('- _(no known platform hosts detected)_');
   L.push('');
 
-  // Strategic estimates — VALUES are interpretation conclusions (single source).
-  const I = b.interpretation;
-  L.push('## Strategic estimates');
-  L.push('| field | value | confidence | basis |');
-  L.push('|---|---|---|---|');
-  const cap = b.accessLevel;
-  L.push(`| lifecycle_stage | ${I.lifecycle_stage.value} | ${fmtPct(I.lifecycle_stage.confidence)} | interpretation |`);
-  L.push(`| growth_orientation_score | ${fmtPct(I.growth_orientation_score.value)} | ${fmtPct(I.growth_orientation_score.confidence)} | interpretation |`);
-  L.push(`| digital_maturity_score | ${fmtPct(I.digital_maturity_score.value)} | ${fmtPct(I.digital_maturity_score.confidence)} | interpretation |`);
-  L.push(`| change_readiness_score | ${fmtPct(I.change_readiness_score.value)} | ${fmtPct(I.change_readiness_score.confidence)} | interpretation |`);
-  L.push(`| staff_depth_score | ${fmtPct(I.staff_depth_score.value)} | ${fmtPct(I.staff_depth_score.confidence)} | interpretation |`);
-  L.push(`| church_app_status | ${s.church_app_status} | — | app-store/site search |`);
-  L.push(`| app_provider | ${s.app_provider ?? '—'} | — | — |`);
-  L.push(`| attendance_estimate | ${I.attendance_estimate.value ?? '—'} [${s.attendance_min ?? '?'}–${s.attendance_max ?? '?'}] | ${fmtPct(I.attendance_estimate.confidence)} | interpretation |`);
-  L.push(`| online_attendance_estimate | ${s.online_attendance_estimate ?? '—'} | ${fmtPct(b.strategic.online_attendance_confidence ?? null)} | capped @ ${cap} |`);
+  // ── 5. Strategic Signals ────────────────────────────────────────────────────
+  L.push('## 5. Strategic Signals');
+  L.push(`- ${b.strategicSignals?.length ? strategicSignalSummary(b.strategicSignals) : 'none detected'}`);
   L.push('');
 
-  // ── Strategic Scoring (explainable, per dimension) ──────────────────────────
+  // ── 6. Strategic Scores (explainable) ───────────────────────────────────────
   if (b.strategicScores) {
-    L.push('## Strategic Scoring (explainable)');
-    L.push('_Score = sum of APPLIED positive factors (each cites evidence). Negative factors are evidence-backed gap candidates with a recommended deduction, NOT yet applied (pending calibration). Bands: 0–25 weak · 26–50 emerging · 51–75 capable · 76–100 strong._');
+    L.push('## 6. Strategic Scores (explainable)');
+    L.push('_Score = sum of APPLIED positive factors (each cites evidence). Negative factors are evidence-backed gap candidates with a recommended deduction, NOT yet applied. Bands: 0–25 weak · 26–50 emerging · 51–75 capable · 76–100 strong._');
     for (const d of ['digital_maturity', 'growth_orientation', 'change_readiness', 'organizational_capacity', 'contactability'] as const) {
       const sc = b.strategicScores[d];
       if (!sc) continue;
@@ -104,11 +95,11 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
     L.push('');
   }
 
-  // ── Strategic Recommendations (deterministic, interpretation-only) ──────────
+  // ── 7. Strategic Recommendations ────────────────────────────────────────────
   if (b.recommendations) {
     const r = b.recommendations;
     const ev = (refs: { id: string }[]) => refs.map((e) => e.id).join(', ') || '—';
-    L.push('## Strategic Recommendations');
+    L.push('## 7. Strategic Recommendations');
     L.push(`- **Engagement priority:** ${r.engagement_priority.value} _(evidence: ${ev(r.engagement_priority.evidence_refs)})_`);
     L.push(`- **First conversation:** ${r.recommended_first_conversation.value} _(evidence: ${ev(r.recommended_first_conversation.evidence_refs)})_`);
     L.push(`- **Entry point:** ${r.recommended_entry_point.value} _(evidence: ${ev(r.recommended_entry_point.evidence_refs)})_`);
@@ -119,48 +110,41 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
     L.push('');
   }
 
-  // Field estimates (from synthesis)
-  if (b.fieldEstimates.length) {
-    L.push('## Field estimates');
-    L.push('| field | value | confidence | access | evidence |');
-    L.push('|---|---|---|---|---|');
-    for (const f of b.fieldEstimates) {
-      L.push(`| ${f.field_name} | ${f.value ?? '—'} | ${fmtPct(f.confidence)} | ${f.access_level} | ${(f.evidence || '').slice(0, 80)} |`);
-    }
-    L.push('');
-  }
-
-  // Conflicts
-  L.push(`## Conflicts (${b.conflicts.length})`);
-  if (!b.conflicts.length) L.push('- none detected');
-  for (const c of b.conflicts) {
-    L.push(`- **${c.field_name}**: "${c.value_a}" (${c.source_a}) vs "${c.value_b}" (${c.source_b}) → recommended **${c.recommended_value}** (conf ${fmtPct(c.confidence)}). ${c.conflict_summary}`);
-  }
+  // ── Appendix — Research diagnostics (implementation details, demoted) ────────
+  L.push('## Appendix — Research diagnostics');
+  L.push(`- Discovery verdict: ${b.identity.identityVerdict} · input_mode ${b.identity.inputMode} · website_verification_status ${b.identity.websiteVerificationStatus}`);
+  L.push(`- Best evidence access level: **${b.accessLevel}** (confidence capped accordingly)`);
+  L.push(`- Crawl: official DOM fetched **${b.crawl.officialDomFetched ? 'yes' : 'no'}** · rendered DOM used **${b.crawl.renderedDomUsed ? 'yes' : 'no'}** (${b.crawl.crawlMethod}) · raw_text ${b.crawl.rawTextLength} → rendered_text ${b.crawl.renderedTextLength} (gain ×${b.crawl.renderedGainRatio})`);
+  const covLine = (b.coverage ?? []).map((c) => `${c.category}${c.useful ? '✓' : c.fetched ? '~' : '✗'}`).join(' ');
+  if (covLine) L.push(`- Coverage (✓ useful / ~ fetched / ✗ missing): ${covLine}`);
+  if (b.digital) L.push(`- Digital signals: ${digitalEvidenceSummary(b.digital)}`);
+  L.push(`- Source mix: ${b.dossier.official_source_count} official · ${b.dossier.secondary_source_count} secondary · research_confidence **${fmtPct(b.dossier.research_confidence)}**`);
+  L.push(`- Recommendation summary: ${b.recommendations ? recommendationSummary(b.recommendations) : '—'}`);
   L.push('');
-
-  // Contamination
-  L.push(`## Contamination flags (${b.contamination.length})`);
+  L.push('### Sources used');
+  L.push('| source type | access level | reliability | fetched | url |');
+  L.push('|---|---|---|---|---|');
+  for (const f of b.findings) L.push(`| ${f.sourceType} | ${f.accessLevel} | ${f.reliability.toFixed(2)} | ${f.fetched ? 'yes' : 'snippet'} | ${f.url} |`);
+  L.push('');
+  L.push('### Synthesis summaries');
+  L.push(`- **Research:** ${s.research_summary}`);
+  L.push(`- **Digital:** ${s.digital_summary}`);
+  L.push(`- **Staff:** ${s.staff_summary}`);
+  L.push(`- **Growth:** ${s.growth_summary}`);
+  L.push(`- **Lifecycle:** ${s.lifecycle_summary}`);
+  L.push('');
+  L.push(`### Conflicts (${b.conflicts.length})`);
+  if (!b.conflicts.length) L.push('- none detected');
+  for (const c of b.conflicts) L.push(`- **${c.field_name}**: "${c.value_a}" (${c.source_a}) vs "${c.value_b}" (${c.source_b}) → recommended **${c.recommended_value}** (conf ${fmtPct(c.confidence)}). ${c.conflict_summary}`);
+  L.push('');
+  L.push(`### Contamination flags (${b.contamination.length})`);
   if (!b.contamination.length) L.push('- none detected');
   for (const c of b.contamination) L.push(`- ${c}`);
   L.push('');
-
-  // Known / Unknown
-  L.push('## What is known');
-  for (const k of s.known) L.push(`- ${k}`);
-  L.push('');
-  L.push('## What is uncertain');
-  for (const u of s.uncertain) L.push(`- ${u}`);
-  L.push('');
-
-  // Next step
-  L.push('## Recommended next verification step');
-  if (!b.officialCrawled) {
-    L.push('- Fetch the official site with a real browser (Playwright) or contact the church directly — the DOM was never retrieved, which caps every estimate here.');
-  } else if (b.conflicts.length) {
-    L.push(`- Resolve the preserved conflict(s) (${b.conflicts.map((c) => c.field_name).join(', ')}) by confirming directly with the church.`);
-  } else {
-    L.push('- Confirm attendance/budget/staff-count by calling the church; these remain indirect estimates.');
-  }
+  L.push('### Recommended next verification step');
+  if (!b.officialCrawled) L.push('- Fetch the official site with a real browser (Playwright) or contact the church directly — the DOM was never retrieved, which caps every estimate here.');
+  else if (b.conflicts.length) L.push(`- Resolve the preserved conflict(s) (${b.conflicts.map((c) => c.field_name).join(', ')}) by confirming directly with the church.`);
+  else L.push('- Confirm attendance/staff-count by calling the church; inferred numbers remain indirect estimates.');
   L.push('');
 
   return L.join('\n');

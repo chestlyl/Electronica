@@ -38,6 +38,33 @@ export function toRawEvidence(findings: SourceFinding[]): RawEvidence[] {
 
 // conservative US street-address pattern (street line + city, ST ZIP)
 const ADDRESS_RE = /\b\d{1,6}\s+[A-Za-z0-9.\- ]{2,40},?\s+[A-Za-z .'-]{2,30},\s*([A-Z]{2})\s+\d{5}(?:-\d{4})?\b/;
+// a clock time like "9:00am" / "10 AM" / "11:30 a.m."
+const TIME_RE = /\b(\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?))/gi;
+const SERVICE_CTX = /\b(service|services|worship|gathering|sunday|saturday|weekend|mass)\b/i;
+
+/** Conservative service-time detection: clock times that appear in a
+ *  service/worship/Sunday context (so we don't grab unrelated times). Deduped. */
+export function extractServiceTimes(findings: SourceFinding[]): { time: string; source_url: string }[] {
+  const out: { time: string; source_url: string }[] = [];
+  const seen = new Set<string>();
+  for (const f of findings) {
+    if (!['home', 'about', 'contact', 'visit', 'service', 'services'].includes(f.category ?? '') && f.category != null) continue;
+    const text = `${f.title ?? ''} ${(f.fetched ? f.text : f.snippet) ?? ''}`;
+    // scan windows around service keywords
+    for (const m of text.matchAll(/[^.]*\b(?:service|services|worship|gathering|sunday|saturday|weekend|mass)\b[^.]*/gi)) {
+      const window = m[0];
+      for (const t of window.matchAll(TIME_RE)) {
+        const norm = t[1].replace(/\s+/g, '').replace(/\./g, '').toLowerCase();
+        if (seen.has(norm)) continue;
+        seen.add(norm);
+        out.push({ time: t[1].replace(/\s+/g, ' ').trim(), source_url: f.url });
+        if (out.length >= 12) return out;
+      }
+    }
+    if (!SERVICE_CTX.test(text)) continue;
+  }
+  return out;
+}
 
 export interface NormalizeInput {
   findings: SourceFinding[];
@@ -119,6 +146,12 @@ export function normalizeEvidence(input: NormalizeInput): NormalizedEvidence {
       source_url: f.url, evidence_text: m[0].slice(0, 160), confidence: 65, access_level: f.accessLevel, extractor_name: 'addressRegex',
     });
   }
+
+  // services[] — service/gathering times (a weak attendance-size signal).
+  extractServiceTimes(findings).forEach((s, i) => ev.services.push({
+    id: `service_${i + 1}`, value: s.time, category: 'service_time', source_url: s.source_url,
+    evidence_text: `service time ${s.time}`, confidence: 60, access_level: accessOfUrl(findings, s.source_url), extractor_name: 'extractServiceTimes',
+  }));
 
   // technology_stack[] — deterministic platform hits.
   techStack.forEach((t, i) => ev.technology_stack.push({

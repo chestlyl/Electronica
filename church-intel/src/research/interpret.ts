@@ -1,5 +1,7 @@
 import { capForAccess } from './dossier.js';
 import {
+  type AttendanceFactor,
+  type AttendanceSource,
   type Conclusion,
   type Interpretation,
   type NormalizedEvidence,
@@ -193,6 +195,30 @@ export function interpretDossier(input: InterpretInput): Interpretation {
   const known_church_verified = identity.inputMode === 'known_church' &&
     (identity.websiteVerificationStatus === 'verified' || identity.identityVerdict === 'true_match');
 
+  // ── Average Weekend Attendance — reported beats inferred; always explainable ─
+  const reportedFact = facts.reported_attendance;
+  const inferredVal = synthesis.attendance_estimate;
+  const attValue = reportedFact?.value != null ? Number(reportedFact.value) : (inferredVal ?? null);
+  const attendance_source: AttendanceSource = reportedFact?.value != null ? 'reported' : (inferredVal != null ? 'inferred' : 'unknown');
+  const attendance_range = { min: synthesis.attendance_min ?? null, max: synthesis.attendance_max ?? null };
+  const attendance_evidence: AttendanceFactor[] = [];
+  const addAtt = (factor: string, detail: string, ids: string[]) => attendance_evidence.push({ factor, detail, evidence_ids: ids });
+  if (staff_count.value != null) addAtt('staff_count', `${staff_count.value} staff`, staff_count.evidence_ids);
+  const chms = normalized.technology_stack.filter((t) => t.category === 'ChMS');
+  if (chms.length) addAtt('church_center_usage', `active ${chms.map((t) => t.value).join(', ')}`, chms.map((t) => t.id));
+  if (normalized.services.length) addAtt('service_times', `${normalized.services.length} service time(s): ${normalized.services.map((s) => s.value).join(', ')}`, normalized.services.map((s) => s.id));
+  const grp = normalized.external_signals.filter((s) => s.category === 'groups');
+  if (grp.length) addAtt('volunteer_infrastructure', 'groups/volunteer systems present', grp.map((s) => s.id));
+  if (normalized.ministries.length) addAtt('ministry_breadth', `${normalized.ministries.length} ministry pathway(s)`, normalized.ministries.map((m) => m.id));
+  if (facts.campus_count?.value != null) addAtt('campus_count', `${facts.campus_count.value} campus(es)`, []);
+  if (reportedFact) addAtt('reported_statement', reportedFact.evidence, []);
+  const attIds = [...new Set(attendance_evidence.flatMap((a) => a.evidence_ids))];
+  const rangeStr = attendance_range.min != null && attendance_range.max != null ? ` Range ${attendance_range.min}–${attendance_range.max}.` : '';
+  const attendance_reasoning = attValue == null
+    ? 'No attendance estimate — insufficient size evidence.'
+    : `${attendance_source === 'reported' ? `Reported ${attValue} (publicly stated).` : `Inferred ~${attValue}.`}${attendance_evidence.length ? ` Supporting evidence: ${attendance_evidence.map((a) => a.detail).join('; ')}.` : ''}${rangeStr} Source: ${attendance_source}.`;
+  const attConfidence = reportedFact ? reportedFact.confidence : synthesis.attendance_confidence;
+
   return {
     lead_pastors,
     executive_pastor: roleConclusion('executive_pastor'),
@@ -208,7 +234,11 @@ export function interpretDossier(input: InterpretInput): Interpretation {
         : mk<string | null>(null, 0, [], 'No address in normalized evidence.');
     })(),
     denomination: mk<string | null>(synthesis.denomination, synthesis.denomination ? 60 : 0, [], 'From synthesis (denomination).'),
-    attendance_estimate: mk<number | null>(synthesis.attendance_estimate, synthesis.attendance_confidence, [], synthesis.lifecycle_summary || 'From synthesis (attendance).'),
+    attendance_estimate: mk<number | null>(attValue, attConfidence, attIds, attendance_reasoning, reportedFact?.access_level ?? accessLevel),
+    attendance_source,
+    attendance_range,
+    attendance_evidence,
+    attendance_reasoning,
     lifecycle_stage: mk<string>(synthesis.lifecycle_stage, 60, [], synthesis.lifecycle_summary || 'From synthesis (lifecycle).'),
     archetype: mk<string>(arch.value, arch.confidence, [], arch.evidence),
     digital_maturity_score: scoreConclusion('digital_maturity_score'),

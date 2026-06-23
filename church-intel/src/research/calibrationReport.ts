@@ -103,9 +103,12 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
     L.push(`## ${r.name} (${r.city ?? ''}, ${r.state ?? ''})`);
 
     L.push('### Identity');
-    L.push(`- input_mode: **${r.inputMode ?? 'market_discovery'}** · provided_url: ${r.providedUrl ?? '—'} · website_verification_status: **${r.websiteVerificationStatus ?? 'not_applicable'}**`);
-    L.push(`- official website: **${r.officialSite ?? 'NOT IDENTIFIED'}** · identity_confidence ${Math.round(r.identity_confidence)} · verdict ${r.identityVerdict}`);
-    if (r.interpretation?.address.value) L.push(`- address: ${r.interpretation.address.value}`);
+    const verified = r.websiteVerificationStatus === 'verified';
+    L.push(`- **official_website:** ${r.officialSite ?? 'NOT IDENTIFIED'}`);
+    L.push(`- **website_verified:** ${verified ? 'true' : 'false'}`);
+    if (!verified && r.officialSite && r.verificationIssue) L.push(`- **verification_issue:** ${r.verificationIssue}`);
+    if (r.interpretation?.address.value) L.push(`- location: ${r.interpretation.address.value}`);
+    L.push(`- _internal:_ known_church_verified ${r.interpretation?.known_church_verified ?? '—'} · identity_confidence ${Math.round(r.identity_confidence)} · input_mode ${r.inputMode ?? 'market_discovery'} · verdict ${r.identityVerdict}`);
     L.push(`- contamination flags: ${r.contaminationFlags.length ? r.contaminationFlags.join('; ') : 'none'}`);
     const c = r.crawl ?? { officialDomFetched: false, renderedDomUsed: false, crawlMethod: 'none', rawTextLength: 0, renderedTextLength: 0, renderedGainRatio: 1, links: [] };
     L.push(`- crawl: official DOM fetched **${c.officialDomFetched ? 'yes' : 'no'}** · rendered DOM used **${c.renderedDomUsed ? 'yes' : 'no'}** (${c.crawlMethod}) · raw_text ${c.rawTextLength} → rendered_text ${c.renderedTextLength} (gain ×${c.renderedGainRatio})`);
@@ -299,7 +302,12 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
     }
 
     L.push('### Size');
-    L.push(`- attendance: **${val(f.avg_weekly_attendance)}** _(conf ${f.avg_weekly_attendance?.confidence != null ? Math.round(f.avg_weekly_attendance.confidence) : '—'})_`);
+    const att = r.interpretation?.attendance_estimate;
+    const arange = r.interpretation?.attendance_range;
+    const arStr = arange && arange.min != null && arange.max != null ? ` (range ${arange.min}–${arange.max})` : '';
+    L.push(`- **Average Weekend Attendance:** ${att?.value ?? 'unknown'}${arStr} · confidence ${att?.confidence != null ? Math.round(att.confidence) : '—'} · source **${r.interpretation?.attendance_source ?? 'unknown'}**`);
+    if (r.interpretation?.attendance_reasoning) L.push(`  - reasoning: ${r.interpretation.attendance_reasoning}`);
+    if (r.interpretation?.attendance_evidence?.length) L.push(`  - attendance_evidence: ${r.interpretation.attendance_evidence.map((a) => a.factor).join(', ')}`);
     L.push(`- online attendance: ${withConf(f.online_attendance_estimate)}`);
     L.push(`- staff count: ${withConf(f.staff_count)} · campus count: ${withConf(f.campus_count)}`);
 

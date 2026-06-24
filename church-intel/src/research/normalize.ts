@@ -48,7 +48,8 @@ export function extractServiceTimes(findings: SourceFinding[]): { time: string; 
   const out: { time: string; source_url: string }[] = [];
   const seen = new Set<string>();
   for (const f of findings) {
-    if (!['home', 'about', 'contact', 'visit', 'service', 'services'].includes(f.category ?? '') && f.category != null) continue;
+    // Scan every fetched page — the service/worship/Sunday context window below
+    // is the real guard, so times on a staff/home page are still captured.
     const text = `${f.title ?? ''} ${(f.fetched ? f.text : f.snippet) ?? ''}`;
     // scan windows around service keywords
     for (const m of text.matchAll(/[^.]*\b(?:service|services|worship|gathering|sunday|saturday|weekend|mass)\b[^.]*/gi)) {

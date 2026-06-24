@@ -316,11 +316,21 @@ function resolvePerson(rawName: string, roster: Map<string, string>): string | n
 
 const LEAD_TITLE_GROUP = '(co[\\s-]?lead\\s+pastors?|co[\\s-]?pastors?|lead\\s+pastors?|senior\\s+pastors?)';
 
+// Reject non-person "names" the staff-card parser sometimes captures (nav buttons
+// like "Contact Bethany", the church's own name, or a service-times blurb).
+const NON_PERSON_FIRST = /^(contact|connect|visit|give|giving|welcome|meet|join|our|plan|new|home|about|learn|the|sunday|saturday|service|staff|team|leadership)\b/i;
+const NON_PERSON_CONTAINS = /\b(church|communities|community|ministries|ministry|gatherings?|worship|fellowship|campus|baptist|chapel)\b/i;
+function isLikelyPersonName(name: string): boolean {
+  if (/[0-9@]/.test(name) || /\b(a\.?m\.?|p\.?m\.?)\b/i.test(name)) return false;   // times / emails / numbers
+  if (NON_PERSON_FIRST.test(name) || NON_PERSON_CONTAINS.test(name)) return false;   // nav text / org name
+  return true;
+}
+
 export function aggregateLeadership(findings: SourceFinding[]): LeaderCandidate[] {
   const byName = new Map<string, LeaderCandidate>();
   const consider = (rawName: string, title: string, sourceUrl: string, baseConf: number, evidence: string) => {
     const name = stripHonorific(rawName).replace(/\s+/g, ' ').trim();
-    if (name.length < 3) return;
+    if (name.length < 3 || !isLikelyPersonName(name)) return;
     const isLead = LEAD_TITLE_RE.test(title);
     const role = roleFromTitle(title)?.field ?? (/pastor/i.test(title) ? 'pastor' : 'leader');
     const conf = isLead ? Math.max(baseConf, 70) : baseConf;

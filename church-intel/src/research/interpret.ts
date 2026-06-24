@@ -33,8 +33,15 @@ function num(c: Cell | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Report-only church archetype derived from interpreted/size fields. */
-export function deriveArchetype(fields: FieldMap, accessLevel: string): Derived {
+/** Multiplication / growth signals that distinguish a Growth church from a
+ *  stable Legacy one even at modest or unknown size. */
+export interface ArchetypeSignals { residency?: boolean; hiring?: boolean; multisite?: boolean; network?: boolean; school?: boolean }
+
+/** Report-only church archetype derived from interpreted/size fields + growth
+ *  signals. Growth orientation now beats the old attendance-only fallback (a
+ *  growing 250-person church is a Growth Church, not Legacy), and a 30-year-old
+ *  church can never be a "Church Plant". */
+export function deriveArchetype(fields: FieldMap, accessLevel: string, signals: ArchetypeSignals = {}): Derived {
   const att = num(fields.avg_weekly_attendance);
   const online = num(fields.online_attendance_estimate);
   const campuses = num(fields.campus_count);
@@ -43,27 +50,38 @@ export function deriveArchetype(fields: FieldMap, accessLevel: string): Derived 
   const stage = String(fields.lifecycle_stage?.value ?? '');
   const cap = capForAccess(accessLevel as EvidenceAccessLevel);
 
+  // Growth orientation: explicit multiplication signals (residency/hiring/
+  // microchurch ≈ multisite) OR a strong growth score. Independent of size.
+  const growthOriented = !!signals.residency || !!signals.hiring || growth >= 65;
+  const multisite = (campuses != null && campuses >= 2) || !!signals.multisite;
+  const declining = stage === 'declining';
+  const plateaued = stage === 'plateaued';
+
   const ev: string[] = [];
   if (att != null) ev.push(`attendance≈${att}`);
   if (campuses != null) ev.push(`campuses=${campuses}`);
   if (stage) ev.push(`lifecycle=${stage}`);
   ev.push(`digital=${digital}`, `growth=${growth}`);
+  const flags = Object.entries(signals).filter(([, v]) => v).map(([k]) => k);
+  if (flags.length) ev.push(`signals=${flags.join('+')}`);
 
   let value = 'Unclassified';
   if (stage === 'relaunch_revitalization') value = 'Revitalization Church';
   else if (online != null && att != null && att > 0 && online >= 2 * att && digital >= 70) value = 'Influence Platform';
-  else if (campuses != null && campuses >= 2) value = 'Multi-Campus Church';
-  else if (att != null && att >= 2000) value = (stage === 'plateaued' || stage === 'declining') ? 'Plateaued Mega Church' : (growth >= 60 ? 'Growth Church' : 'Healthy Regional Church');
-  else if (att != null && att >= 500) value = growth >= 60 ? 'Growth Church' : (stage === 'plateaued' || stage === 'declining' ? 'Institutional Church' : 'Healthy Regional Church');
-  else if (stage === 'plant' || (att != null && att < 200 && growth >= 55)) value = 'Church Plant';
-  else if (att != null && att < 500) value = stage === 'declining' ? 'Reverting Church' : 'Legacy Church';
+  else if (multisite && (att == null || att >= 500)) value = 'Multi-Campus Church';
+  else if (att != null && att >= 10000) value = 'Giga Church';
+  else if (att != null && att >= 2000) value = (plateaued || declining) ? 'Plateaued Mega Church' : 'Mega Church';
+  else if (att != null && att >= 500) value = growthOriented ? 'Growth Church' : (plateaued || declining ? 'Institutional Church' : 'Healthy Regional Church');
+  else if (stage === 'plant') value = 'Church Plant';                       // ONLY when explicitly a plant
+  else if (declining) value = 'Declining Church';
+  else if (growthOriented && !plateaued) value = 'Growth Church';           // growth beats the size-only Legacy fallback
+  else if (plateaued) value = 'Institutional Church';
+  else if (stage === 'established' || (att != null && att < 500)) value = 'Legacy Church';
 
   if (value === 'Unclassified') {
-    if (stage === 'plant') value = 'Church Plant';
-    else if (stage === 'growing') value = 'Growth Church';
-    else if (stage === 'plateaued') value = 'Institutional Church';
-    else if (stage === 'declining') value = 'Reverting Church';
-    else if (stage === 'established') value = 'Healthy Regional Church';
+    if (stage === 'growing') value = 'Growth Church';
+    else if (stage === 'established') value = 'Legacy Church';
+    else value = 'Legacy Church';
   }
 
   let conf = 30;
@@ -180,7 +198,13 @@ export function interpretDossier(input: InterpretInput): Interpretation {
     growth_orientation_score: { value: synthesis.growth_orientation_score, confidence: null },
     lifecycle_stage: { value: synthesis.lifecycle_stage, confidence: null },
   };
-  const arch = deriveArchetype(archFields, accessLevel);
+  const arch = deriveArchetype(archFields, accessLevel, {
+    residency: normalized.external_signals.some((s) => s.category === 'internship_residency'),
+    hiring: normalized.external_signals.some((s) => s.category === 'jobs_hiring'),
+    multisite: facts.campus_count?.value != null && Number(facts.campus_count.value) >= 2,
+    network: normalized.external_signals.some((s) => s.category === 'network_affiliation'),
+    school: normalized.external_signals.some((s) => s.category === 'school_academy'),
+  });
 
   const contactFields: FieldMap = {
     lead_pastor: { value: lead_pastors.value[0] ?? null, confidence: null },

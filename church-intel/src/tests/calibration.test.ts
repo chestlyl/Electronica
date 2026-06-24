@@ -62,9 +62,17 @@ async function main() {
     const a = deriveArchetype(fm({ lifecycle_stage: { value: 'relaunch_revitalization' } }), 'search_snippets');
     assert.strictEqual(a.value, 'Revitalization Church');
   });
-  check('archetype fallback: established + no size → Healthy Regional Church', () => {
+  check('archetype: established + no size + no growth → Legacy Church', () => {
     const a = deriveArchetype(fm({ lifecycle_stage: { value: 'established' } }), 'search_snippets');
-    assert.strictEqual(a.value, 'Healthy Regional Church');
+    assert.strictEqual(a.value, 'Legacy Church');
+  });
+  check('archetype: established + growth signals → Growth Church (not Legacy)', () => {
+    const a = deriveArchetype(fm({ lifecycle_stage: { value: 'established' }, avg_weekly_attendance: { value: 250 } }), 'live_official_site', { residency: true, hiring: true });
+    assert.strictEqual(a.value, 'Growth Church');
+  });
+  check('archetype: 30-yr established small church is NOT a Church Plant', () => {
+    const a = deriveArchetype(fm({ lifecycle_stage: { value: 'established' }, avg_weekly_attendance: { value: 180 } }), 'live_official_site');
+    assert.notStrictEqual(a.value, 'Church Plant');
   });
 
   const md = renderCalibrationReport([row], {});

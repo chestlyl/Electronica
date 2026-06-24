@@ -109,6 +109,7 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
     const r = b.recommendations;
     const ev = (refs: { id: string }[]) => refs.map((e) => e.id).join(', ') || '—';
     L.push('## 7. Strategic Recommendations');
+    L.push(`- **Engagement fit:** ${r.engagement_fit.value}/100 — ${r.engagement_fit.reason}`);
     L.push(`- **Engagement priority:** ${r.engagement_priority.value} _(evidence: ${ev(r.engagement_priority.evidence_refs)})_`);
     L.push(`- **First conversation:** ${r.recommended_first_conversation.value} _(evidence: ${ev(r.recommended_first_conversation.evidence_refs)})_`);
     L.push(`- **Entry point:** ${r.recommended_entry_point.value} _(evidence: ${ev(r.recommended_entry_point.evidence_refs)})_`);

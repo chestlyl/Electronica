@@ -51,7 +51,7 @@ function pipeline(findings: SourceFinding[], facts: Facts, over: Partial<Dossier
 
 const ALLOWED_KINDS = new Set(['score', 'signal', 'technology', 'leadership', 'interpretation', 'coverage']);
 function allRecs(r: RecommendationEngineResult): Recommendation<unknown>[] {
-  return [r.engagement_priority, r.recommended_first_conversation, r.recommended_entry_point, r.likely_pain_points, r.likely_growth_constraints, r.recommended_product_fit, r.partnership_probability];
+  return [r.engagement_fit, r.engagement_priority, r.recommended_first_conversation, r.recommended_entry_point, r.likely_pain_points, r.likely_growth_constraints, r.recommended_product_fit, r.partnership_probability];
 }
 function assertEvidenceEverywhere(r: RecommendationEngineResult) {
   for (const rec of allRecs(r)) {
@@ -144,7 +144,13 @@ async function main() {
   const ccc = runRecommendationEngine(pipeline([cccHome, cccStaff], cccFacts, { lifecycle_stage: 'plateaued', denomination: 'Southern Baptist' }));
   check('CCC: every recommendation cites evidence', () => assertEvidenceEverywhere(ccc));
   check('CCC: plateaued → first conversation = Revitalization Strategy', () => assert.strictEqual(ccc.recommended_first_conversation.value, 'Revitalization Strategy'));
-  check('CCC: entry point = Executive Pastor', () => assert.strictEqual(ccc.recommended_entry_point.value, 'Executive Pastor'));
+  // Senior-owner ordering: lead pastor is the preferred entry even when an exec exists.
+  check('CCC: entry point = Lead Pastor (senior-owner ordering: lead > exec)', () => assert.strictEqual(ccc.recommended_entry_point.value, 'Lead Pastor'));
+  check('CCC: engagement_fit is a 0-100 composite with growth+capacity+contact evidence', () => {
+    assert.ok(ccc.engagement_fit.value >= 0 && ccc.engagement_fit.value <= 100);
+    const ids = ccc.engagement_fit.evidence_refs.map((e) => e.id).join(',');
+    assert.ok(/growth_orientation_score/.test(ids) && /organizational_capacity_score/.test(ids), ids);
+  });
   check('CCC: product fit includes Revitalization Cohort', () => assert.ok(ccc.recommended_product_fit.value.includes('Revitalization Cohort')));
   check('CCC: digital mature → no digital transformation pitched', () => {
     assert.ok(!ccc.recommended_product_fit.value.includes('Digital Systems Consulting'));

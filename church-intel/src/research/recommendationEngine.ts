@@ -49,6 +49,7 @@ export interface RecommendationDimensions {
 }
 
 export interface RecommendationEngineResult {
+  engagement_fit: Recommendation<number>;            // 0..100 composite (growth-weighted, capacity-gated)
   engagement_priority: Recommendation<EngagementPriority>;
   recommended_first_conversation: Recommendation<string>;
   recommended_entry_point: Recommendation<string>;
@@ -77,6 +78,7 @@ export interface RecommendationInput {
 // ── derived context (pure function of the allowed inputs) ─────────────────────
 interface Ctx {
   dm: number; go: number; oc: number; ct: number;
+  awa: number | null;                // attendance (for the mega sweet-spot)
   tech: Set<string>;                 // PlatformHit categories present
   sigCount: (cat: string) => number;
   hasSig: (cat: string) => boolean;
@@ -102,6 +104,7 @@ function buildCtx(input: RecommendationInput): Ctx {
   return {
     dm: scores.digital_maturity.score, go: scores.growth_orientation.score,
     oc: scores.organizational_capacity.score, ct: scores.contactability.score,
+    awa: I.attendance_estimate.value,
     tech,
     sigCount: (cat) => sigCat(cat).length,
     hasSig: (cat) => sigCat(cat).length > 0,
@@ -151,16 +154,18 @@ export const RULES: Rule[] = [
   { id: 'R10_establish_contact', when: (c) => c.ct < 40,
     emit: (c) => [{ target: 'first_conversation', value: 'Establish Contact Pathways', priority: 40, evidence: [evScore(c, 'contactability')] }] },
 
-  // —— entry_point (priority-ranked) ——
-  { id: 'R11_entry_exec', when: (c) => c.hasExec,
-    emit: (c) => [{ target: 'entry_point', value: 'Executive Pastor', priority: 80, evidence: [evLead('executive_pastor', `exec: ${c.I.executive_pastor.value}`)] }] },
-  { id: 'R12_entry_ops', when: (c) => !c.hasExec && c.hasOps,
-    emit: (c) => [{ target: 'entry_point', value: 'Operations Leader', priority: 70, evidence: [evLead('operations_leader', `ops: ${c.I.operations_leader.value}`)] }] },
-  { id: 'R13_entry_comms', when: (c) => !c.hasExec && !c.hasOps && c.hasComms,
-    emit: (c) => [{ target: 'entry_point', value: 'Communications Leader', priority: 60, evidence: [evLead('communications_leader', `comms: ${c.I.communications_leader.value}`)] }] },
-  { id: 'R14_entry_lead', when: (c) => c.leadPastors.length > 0 && !c.hasExec && !c.hasOps && !c.hasComms,
-    emit: (c) => [{ target: 'entry_point', value: 'Lead Pastor', priority: 50, evidence: [evLead('lead_pastors', `lead: ${c.leadPastors.join('; ')}`)] }] },
-  { id: 'R15_entry_office', when: (c) => c.leadPastors.length === 0 && (c.hasEmail || c.hasPhone),
+  // —— entry_point — senior-owner priority order: Lead > Exec > Ops > Comms ——
+  // A comms-heavy lift must be OWNED by senior leadership, so the lead pastor is
+  // the preferred entry and comms is the weakest (it should not drive the initiative).
+  { id: 'R11_entry_lead', when: (c) => c.leadPastors.length > 0,
+    emit: (c) => [{ target: 'entry_point', value: 'Lead Pastor', priority: 90, evidence: [evLead('lead_pastors', `lead: ${c.leadPastors.join('; ')}`)] }] },
+  { id: 'R12_entry_exec', when: (c) => c.hasExec,
+    emit: (c) => [{ target: 'entry_point', value: 'Executive Pastor', priority: 78, evidence: [evLead('executive_pastor', `exec: ${c.I.executive_pastor.value}`)] }] },
+  { id: 'R13_entry_ops', when: (c) => c.hasOps,
+    emit: (c) => [{ target: 'entry_point', value: 'Operations Leader', priority: 55, evidence: [evLead('operations_leader', `ops: ${c.I.operations_leader.value}`)] }] },
+  { id: 'R14_entry_comms', when: (c) => c.hasComms,
+    emit: (c) => [{ target: 'entry_point', value: 'Communications Leader (support, not driver)', priority: 35, evidence: [evLead('communications_leader', `comms: ${c.I.communications_leader.value}`)] }] },
+  { id: 'R15_entry_office', when: (c) => c.leadPastors.length === 0 && !c.hasExec && !c.hasOps && !c.hasComms && (c.hasEmail || c.hasPhone),
     emit: (c) => [{ target: 'entry_point', value: 'General Office Contact', priority: 30, evidence: [c.hasEmail ? evInterp('office_email', 'office email') : evInterp('office_phone', 'office phone')] }] },
 
   // —— pain_points ——
@@ -302,20 +307,33 @@ export function runRecommendationEngine(input: RecommendationInput): Recommendat
     partnership_readiness: partnershipReadiness(c),
   };
 
-  // 5) engagement priority + partnership probability (cite evidence)
+  // 5) ENGAGEMENT FIT — growth-weighted composite. Growth is the master signal;
+  // capacity is the lift-gate (can they carry the product?); contactability is the
+  // execution gate (can we reach the right owner?). Mega is the best fit; giga gets
+  // the most benefit but is a heavier lift.
   const leadershipCompleteness = (c.leadPastors.length ? 1 : 0) + (c.hasExec ? 1 : 0) + (c.hasOps ? 1 : 0) + (c.hasComms ? 1 : 0);
+  const fitCore = 0.45 * c.go + 0.30 * c.oc + 0.25 * c.ct;
+  const megaSweet = c.awa != null && c.awa >= 2000 && c.awa < 10000;
+  const giga = c.awa != null && c.awa >= 10000;
+  const fit = Math.max(0, Math.min(100, Math.round(fitCore + (megaSweet ? 8 : giga ? 4 : 0))));
+  const fitEvidence = dedupeEvidence([evScore(c, 'growth_orientation'), evScore(c, 'organizational_capacity'), evScore(c, 'contactability'),
+    ...(megaSweet || giga ? [evInterp('attendance_estimate', `AWA ~${c.awa} (${megaSweet ? 'mega sweet-spot' : 'giga — most benefit, heavier lift'})`)] : [])]);
+
   const partnershipProb = Math.max(0, Math.min(100, Math.round(0.4 * c.ct + 0.3 * c.go + 5 * leadershipCompleteness + (c.knownVerified ? 10 : 0))));
   const ppEvidence = dedupeEvidence([evScore(c, 'contactability'), evScore(c, 'growth_orientation'),
     ...(c.leadPastors.length ? [evLead('lead_pastors', `${c.leadPastors.length} lead(s)`)] : []),
     ...(c.knownVerified ? [evInterp('known_church_verified', 'verified')] : [])]);
 
-  let priority: EngagementPriority = (c.ct >= 70 && leadershipCompleteness >= 1 && c.knownVerified) ? 'high'
-    : (c.ct >= 45 && leadershipCompleteness >= 1) ? 'medium' : 'low';
+  // priority = engagement fit gated by reachability of a senior owner.
+  const reachable = c.ct >= 45 && leadershipCompleteness >= 1;
+  let priority: EngagementPriority = (fit >= 62 && reachable && c.knownVerified) ? 'high'
+    : (fit >= 45 && reachable) ? 'medium' : 'low';
   // Capability-vs-size: a large church under-developed for its size (thin digital
   // capability at scale) is a high-value modernization target — bump one notch.
   const modernization = !!c.sizeRelative?.modernization_opportunity && leadershipCompleteness >= 1;
   if (modernization) priority = priority === 'low' ? 'medium' : 'high';
-  const priorityEvidence = dedupeEvidence([evScore(c, 'contactability'),
+  const fitRef: EvidenceRef = { id: 'engagement_fit', kind: 'score', detail: `fit ${fit}` };
+  const priorityEvidence = dedupeEvidence([fitRef, evScore(c, 'contactability'),
     ...(leadershipCompleteness ? [evLead('lead_pastors', 'leadership identified')] : []),
     ...(modernization ? [evSize(c)] : []),
     ...(c.knownVerified ? [evInterp('known_church_verified', 'verified')] : [])]);
@@ -330,7 +348,8 @@ export function runRecommendationEngine(input: RecommendationInput): Recommendat
     ({ value, evidence_refs: dedupeEvidence(evidence), reason, confidence: recConfidence(c, evidence) });
 
   const result: RecommendationEngineResult = {
-    engagement_priority: rec(priority, priorityEvidence, `contactability ${c.ct}, growth ${c.go}, leadership ${leadershipCompleteness}/4, verified=${c.knownVerified}${modernization ? ', +modernization-at-scale' : ''}`),
+    engagement_fit: rec(fit, fitEvidence, `0.45·growth(${c.go}) + 0.30·capacity(${c.oc}) + 0.25·contactability(${c.ct})${megaSweet ? ' + mega sweet-spot' : giga ? ' + giga' : ''}`),
+    engagement_priority: rec(priority, priorityEvidence, `fit ${fit}, reachable=${reachable}, verified=${c.knownVerified}${modernization ? ', +modernization-at-scale' : ''}`),
     recommended_first_conversation: rec(fc.value, ensure(fc.evidence, evScore(c, dominantDim)), firstConv ? `top-priority rule among ${byTarget('first_conversation').length} candidates` : 'no rule fired — dominant dimension fallback'),
     recommended_entry_point: rec(ep.value, ensure(ep.evidence, evInterp('contactability_score', `contactability ${c.ct}`)), entry ? 'highest-ranked identified role' : 'no leadership role identified'),
     likely_pain_points: rec(painPoints.values, ensure(painPoints.evidence, evScore(c, 'organizational_capacity')), `${painPoints.values.length} pain point rule(s) fired`),
@@ -344,7 +363,7 @@ export function runRecommendationEngine(input: RecommendationInput): Recommendat
 
   // overall evidence union + overall confidence (evidence/breadth/access — NOT score value)
   const allEvidence = dedupeEvidence([
-    ...result.engagement_priority.evidence_refs, ...result.recommended_first_conversation.evidence_refs,
+    ...result.engagement_fit.evidence_refs, ...result.engagement_priority.evidence_refs, ...result.recommended_first_conversation.evidence_refs,
     ...result.recommended_entry_point.evidence_refs, ...result.likely_pain_points.evidence_refs,
     ...result.likely_growth_constraints.evidence_refs, ...result.recommended_product_fit.evidence_refs,
     ...result.partnership_probability.evidence_refs,
@@ -358,5 +377,5 @@ export function runRecommendationEngine(input: RecommendationInput): Recommendat
 
 /** Compact one-line summary for the dossier markdown. */
 export function recommendationSummary(r: RecommendationEngineResult): string {
-  return `priority ${r.engagement_priority.value} · first conversation: ${r.recommended_first_conversation.value} · entry: ${r.recommended_entry_point.value} · partnership ${r.partnership_probability.value}% (conf ${Math.round(r.confidence)})`;
+  return `fit ${r.engagement_fit.value}/100 · priority ${r.engagement_priority.value} · first conversation: ${r.recommended_first_conversation.value} · entry: ${r.recommended_entry_point.value} · partnership ${r.partnership_probability.value}% (conf ${Math.round(r.confidence)})`;
 }

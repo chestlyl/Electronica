@@ -234,6 +234,8 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
       L.push('## Strategic Recommendations');
       L.push(`_Deterministic recommendation engine — interpretation-layer inputs only. Overall confidence ${Math.round(rec.confidence)} (evidence ${rec.evidence_refs.length})._`);
       L.push('');
+      L.push(`### Engagement Fit\n**${rec.engagement_fit.value}/100** — ${rec.engagement_fit.reason}`);
+      L.push(`Evidence: ${ev(rec.engagement_fit.evidence_refs)}`);
       L.push(`### Engagement Priority\n**${rec.engagement_priority.value.toUpperCase()}** _(conf ${Math.round(rec.engagement_priority.confidence)})_`);
       L.push(`Evidence: ${ev(rec.engagement_priority.evidence_refs)}`);
       L.push(`### Recommended First Conversation\n**${rec.recommended_first_conversation.value}** _(conf ${Math.round(rec.recommended_first_conversation.confidence)})_`);

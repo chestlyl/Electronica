@@ -78,14 +78,20 @@ async function main() {
   const inferredStaff: SourceFinding = makeFinding({ sourceType: 'staff_page', accessLevel: 'live_official_site', url: 'https://www.midchurch.org/staff', fetched: true, status: 200, category: 'staff', text: 'team', staffCards: extractStaffCards(STAFF) });
   const iFacts: Facts = { staff_count: { value: 9, confidence: 70, evidence: '9 staff', source_url: 'https://www.midchurch.org/staff', access_level: 'live_official_site' } };
   const iInterp = interp([inferredHome, inferredStaff], iFacts);
-  // Staff is the primary size indicator: 9 staff × ~75 AWA/FTE ≈ 675 (beats the
-  // weaker synthesis guess of 600).
-  check('inferred: value = staff-ratio estimate (9×75=675), source=inferred', () => {
-    assert.strictEqual(iInterp.attendance_estimate.value, 675);
+  // Staff is the primary size indicator, but headcount is inflated vs FTE, so the
+  // per-head factor is conservative: 9 staff × ~60 ≈ 550, with a WIDE range and
+  // modest confidence (it's a rough heuristic, not hard-and-fast).
+  check('inferred: value = staff-headcount estimate (9×60=550), source=inferred', () => {
+    assert.strictEqual(iInterp.attendance_estimate.value, 550);
     assert.strictEqual(iInterp.attendance_source, 'inferred');
   });
-  check('inferred: reasoning cites the staff-ratio method', () => {
-    assert.match(iInterp.attendance_reasoning, /Inferred ~675 via staff ratio/);
+  check('inferred: confidence is modest (≤50) and range is wide', () => {
+    assert.ok(iInterp.attendance_estimate.confidence <= 50);
+    assert.ok((iInterp.attendance_range.max ?? 0) - (iInterp.attendance_range.min ?? 0) >= 600);
+  });
+  check('inferred: reasoning cites headcount caveat (part-time/volunteer)', () => {
+    assert.match(iInterp.attendance_reasoning, /staff headcount/);
+    assert.match(iInterp.attendance_reasoning, /part-time\/volunteer/);
     assert.match(iInterp.attendance_reasoning, /Source: inferred/);
   });
   check('inferred: attendance_evidence includes staff_count + church_center_usage', () => {

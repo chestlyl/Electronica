@@ -212,13 +212,19 @@ export function interpretDossier(input: InterpretInput): Interpretation {
     attendance_source = 'reported'; attConfidence = reportedFact.confidence; attMethod = 'publicly stated';
     attendance_range = { min: round25(attValue * 0.9), max: round25(attValue * 1.1) };
   } else if (staffN != null && staffN > 0) {
-    const factor = staffN >= 25 ? 110 : staffN >= 10 ? 90 : 75;   // larger churches carry more AWA per FTE
+    // Listed staff is a HEADCOUNT, not FTE — it often includes part-time,
+    // volunteer, and off-site roles, so the AWA/head factor sits below the ~75
+    // FTE average and the range is wide. This is a rough estimate, NOT hard-and-
+    // fast: leanly-staffed churches run below it. Larger churches carry more
+    // AWA per head. (Note: this targets in-person weekend attendance; online is
+    // tracked separately.)
+    const factor = staffN >= 25 ? 110 : staffN >= 10 ? 85 : 60;
     let est = staffN * factor;
     if (services >= 2) est = Math.max(est, 300);                  // 2 services ⇒ rarely under ~300
     attValue = round25(est);
-    attendance_source = 'inferred'; attConfidence = 58;
-    attMethod = `staff ratio (~${factor} AWA/FTE × ${staffN} staff${services >= 2 ? ` · ${services} service times` : ''})`;
-    attendance_range = { min: round25(Math.max(services >= 2 ? 300 : 0, staffN * 55)), max: round25(staffN * 125) };
+    attendance_source = 'inferred'; attConfidence = 48;          // rough heuristic — modest confidence
+    attMethod = `staff headcount ~${staffN} (≈${factor} AWA/head${services >= 2 ? ` · ${services} services` : ''}; headcount may include part-time/volunteer — leanly-staffed churches run lower)`;
+    attendance_range = { min: round25(Math.max(services >= 2 ? 300 : 0, staffN * 35)), max: round25(staffN * 125) };
   } else if (synthesis.attendance_estimate != null) {
     attValue = synthesis.attendance_estimate;
     attendance_source = 'inferred'; attConfidence = synthesis.attendance_confidence; attMethod = 'synthesis estimate';

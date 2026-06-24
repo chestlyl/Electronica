@@ -62,6 +62,9 @@ export interface ScoringInput {
   normalized: NormalizedEvidence;
   coverage: CoverageRow[];
   accessLevel: EvidenceAccessLevel;
+  /** Confirmed structural scale — fed as evidence so capability is not understated
+   *  for large churches we under-crawl. attendance comes from interpretation. */
+  scale?: { campusCount?: number | null; multisite?: boolean };
 }
 
 export function bandOf(score: number): Band {
@@ -98,7 +101,7 @@ class Rubric {
 function slug(s: string): string { return s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''); }
 
 export function scoreStrategic(input: ScoringInput): StrategicScores {
-  const { interpretation: I, normalized: N, coverage, accessLevel } = input;
+  const { interpretation: I, normalized: N, coverage, accessLevel, scale } = input;
 
   const tech = (cat: string) => N.technology_stack.filter((r) => r.category === cat);
   const sig = (cat: string) => N.external_signals.filter((r) => r.category === cat);
@@ -111,11 +114,28 @@ export function scoreStrategic(input: ScoringInput): StrategicScores {
   const officialUseful = !!coverage.find((c) => c.category === 'homepage')?.useful;
   const cap = capForAccess(accessLevel);
 
+  // ── confirmed structural scale (used as capability evidence, not crawled platforms) ──
+  const awa = I.attendance_estimate.value;
+  const campuses = scale?.campusCount ?? null;
+  const multisite = (scale?.multisite ?? false) || (campuses != null && campuses >= 2);
+  const attnEv = I.attendance_estimate.evidence_ids?.length ? I.attendance_estimate.evidence_ids : ['interpretation'];
+  // How thoroughly did we actually look? (fraction of REQUIRED coverage that was useful)
+  const reqCov = coverage.filter((c) => c.required);
+  const crawlBreadth = reqCov.length ? reqCov.filter((c) => c.useful).length / reqCov.length : (officialUseful ? 1 : 0.4);
+
   const finalize = (dim: Dimension, r: Rubric): ScoredDimension => {
     const score = r.score;
-    // Confidence is evidence-volume driven, then capped by access level.
-    let rawConfidence = Math.min(90, 30 + r.count * 10 + (officialUseful ? 10 : 0));
-    if (r.count === 0) rawConfidence = 20;
+    // Confidence = COMPLETENESS, not volume. A score driven by ABSENCE of evidence
+    // (many gaps, thin crawl) must report LOW confidence — not high confidence in a
+    // low score. completeness = found / (found + missed); crawlBreadth = how
+    // thoroughly we looked. This makes "low score + high confidence" impossible
+    // unless we genuinely looked hard and found genuine weakness.
+    const foundWeight = r.positives.reduce((s, p) => s + p.points, 0);
+    const missedWeight = r.negatives.reduce((s, n) => s + n.deduction, 0);
+    const completeness = foundWeight + missedWeight > 0 ? foundWeight / (foundWeight + missedWeight) : 0;
+    let rawConfidence = Math.round(20 + 45 * completeness + 20 * crawlBreadth);
+    if (r.count === 0) rawConfidence = 18;
+    rawConfidence = Math.max(10, Math.min(92, rawConfidence));
     const confidence = Math.min(rawConfidence, cap);
     const capped = rawConfidence > cap;
     const band = bandOf(score);
@@ -141,21 +161,29 @@ export function scoreStrategic(input: ScoringInput): StrategicScores {
   // zero evidence (and stays fully traceable to the signal rows).
   const baseline = (r: Rubric, dim: Dimension) => {
     const s = sigForDim(dim);
-    if (s.length) r.add(Math.min(20, s.length * 5), `${s.length} strategic signal(s) mapped to ${dim}`, s.map((x) => x.id));
+    if (s.length) r.add(Math.min(15, s.length * 4), `${s.length} strategic signal(s) mapped to ${dim}`, s.map((x) => x.id));
   };
 
   // ── digital_maturity ──────────────────────────────────────────────────────
   const digital = () => {
     const r = new Rubric();
     baseline(r, 'digital_maturity');
-    r.want(tech('ChMS'), 30, 'ChMS platform', 'no ChMS platform');
-    r.want(either(tech('Giving'), sig('giving')), 20, 'online giving', 'no giving platform');
-    r.want(either(tech('App'), sig('app_mobile')), 15, 'mobile app', 'no mobile app');
-    r.want(either(tech('Streaming'), sig('livestream_video')), 15, 'livestream/video', 'no livestream/sermon video');
-    r.want(sig('podcast'), 10, 'podcast', 'no podcast');
-    r.want(either(tech('Email'), sig('newsletter_email')), 10, 'email/newsletter', 'no email platform');
-    r.want(sig('forms_workflows'), 10, 'digital forms/workflows', 'no online forms');
-    r.want(either(sig('groups'), sig('events_calendar')), 10, 'groups/calendar modules', 'no groups/calendar modules');
+    r.want(tech('ChMS'), 18, 'ChMS platform', 'no ChMS platform');
+    r.want(either(tech('Giving'), sig('giving')), 14, 'online giving', 'no giving platform');
+    r.want(either(tech('App'), sig('app_mobile')), 12, 'mobile app', 'no mobile app');
+    r.want(either(tech('Streaming'), sig('livestream_video')), 12, 'livestream/video', 'no livestream/sermon video');
+    r.want(sig('podcast'), 6, 'podcast', 'no podcast');
+    r.want(either(tech('Email'), sig('newsletter_email')), 6, 'email/newsletter', 'no email platform');
+    r.want(sig('forms_workflows'), 8, 'digital forms/workflows', 'no online forms');
+    r.want(either(sig('groups'), sig('events_calendar')), 8, 'groups/calendar modules', 'no groups/calendar modules');
+    // SCALE: you cannot run multi-site worship without a streaming + comms backbone,
+    // and large congregations invariably run digital systems — credit the inferred
+    // infrastructure even when the specific platforms weren't crawled.
+    const onlineWorship = either(sig('livestream_video'), tech('Streaming')).length > 0;
+    if (campuses != null && campuses >= 4) r.add(20, `multi-site digital backbone (${campuses} campuses require streaming + comms systems)`, ['interpretation']);
+    else if (multisite && onlineWorship) r.add(14, 'multi-site + online worship implies a digital backbone', ['interpretation']);
+    else if (multisite) r.add(8, 'multi-site operation implies shared digital systems', ['interpretation']);
+    if (awa != null && awa >= 2000) r.add(8, `large congregation (AWA ~${awa}) — digital systems near-certain`, attnEv);
     return finalize('digital_maturity', r);
   };
 
@@ -163,13 +191,16 @@ export function scoreStrategic(input: ScoringInput): StrategicScores {
   const growth = () => {
     const r = new Rubric();
     baseline(r, 'growth_orientation');
-    r.want(sig('jobs_hiring'), 30, 'hiring/job postings', 'no hiring signal');
-    r.want(sig('internship_residency'), 30, 'internship/residency', 'no residency/internship');
-    r.want(sig('school_academy'), 15, 'school/academy', 'no school/academy');
-    r.want(sig('network_affiliation'), 10, 'network affiliation', 'no network affiliation');
-    r.want(either(sig('livestream_video'), sig('podcast')), 10, 'media reach', 'no media-reach signal');
-    if (I.staff_count.value != null && I.staff_count.value >= 8) r.add(10, `staffed for growth (staff_count ${I.staff_count.value})`, I.staff_count.evidence_ids);
+    r.want(sig('jobs_hiring'), 22, 'hiring/job postings', 'no hiring signal');
+    r.want(sig('internship_residency'), 22, 'internship/residency', 'no residency/internship');
+    r.want(sig('school_academy'), 12, 'school/academy', 'no school/academy');
+    r.want(sig('network_affiliation'), 8, 'network affiliation', 'no network affiliation');
+    r.want(either(sig('livestream_video'), sig('podcast')), 8, 'media reach', 'no media-reach signal');
+    if (I.staff_count.value != null && I.staff_count.value >= 8) r.add(8, `staffed for growth (staff_count ${I.staff_count.value})`, I.staff_count.evidence_ids);
     else r.miss('staff capacity (<8 or unknown)');
+    // SCALE: actively multiplying campuses is direct evidence of growth orientation.
+    if (campuses != null && campuses >= 4) r.add(15, `multiplying campuses (${campuses})`, ['interpretation']);
+    else if (multisite) r.add(8, 'multi-site expansion', ['interpretation']);
     return finalize('growth_orientation', r);
   };
 
@@ -178,13 +209,16 @@ export function scoreStrategic(input: ScoringInput): StrategicScores {
     const r = new Rubric();
     baseline(r, 'change_readiness');
     const stage = I.lifecycle_stage.value;
-    const lifePts = /relaunch|revitaliz|plant/.test(stage) ? 35 : stage === 'growing' ? 25 : stage === 'established' ? 10 : stage === 'plateaued' ? 5 : 0;
+    const lifePts = /relaunch|revitaliz|plant/.test(stage) ? 30 : stage === 'growing' ? 22 : stage === 'established' ? 10 : stage === 'plateaued' ? 5 : 0;
     if (lifePts > 0) r.add(lifePts, `lifecycle: ${stage}`, I.lifecycle_stage.evidence_ids);
     else r.miss(`lifecycle not change-oriented (${stage || 'unknown'})`);
-    r.want(sig('network_affiliation'), 20, 'network affiliation', 'no network affiliation');
-    r.want(either(sig('jobs_hiring'), sig('internship_residency')), 15, 'investing in new roles', 'no hiring/residency investment');
-    r.want(either(tech('ChMS'), tech('App')), 15, 'recent platform adoption', 'no modern platform adoption');
-    r.want(sig('forms_workflows'), 10, 'digital workflow adoption', 'no digital workflows');
+    r.want(sig('network_affiliation'), 16, 'network affiliation', 'no network affiliation');
+    r.want(either(sig('jobs_hiring'), sig('internship_residency')), 12, 'investing in new roles', 'no hiring/residency investment');
+    r.want(either(tech('ChMS'), tech('App')), 12, 'recent platform adoption', 'no modern platform adoption');
+    r.want(sig('forms_workflows'), 8, 'digital workflow adoption', 'no digital workflows');
+    // SCALE: active campus multiplication is the strongest possible change signal.
+    if (campuses != null && campuses >= 4) r.add(20, `active multiplication (${campuses} campuses)`, ['interpretation']);
+    else if (multisite && stage === 'growing') r.add(12, 'multi-site growth', ['interpretation']);
     return finalize('change_readiness', r);
   };
 
@@ -192,19 +226,29 @@ export function scoreStrategic(input: ScoringInput): StrategicScores {
   const orgcap = () => {
     const r = new Rubric();
     baseline(r, 'organizational_capacity');
+    // Staff headcount is a WEAK proxy for big churches (we usually see only named
+    // senior leaders, not total FTE) — so it carries less weight than confirmed scale.
     const sc = I.staff_count.value;
-    if (sc != null && sc >= 10) r.add(30, `large staff (${sc})`, I.staff_count.evidence_ids);
-    else if (sc != null && sc >= 5) r.add(20, `mid staff (${sc})`, I.staff_count.evidence_ids);
-    else if (sc != null && sc >= 1) r.add(10, `small staff (${sc})`, I.staff_count.evidence_ids);
+    if (sc != null && sc >= 10) r.add(15, `large staff (${sc})`, I.staff_count.evidence_ids);
+    else if (sc != null && sc >= 5) r.add(10, `mid staff (${sc})`, I.staff_count.evidence_ids);
+    else if (sc != null && sc >= 1) r.add(5, `small staff (${sc})`, I.staff_count.evidence_ids);
     else r.miss('staff count unknown');
     const roles = (['executive_pastor', 'operations_leader', 'communications_leader'] as const)
       .filter((k) => I[k].value).map((k) => ({ k, c: I[k] }));
-    if (roles.length) r.add(Math.min(30, roles.length * 10), `leadership roles filled: ${roles.map((x) => x.k).join(', ')}`, roles.flatMap((x) => x.c.evidence_ids));
+    if (roles.length) r.add(Math.min(24, roles.length * 8), `leadership roles filled: ${roles.map((x) => x.k).join(', ')}`, roles.flatMap((x) => x.c.evidence_ids));
     else r.miss('no exec/ops/comms roles identified');
-    r.want(tech('ChMS'), 15, 'operational ChMS backbone', 'no ChMS backbone');
-    r.want(sig('school_academy'), 10, 'school/academy operation', 'no school/academy');
-    r.want(either(sig('groups'), sig('forms_workflows')), 10, 'operational systems (groups/forms)', 'no operational systems');
+    r.want(tech('ChMS'), 10, 'operational ChMS backbone', 'no ChMS backbone');
+    r.want(sig('school_academy'), 8, 'school/academy operation', 'no school/academy');
+    r.want(either(sig('groups'), sig('forms_workflows')), 8, 'operational systems (groups/forms)', 'no operational systems');
     if (N.staff_roster.length > 3) r.add(5, `staff roster depth (${N.staff_roster.length})`, N.staff_roster.slice(0, 5).map((x) => x.id));
+    // SCALE: a strategist infers capacity from scale — a multi-thousand-attendance,
+    // multi-campus church necessarily runs significant operational infrastructure.
+    if (awa != null && awa >= 5000) r.add(24, `operates at major scale (AWA ~${awa})`, attnEv);
+    else if (awa != null && awa >= 2000) r.add(20, `operates at scale (AWA ~${awa})`, attnEv);
+    else if (awa != null && awa >= 1000) r.add(14, `sizable congregation (AWA ~${awa})`, attnEv);
+    else if (awa != null && awa >= 500) r.add(8, `established size (AWA ~${awa})`, attnEv);
+    if (campuses != null && campuses >= 4) r.add(18, `multi-campus operation (${campuses} campuses)`, ['interpretation']);
+    else if (multisite) r.add(10, 'multi-site operation', ['interpretation']);
     return finalize('organizational_capacity', r);
   };
 

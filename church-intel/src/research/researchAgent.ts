@@ -325,7 +325,13 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   });
   // Strategic Scoring v1 (report-only): deterministic rubric over interpretation +
   // normalized evidence + strategic signals + tech stack + coverage.
-  const strategicScores = scoreStrategic({ interpretation, normalized, coverage, accessLevel });
+  // Confirmed structural scale (campus count + multi-site) fed as capability
+  // evidence so large churches we under-crawl aren't scored as if thin.
+  const campusCount = typeof facts.campus_count?.value === 'number'
+    ? facts.campus_count.value
+    : (facts.campus_count?.value != null && Number.isFinite(Number(facts.campus_count.value)) ? Number(facts.campus_count.value) : null);
+  const multisite = (campusCount != null && campusCount >= 2) || facts.multi_site?.value === true;
+  const strategicScores = scoreStrategic({ interpretation, normalized, coverage, accessLevel, scale: { campusCount, multisite } });
   // Strategic Recommendation Engine (report-only): deterministic rules over the
   // interpretation layer ONLY (interpretation + normalized + scores + signals +
   // tech stack). No raw findings, no Claude.

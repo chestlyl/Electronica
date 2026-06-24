@@ -128,12 +128,38 @@ function findRole(text: string, roleSource: string): { name: string; ev: string 
   return null;
 }
 
+// Free/personal webmail providers. An address on one of these is an INDIVIDUAL's
+// personal inbox (e.g. an elder's gmail scraped from a mailto), NOT the church's
+// organizational address — recording it as office_email is both wrong and a
+// privacy problem. Allowed only when the local part is clearly a role mailbox
+// (e.g. gracechurchoffice@gmail.com), which small churches do legitimately use.
+const FREE_MAIL = new Set([
+  'gmail.com', 'googlemail.com', 'yahoo.com', 'ymail.com', 'rocketmail.com', 'hotmail.com',
+  'outlook.com', 'live.com', 'msn.com', 'aol.com', 'icloud.com', 'me.com', 'mac.com',
+  'comcast.net', 'sbcglobal.net', 'att.net', 'verizon.net', 'cox.net', 'bellsouth.net',
+  'proton.me', 'protonmail.com', 'gmx.com', 'mail.com', 'zoho.com',
+]);
+const ROLE_MAILBOX = /^(info|connect|hello|office|contact|admin|church|welcome|hi|team|reception|frontdesk|general|secretary)\b/i;
+export function emailDomain(e: string): string { return e.split('@')[1]?.toLowerCase() ?? ''; }
+/** True for a personal free-webmail address that is NOT a role mailbox. */
+export function isPersonalEmail(e: string): boolean {
+  return FREE_MAIL.has(emailDomain(e)) && !ROLE_MAILBOX.test(e);
+}
+
 function officeEmail(text: string): { value: string; confidence: number; ev: string } | null {
   const emails = text.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g);
   if (!emails) return null;
-  const office = emails.find((e) => /^(info|connect|hello|office|contact|admin|church|welcome)@/i.test(e));
-  if (office) return { value: office, confidence: 60, ev: office };
-  return { value: emails[0], confidence: 45, ev: emails[0] };
+  // 1) role mailbox on an organizational domain (info@church.org) — best.
+  const orgRole = emails.find((e) => ROLE_MAILBOX.test(e) && !FREE_MAIL.has(emailDomain(e)));
+  if (orgRole) return { value: orgRole, confidence: 65, ev: orgRole };
+  // 2) any organizational-domain address (church-controlled, even if a person's).
+  const org = emails.find((e) => !FREE_MAIL.has(emailDomain(e)));
+  if (org) return { value: org, confidence: 50, ev: org };
+  // 3) a role mailbox on free webmail (small church's own gmail) — acceptable, low.
+  const roleFree = emails.find((e) => ROLE_MAILBOX.test(e));
+  if (roleFree) return { value: roleFree, confidence: 40, ev: roleFree };
+  // 4) only personal individual webmail present → do NOT record it as office email.
+  return null;
 }
 
 /** Structured finding.field names → fact keys folded in as fallback candidates. */
@@ -215,6 +241,9 @@ export function extractFacts(findings: SourceFinding[]): Facts {
       if (!target) continue;
       const value = target === 'staff_count' ? Number(field.value) : String(field.value);
       if (target === 'staff_count' && !Number.isFinite(value as number)) continue;
+      // Never let a mailto: to an individual's personal webmail become the church
+      // office email (the leaders-page elders' gmail problem).
+      if (target === 'office_email' && isPersonalEmail(String(value))) continue;
       consider(f, target, value, field.confidence, field.evidence_text || String(field.value));
     }
 

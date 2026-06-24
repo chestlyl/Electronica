@@ -220,10 +220,14 @@ export function interpretDossier(input: InterpretInput): Interpretation {
     attendance_range = { min: round25(attValue * 0.9), max: round25(attValue * 1.1) };
   } else if (staffN != null && staffN > 0) {
     // We can't KNOW attendance — we read PATTERNS. Safe base: ~50 AWA per staff
-    // head (absorbs the headcount-vs-FTE inflation). Then apply size FLOORS from
-    // structural signals. This targets in-person weekend attendance (online is
-    // tracked separately) and is a pattern estimate, not an exact figure.
-    let est = staffN * 50;
+    // head (absorbs the headcount-vs-FTE inflation). SMALL, growth-oriented
+    // churches run leaner (understaffed vs attendance) so they read a bit higher
+    // per head. Then apply size FLOORS from structural signals. This targets
+    // in-person weekend attendance (online is tracked separately) — a pattern
+    // estimate, not an exact figure.
+    const growthSig = normalized.external_signals.some((s) => s.category === 'internship_residency' || s.category === 'jobs_hiring');
+    const perHead = (growthSig && staffN < 15) ? 60 : 50;
+    let est = staffN * perHead;
     const floors: { v: number; why: string }[] = [];
     if (services >= 2) floors.push({ v: 300, why: `${services} service times` });
     if (dirCount >= 2) floors.push({ v: 700, why: `${dirCount} of digital/comms/missions directors` });
@@ -232,7 +236,7 @@ export function interpretDossier(input: InterpretInput): Interpretation {
     for (const f of floors) est = Math.max(est, f.v);
     attValue = round25(est);
     attendance_source = 'inferred'; attConfidence = floors.length ? 55 : 45;   // pattern floors firm it up a little
-    const parts = [`~50 AWA/staff × ${staffN}`, ...floors.map((f) => `≥${f.v} (${f.why})`)];
+    const parts = [`~${perHead} AWA/staff × ${staffN}`, ...floors.map((f) => `≥${f.v} (${f.why})`)];
     attMethod = `staff + role patterns (${parts.join('; ')}) — pattern estimate, not exact`;
     attendance_range = { min: round25(Math.max(...floors.map((f) => f.v), 0, staffN * 30)), max: round25(Math.max(est * 1.6, staffN * 90)) };
   } else if (synthesis.attendance_estimate != null) {

@@ -3,11 +3,17 @@ import { logger } from '../lib/logger.js';
 import { discoverWebsite } from './discovery.js';
 import type { ResearchInput, SearchResult } from './types.js';
 
-/** Internal pages we care about, with the link keywords that identify them. */
+/**
+ * Internal pages we care about, with the link keywords that identify them.
+ * ORDER MATTERS: the first matching category wins. staff/leadership are listed
+ * BEFORE 'about' so a deep path like `/about/leaders/` or `/about/our-team`
+ * (common on large multi-campus sites) is recognized as a leadership/staff page
+ * rather than swallowed by the 'about' keyword.
+ */
 export const PAGE_CATEGORIES: { category: string; keywords: string[] }[] = [
+  { category: 'staff', keywords: ['staff', 'our-team', 'meet-the-team', 'meet-our-team', 'people'] },
+  { category: 'leadership', keywords: ['leadership', 'leaders', 'elders', 'pastors', 'our-leadership', 'lead-team', 'team'] },
   { category: 'about', keywords: ['about', 'who-we-are', 'our-story', 'whoweare'] },
-  { category: 'staff', keywords: ['staff', 'team', 'our-team'] },
-  { category: 'leadership', keywords: ['leadership', 'leaders', 'elders', 'pastors'] },
   { category: 'beliefs', keywords: ['belief', 'what-we-believe', 'values', 'doctrine', 'mission-vision'] },
   { category: 'contact', keywords: ['contact', 'connect', 'visit', 'plan-a-visit', 'plan-your-visit'] },
   { category: 'locations', keywords: ['location', 'campus', 'campuses', 'times', 'service-times'] },

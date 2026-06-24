@@ -13,7 +13,9 @@ import type {
 } from './types.js';
 
 /** Upper bound on fallback path probes (minimum-coverage, not exhaustive). */
-const FALLBACK_MAX_PROBES = 6;
+const FALLBACK_MAX_PROBES = 10;
+/** Per-category probe cap so a long staff path list can't starve contact/about. */
+const PER_CATEGORY_MAX_PROBES = 5;
 
 const SIGNAL_EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
 const SIGNAL_PHONE = /\(?\b\d{3}\)?[ .\-]\d{3}[ .\-]\d{4}\b/;
@@ -243,19 +245,22 @@ export class FetchResearch implements ResearchProvider {
       if (home?.ok) {
         const fetchedCats = new Set(pages.filter((p) => p.ok).map((p) => p.category));
         const required: { covered: () => boolean; fallbackCat: string; paths: string[] }[] = [
-          { covered: () => fetchedCats.has('staff') || fetchedCats.has('leadership'), fallbackCat: 'staff', paths: ['/staff', '/team', '/leadership', '/our-team'] },
-          { covered: () => fetchedCats.has('contact'), fallbackCat: 'contact', paths: ['/contact', '/connect'] },
+          // Large multi-campus sites bury leadership under /about/leaders (and use
+          // /people, /meet-the-team) — probe those, not just small-church roots.
+          { covered: () => fetchedCats.has('staff') || fetchedCats.has('leadership'), fallbackCat: 'staff', paths: ['/staff', '/about/leaders', '/leadership', '/about/leadership', '/leaders', '/team', '/our-team', '/about/staff', '/meet-the-team', '/people'] },
+          { covered: () => fetchedCats.has('contact'), fallbackCat: 'contact', paths: ['/contact', '/connect', '/contact-us'] },
           { covered: () => fetchedCats.has('about'), fallbackCat: 'about', paths: ['/about', '/about-us', '/who-we-are'] },
         ];
         const already = new Set<string>(pages.flatMap((p) => [p.url, p.finalUrl]));
         let probes = 0;
         for (const req of required) {
           if (req.covered() || probes >= FALLBACK_MAX_PROBES) continue;
+          let catProbes = 0;
           for (const path of req.paths) {
-            if (probes >= FALLBACK_MAX_PROBES) break;
+            if (probes >= FALLBACK_MAX_PROBES || catProbes >= PER_CATEGORY_MAX_PROBES) break;
             const url = origin + path;
             if (already.has(url)) continue;
-            probes++;
+            probes++; catProbes++;
             const category = categorizeLink(path, '') ?? req.fallbackCat;
             const pc = await visit(url, category, true); // bypass maxPages — bounded by FALLBACK_MAX_PROBES
             const signal = !!pc?.ok && hasStaffContactSignal(pageSignalText(pc));

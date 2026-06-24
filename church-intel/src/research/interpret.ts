@@ -35,7 +35,22 @@ function num(c: Cell | undefined): number | null {
 
 /** Multiplication / growth signals that distinguish a Growth church from a
  *  stable Legacy one even at modest or unknown size. */
-export interface ArchetypeSignals { residency?: boolean; hiring?: boolean; multisite?: boolean; network?: boolean; school?: boolean }
+export interface ArchetypeSignals { residency?: boolean; hiring?: boolean; multisite?: boolean; network?: boolean; school?: boolean; celebrity?: boolean }
+
+/** Nationally-recognized "celebrity pastors" — their churches are a distinct
+ *  category (Celebrity Church), separate from raw size. Extend as needed. */
+export const CELEBRITY_PASTORS = [
+  'steven furtick', 'michael todd', 'mike todd', 'td jakes', 't d jakes', 'andy stanley',
+  'craig groeschel', 'mark driscoll', 'judah smith', 'rich wilkerson', 'joel osteen',
+  'levi lusko', 'john gray', 'chad veach', 'louie giglio', 'jentezen franklin', 'greg laurie',
+  'rick warren', 'erwin mcmanus', 'christine caine', 'sarah jakes roberts', 'toure roberts',
+];
+function normName(s: string): string { return s.toLowerCase().replace(/[.\-]/g, ' ').replace(/\s+/g, ' ').trim(); }
+export function isCelebrityPastor(names: string[]): boolean {
+  const ns = names.map(normName);
+  return ns.some((n) => CELEBRITY_PASTORS.some((c) => n.includes(c) || c.includes(n)));
+}
+const round25 = (n: number) => Math.round(n / 25) * 25;
 
 /** Report-only church archetype derived from interpreted/size fields + growth
  *  signals. Growth orientation now beats the old attendance-only fallback (a
@@ -66,14 +81,17 @@ export function deriveArchetype(fields: FieldMap, accessLevel: string, signals: 
   if (flags.length) ev.push(`signals=${flags.join('+')}`);
 
   let value = 'Unclassified';
-  if (stage === 'relaunch_revitalization') value = 'Revitalization Church';
-  else if (online != null && att != null && att > 0 && online >= 2 * att && digital >= 70) value = 'Influence Platform';
-  else if (multisite && (att == null || att >= 500)) value = 'Multi-Campus Church';
+  // Celebrity pastor → distinct category, independent of (and above) raw size.
+  if (signals.celebrity) value = 'Celebrity Church';
+  else if (stage === 'relaunch_revitalization') value = 'Revitalization Church';
   else if (att != null && att >= 10000) value = 'Giga Church';
+  // Mega and multi-campus usually coincide.
+  else if (multisite && att != null && att >= 2000) value = 'Mega / Multi-Campus Church';
   else if (att != null && att >= 2000) value = (plateaued || declining) ? 'Plateaued Mega Church' : 'Mega Church';
+  else if (multisite && (att == null || att >= 500)) value = 'Multi-Campus Church';
   else if (att != null && att >= 500) value = growthOriented ? 'Growth Church' : (plateaued || declining ? 'Institutional Church' : 'Healthy Regional Church');
   else if (stage === 'plant') value = 'Church Plant';                       // ONLY when explicitly a plant
-  else if (declining) value = 'Declining Church';
+  else if (declining) value = 'Declining Church';                           // a legacy church in decline
   else if (growthOriented && !plateaued) value = 'Growth Church';           // growth beats the size-only Legacy fallback
   else if (plateaued) value = 'Institutional Church';
   else if (stage === 'established' || (att != null && att < 500)) value = 'Legacy Church';
@@ -177,6 +195,42 @@ export function interpretDossier(input: InterpretInput): Interpretation {
         ? mk<number | null>(synthesis.staff_count, synthesis.staff_count_confidence || 40, [], 'Estimated from indirect signals (synthesis).')
         : mk<number | null>(null, 0, [], 'No staff-count evidence.'));
 
+  // ── Average Weekend Attendance — reported > staff-ratio > synthesis ─────────
+  // Staff is one of the best size indicators: ~1 FTE per 75 AWA (smaller
+  // churches) rising to ~100–125 for larger ones. 2+ service times implies ~300+.
+  // Computed BEFORE the archetype so size tiers use the improved estimate.
+  const reportedFact = facts.reported_attendance;
+  const staffN = staff_count.value;
+  const services = normalized.services.length;
+  let attValue: number | null;
+  let attendance_source: AttendanceSource;
+  let attConfidence: number;
+  let attMethod: string;
+  let attendance_range: { min: number | null; max: number | null };
+  if (reportedFact?.value != null) {
+    attValue = Number(reportedFact.value);
+    attendance_source = 'reported'; attConfidence = reportedFact.confidence; attMethod = 'publicly stated';
+    attendance_range = { min: round25(attValue * 0.9), max: round25(attValue * 1.1) };
+  } else if (staffN != null && staffN > 0) {
+    const factor = staffN >= 25 ? 110 : staffN >= 10 ? 90 : 75;   // larger churches carry more AWA per FTE
+    let est = staffN * factor;
+    if (services >= 2) est = Math.max(est, 300);                  // 2 services ⇒ rarely under ~300
+    attValue = round25(est);
+    attendance_source = 'inferred'; attConfidence = 58;
+    attMethod = `staff ratio (~${factor} AWA/FTE × ${staffN} staff${services >= 2 ? ` · ${services} service times` : ''})`;
+    attendance_range = { min: round25(Math.max(services >= 2 ? 300 : 0, staffN * 55)), max: round25(staffN * 125) };
+  } else if (synthesis.attendance_estimate != null) {
+    attValue = synthesis.attendance_estimate;
+    attendance_source = 'inferred'; attConfidence = synthesis.attendance_confidence; attMethod = 'synthesis estimate';
+    attendance_range = { min: synthesis.attendance_min ?? null, max: synthesis.attendance_max ?? null };
+  } else if (services >= 2) {
+    attValue = 300; attendance_source = 'inferred'; attConfidence = 40; attMethod = `${services} service times`;
+    attendance_range = { min: 300, max: 600 };
+  } else {
+    attValue = null; attendance_source = 'unknown'; attConfidence = 0; attMethod = '';
+    attendance_range = { min: synthesis.attendance_min ?? null, max: synthesis.attendance_max ?? null };
+  }
+
   // ── scores (kept from synthesis for now; referenced to external signals) ──
   const scoreConclusion = (key: keyof DossierSynthesis): Conclusion<number | null> => {
     const value = (synthesis[key] as number | null) ?? null;
@@ -191,7 +245,7 @@ export function interpretDossier(input: InterpretInput): Interpretation {
 
   // ── archetype + contactability (report-only derivations, now interpreted) ──
   const archFields: FieldMap = {
-    avg_weekly_attendance: { value: synthesis.attendance_estimate, confidence: null },
+    avg_weekly_attendance: { value: attValue, confidence: null },
     online_attendance_estimate: { value: synthesis.online_attendance_estimate, confidence: null },
     campus_count: { value: facts.campus_count?.value ?? null, confidence: null },
     digital_maturity_score: { value: synthesis.digital_maturity_score, confidence: null },
@@ -204,6 +258,7 @@ export function interpretDossier(input: InterpretInput): Interpretation {
     multisite: facts.campus_count?.value != null && Number(facts.campus_count.value) >= 2,
     network: normalized.external_signals.some((s) => s.category === 'network_affiliation'),
     school: normalized.external_signals.some((s) => s.category === 'school_academy'),
+    celebrity: isCelebrityPastor(lead_pastors.value),
   });
 
   const contactFields: FieldMap = {
@@ -219,12 +274,6 @@ export function interpretDossier(input: InterpretInput): Interpretation {
   const known_church_verified = identity.inputMode === 'known_church' &&
     (identity.websiteVerificationStatus === 'verified' || identity.identityVerdict === 'true_match');
 
-  // ── Average Weekend Attendance — reported beats inferred; always explainable ─
-  const reportedFact = facts.reported_attendance;
-  const inferredVal = synthesis.attendance_estimate;
-  const attValue = reportedFact?.value != null ? Number(reportedFact.value) : (inferredVal ?? null);
-  const attendance_source: AttendanceSource = reportedFact?.value != null ? 'reported' : (inferredVal != null ? 'inferred' : 'unknown');
-  const attendance_range = { min: synthesis.attendance_min ?? null, max: synthesis.attendance_max ?? null };
   const attendance_evidence: AttendanceFactor[] = [];
   const addAtt = (factor: string, detail: string, ids: string[]) => attendance_evidence.push({ factor, detail, evidence_ids: ids });
   if (staff_count.value != null) addAtt('staff_count', `${staff_count.value} staff`, staff_count.evidence_ids);
@@ -240,8 +289,7 @@ export function interpretDossier(input: InterpretInput): Interpretation {
   const rangeStr = attendance_range.min != null && attendance_range.max != null ? ` Range ${attendance_range.min}–${attendance_range.max}.` : '';
   const attendance_reasoning = attValue == null
     ? 'No attendance estimate — insufficient size evidence.'
-    : `${attendance_source === 'reported' ? `Reported ${attValue} (publicly stated).` : `Inferred ~${attValue}.`}${attendance_evidence.length ? ` Supporting evidence: ${attendance_evidence.map((a) => a.detail).join('; ')}.` : ''}${rangeStr} Source: ${attendance_source}.`;
-  const attConfidence = reportedFact ? reportedFact.confidence : synthesis.attendance_confidence;
+    : `${attendance_source === 'reported' ? `Reported ${attValue} (publicly stated).` : `Inferred ~${attValue} via ${attMethod}.`}${attendance_evidence.length ? ` Supporting evidence: ${attendance_evidence.map((a) => a.detail).join('; ')}.` : ''}${rangeStr} Source: ${attendance_source}.`;
 
   return {
     lead_pastors,

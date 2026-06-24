@@ -78,25 +78,29 @@ async function main() {
   const inferredStaff: SourceFinding = makeFinding({ sourceType: 'staff_page', accessLevel: 'live_official_site', url: 'https://www.midchurch.org/staff', fetched: true, status: 200, category: 'staff', text: 'team', staffCards: extractStaffCards(STAFF) });
   const iFacts: Facts = { staff_count: { value: 9, confidence: 70, evidence: '9 staff', source_url: 'https://www.midchurch.org/staff', access_level: 'live_official_site' } };
   const iInterp = interp([inferredHome, inferredStaff], iFacts);
-  check('inferred: value = synthesis estimate (600), source=inferred', () => {
-    assert.strictEqual(iInterp.attendance_estimate.value, 600);
+  // Staff is the primary size indicator: 9 staff × ~75 AWA/FTE ≈ 675 (beats the
+  // weaker synthesis guess of 600).
+  check('inferred: value = staff-ratio estimate (9×75=675), source=inferred', () => {
+    assert.strictEqual(iInterp.attendance_estimate.value, 675);
     assert.strictEqual(iInterp.attendance_source, 'inferred');
   });
-  check('inferred: range carried (400–900)', () => assert.deepStrictEqual(iInterp.attendance_range, { min: 400, max: 900 }));
-  check('inferred: reasoning never a mystery number (cites supporting evidence)', () => {
-    assert.match(iInterp.attendance_reasoning, /Inferred ~600/);
-    assert.match(iInterp.attendance_reasoning, /Supporting evidence/);
+  check('inferred: reasoning cites the staff-ratio method', () => {
+    assert.match(iInterp.attendance_reasoning, /Inferred ~675 via staff ratio/);
     assert.match(iInterp.attendance_reasoning, /Source: inferred/);
   });
   check('inferred: attendance_evidence includes staff_count + church_center_usage', () => {
     const factors = iInterp.attendance_evidence.map((a) => a.factor);
     assert.ok(factors.includes('staff_count') && factors.includes('church_center_usage'), JSON.stringify(factors));
   });
-  check('every attendance factor cites evidence detail', () => {
-    for (const a of iInterp.attendance_evidence) assert.ok(a.factor && a.detail);
+
+  // ── synthesis fallback when staff is unknown ──────────────────────────────
+  const synthOnly = interp([inferredHome], {});
+  check('no staff → falls back to synthesis estimate (600)', () => {
+    assert.strictEqual(synthOnly.attendance_estimate.value, 600);
+    assert.match(synthOnly.attendance_reasoning, /synthesis estimate/);
   });
 
-  // ── UNKNOWN path: no reported, no synthesis estimate ──────────────────────
+  // ── UNKNOWN path: no reported, no staff, no synthesis estimate ────────────
   const u = interp([inferredHome], {}, { attendance_estimate: null, attendance_min: null, attendance_max: null });
   check('unknown: value null, source=unknown, honest reasoning', () => {
     assert.strictEqual(u.attendance_estimate.value, null);

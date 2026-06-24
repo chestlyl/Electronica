@@ -8,6 +8,7 @@
 import assert from 'node:assert';
 import { buildCornerstoneOffline } from '../researchDemo.js';
 import { rowFromBuild, deriveArchetype, type CalibrationEntry } from '../research/calibrationSet.js';
+import { isCelebrityPastor } from '../research/interpret.js';
 import { renderCalibrationReport } from '../research/calibrationReport.js';
 import { dossierSynthesisSchema } from '../claude/dossierPrompt.js';
 import type { FieldMap } from '../research/calibration.js';
@@ -37,9 +38,9 @@ async function main() {
   check('contactability is a score 0-100', () => { const s = Number(row.contactability.value); assert.ok(s >= 0 && s <= 100); });
   check('contacts include lead pastor', () => assert.ok(row.fields.lead_pastor?.value));
 
-  check('deriveArchetype: multi-campus', () => {
+  check('deriveArchetype: multi-campus + large → Mega / Multi-Campus', () => {
     const a = deriveArchetype(fm({ avg_weekly_attendance: { value: 3000 }, campus_count: { value: 3 }, lifecycle_stage: { value: 'established' } }), 'live_official_site');
-    assert.strictEqual(a.value, 'Multi-Campus Church');
+    assert.strictEqual(a.value, 'Mega / Multi-Campus Church');
   });
   check('deriveArchetype: plateaued mega', () => {
     const a = deriveArchetype(fm({ avg_weekly_attendance: { value: 4000 }, campus_count: { value: 1 }, lifecycle_stage: { value: 'plateaued' } }), 'live_official_site');
@@ -73,6 +74,22 @@ async function main() {
   check('archetype: 30-yr established small church is NOT a Church Plant', () => {
     const a = deriveArchetype(fm({ lifecycle_stage: { value: 'established' }, avg_weekly_attendance: { value: 180 } }), 'live_official_site');
     assert.notStrictEqual(a.value, 'Church Plant');
+  });
+  check('isCelebrityPastor: Mike Todd / Steven Furtick yes; Andy Sikora no', () => {
+    assert.ok(isCelebrityPastor(['Michael Todd']) && isCelebrityPastor(['Steven Furtick']));
+    assert.ok(!isCelebrityPastor(['Andy Sikora']));
+  });
+  check('archetype: celebrity pastor → Celebrity Church (over size)', () => {
+    const a = deriveArchetype(fm({ avg_weekly_attendance: { value: 12000 }, lifecycle_stage: { value: 'established' } }), 'live_official_site', { celebrity: true });
+    assert.strictEqual(a.value, 'Celebrity Church');
+  });
+  check('archetype: ≥10,000 → Giga Church', () => {
+    const a = deriveArchetype(fm({ avg_weekly_attendance: { value: 12000 }, lifecycle_stage: { value: 'established' } }), 'live_official_site');
+    assert.strictEqual(a.value, 'Giga Church');
+  });
+  check('archetype: multisite + ≥2,000 → Mega / Multi-Campus', () => {
+    const a = deriveArchetype(fm({ avg_weekly_attendance: { value: 3500 }, campus_count: { value: 3 }, lifecycle_stage: { value: 'established' } }), 'live_official_site', { multisite: true });
+    assert.strictEqual(a.value, 'Mega / Multi-Campus Church');
   });
 
   const md = renderCalibrationReport([row], {});

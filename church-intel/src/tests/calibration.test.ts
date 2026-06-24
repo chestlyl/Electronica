@@ -79,6 +79,14 @@ async function main() {
     assert.ok(isCelebrityPastor(['Michael Todd']) && isCelebrityPastor(['Steven Furtick']));
     assert.ok(!isCelebrityPastor(['Andy Sikora']));
   });
+  check('archetype: revitalization + growth signals → Revitalization Church (growing)', () => {
+    const a = deriveArchetype(fm({ lifecycle_stage: { value: 'relaunch_revitalization' }, avg_weekly_attendance: { value: 350 } }), 'live_official_site', { residency: true });
+    assert.strictEqual(a.value, 'Revitalization Church (growing)');
+  });
+  check('archetype: revitalization without growth signals → Revitalization Church', () => {
+    const a = deriveArchetype(fm({ lifecycle_stage: { value: 'relaunch_revitalization' } }), 'live_official_site');
+    assert.strictEqual(a.value, 'Revitalization Church');
+  });
   check('archetype: celebrity pastor → Celebrity Church (over size)', () => {
     const a = deriveArchetype(fm({ avg_weekly_attendance: { value: 12000 }, lifecycle_stage: { value: 'established' } }), 'live_official_site', { celebrity: true });
     assert.strictEqual(a.value, 'Celebrity Church');

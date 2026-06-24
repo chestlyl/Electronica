@@ -83,7 +83,9 @@ export function deriveArchetype(fields: FieldMap, accessLevel: string, signals: 
   let value = 'Unclassified';
   // Celebrity pastor → distinct category, independent of (and above) raw size.
   if (signals.celebrity) value = 'Celebrity Church';
-  else if (stage === 'relaunch_revitalization') value = 'Revitalization Church';
+  // Lifecycle is a TRAJECTORY: a relaunched church that's growing is a successful
+  // revitalization (e.g. Cornerstone), distinct from a stalled one.
+  else if (stage === 'relaunch_revitalization') value = growthOriented ? 'Revitalization Church (growing)' : 'Revitalization Church';
   else if (att != null && att >= 10000) value = 'Giga Church';
   // Mega and multi-campus usually coincide.
   else if (multisite && att != null && att >= 2000) value = 'Mega / Multi-Campus Church';

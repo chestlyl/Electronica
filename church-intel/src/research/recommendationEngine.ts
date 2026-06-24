@@ -2,6 +2,7 @@ import { capForAccess } from './dossier.js';
 import { DIMENSIONS, type Dimension } from './strategicSignals.js';
 import type { Interpretation, NormalizedEvidence } from './evidenceModel.js';
 import type { StrategicScores } from './strategicScoring.js';
+import type { SizeRelativeProfile } from './sizeRelative.js';
 import type { PlatformHit } from './techStack.js';
 import type { StrategicSignal } from './strategicSignals.js';
 import type { EvidenceAccessLevel } from '../types.js';
@@ -68,6 +69,8 @@ export interface RecommendationInput {
   strategicSignals: StrategicSignal[];
   dimensionCounts: Record<Dimension, number>;
   technologyStack: PlatformHit[];
+  /** Capability-vs-size lens (additive, report-only). Optional for back-compat. */
+  sizeRelative?: SizeRelativeProfile;
   accessLevel: EvidenceAccessLevel;
 }
 
@@ -86,12 +89,13 @@ interface Ctx {
   accessLevel: EvidenceAccessLevel;
   cap: number;
   breadth: number;                   // non-empty normalized tables
+  sizeRelative?: SizeRelativeProfile;
   I: Interpretation;
   scores: StrategicScores;
 }
 
 function buildCtx(input: RecommendationInput): Ctx {
-  const { interpretation: I, normalized: N, scores, strategicSignals, technologyStack, accessLevel } = input;
+  const { interpretation: I, normalized: N, scores, strategicSignals, technologyStack, accessLevel, sizeRelative } = input;
   const sigCat = (cat: string) => strategicSignals.filter((s) => s.category === cat);
   const tech = new Set(technologyStack.map((t) => t.category));
   const breadth = (Object.values(N) as { length: number }[]).filter((t) => t.length > 0).length;
@@ -107,7 +111,7 @@ function buildCtx(input: RecommendationInput): Ctx {
     leaderCount: N.leaders.length,
     hasEmail: !!I.office_email.value, hasPhone: !!I.office_phone.value,
     knownVerified: I.known_church_verified,
-    accessLevel, cap: capForAccess(accessLevel), breadth, I, scores,
+    accessLevel, cap: capForAccess(accessLevel), breadth, sizeRelative, I, scores,
   };
 }
 
@@ -117,6 +121,7 @@ const evSignal = (c: Ctx, cat: string): EvidenceRef => ({ id: `${cat}_signal`, k
 const evTech = (c: Ctx, cat: string): EvidenceRef => ({ id: `tech_${cat}`, kind: 'technology', detail: `${cat} platform present` });
 const evLead = (field: string, detail: string): EvidenceRef => ({ id: field, kind: 'leadership', detail });
 const evInterp = (id: string, detail: string): EvidenceRef => ({ id, kind: 'interpretation', detail });
+const evSize = (c: Ctx): EvidenceRef => ({ id: 'size_relative', kind: 'interpretation', detail: c.sizeRelative ? c.sizeRelative.summary : 'size-relative not assessed' });
 
 // ── Deliverable 3: deterministic rule table (≥20) ─────────────────────────────
 type RuleTarget = 'first_conversation' | 'entry_point' | 'pain_point' | 'growth_constraint' | 'product_fit' | 'suppress_digital';
@@ -191,6 +196,9 @@ export const RULES: Rule[] = [
     emit: (c) => [{ target: 'product_fit', value: 'Multiplication Lab', evidence: [evScore(c, 'growth_orientation'), evInterp('lifecycle', `lifecycle ${c.lifecycle}`)] }] },
   { id: 'R29_fit_nextgen', when: (c) => c.hasSig('school_academy'),
     emit: (c) => [{ target: 'product_fit', value: 'NextGen / Family Ministry Systems', evidence: [evSignal(c, 'school_academy')] }] },
+  // —— size-relative: large church, thin digital capability ⇒ modernization at scale ——
+  { id: 'R31_fit_modernization_at_scale', when: (c) => !!c.sizeRelative?.modernization_opportunity,
+    emit: (c) => [{ target: 'product_fit', value: 'Digital Modernization (at scale)', evidence: [evSize(c), evScore(c, 'digital_maturity')] }] },
 
   // —— suppression: mature digital ⇒ do NOT pitch digital transformation ——
   { id: 'R30_digital_mature_suppression', when: (c) => c.tech.has('ChMS') && c.hasSig('forms_workflows') && c.hasSig('groups'),
@@ -301,10 +309,15 @@ export function runRecommendationEngine(input: RecommendationInput): Recommendat
     ...(c.leadPastors.length ? [evLead('lead_pastors', `${c.leadPastors.length} lead(s)`)] : []),
     ...(c.knownVerified ? [evInterp('known_church_verified', 'verified')] : [])]);
 
-  const priority: EngagementPriority = (c.ct >= 70 && leadershipCompleteness >= 1 && c.knownVerified) ? 'high'
+  let priority: EngagementPriority = (c.ct >= 70 && leadershipCompleteness >= 1 && c.knownVerified) ? 'high'
     : (c.ct >= 45 && leadershipCompleteness >= 1) ? 'medium' : 'low';
+  // Capability-vs-size: a large church under-developed for its size (thin digital
+  // capability at scale) is a high-value modernization target — bump one notch.
+  const modernization = !!c.sizeRelative?.modernization_opportunity && leadershipCompleteness >= 1;
+  if (modernization) priority = priority === 'low' ? 'medium' : 'high';
   const priorityEvidence = dedupeEvidence([evScore(c, 'contactability'),
     ...(leadershipCompleteness ? [evLead('lead_pastors', 'leadership identified')] : []),
+    ...(modernization ? [evSize(c)] : []),
     ...(c.knownVerified ? [evInterp('known_church_verified', 'verified')] : [])]);
 
   // 6) fallback evidence so NO recommendation is ever evidence-less (Rule 2)
@@ -317,7 +330,7 @@ export function runRecommendationEngine(input: RecommendationInput): Recommendat
     ({ value, evidence_refs: dedupeEvidence(evidence), reason, confidence: recConfidence(c, evidence) });
 
   const result: RecommendationEngineResult = {
-    engagement_priority: rec(priority, priorityEvidence, `contactability ${c.ct}, change_readiness ${c.cr}, leadership ${leadershipCompleteness}/4, verified=${c.knownVerified}`),
+    engagement_priority: rec(priority, priorityEvidence, `contactability ${c.ct}, change_readiness ${c.cr}, leadership ${leadershipCompleteness}/4, verified=${c.knownVerified}${modernization ? ', +modernization-at-scale' : ''}`),
     recommended_first_conversation: rec(fc.value, ensure(fc.evidence, evScore(c, dominantDim)), firstConv ? `top-priority rule among ${byTarget('first_conversation').length} candidates` : 'no rule fired — dominant dimension fallback'),
     recommended_entry_point: rec(ep.value, ensure(ep.evidence, evInterp('contactability_score', `contactability ${c.ct}`)), entry ? 'highest-ranked identified role' : 'no leadership role identified'),
     likely_pain_points: rec(painPoints.values, ensure(painPoints.evidence, evScore(c, 'organizational_capacity')), `${painPoints.values.length} pain point rule(s) fired`),

@@ -15,6 +15,7 @@ import { toRawEvidence, normalizeEvidence } from './normalize.js';
 import { interpretDossier } from './interpret.js';
 import { scoreStrategic, type StrategicScores } from './strategicScoring.js';
 import { runRecommendationEngine, type RecommendationEngineResult } from './recommendationEngine.js';
+import { computeSizeRelative, type SizeRelativeProfile } from './sizeRelative.js';
 import { normalizedCounts, type RawEvidence, type NormalizedEvidence, type Interpretation } from './evidenceModel.js';
 import { computeCoverage, scoreConfidence, contactabilityConfidence, computeSourceCoverage, sourceCoverageSummary, type CoverageRow, type ScoreConfidence, type SourceCoverageRow } from './coverage.js';
 import { dossierSynthesisPrompt, type DossierSynthesis } from '../claude/dossierPrompt.js';
@@ -74,6 +75,8 @@ export interface DossierBuild {
   interpretation: Interpretation;
   /** Strategic Scoring v1 — rubric-based, REPORT-ONLY (not written to Supabase). */
   strategicScores: StrategicScores;
+  /** Capability-vs-size lens (additive, report-only) — divergence of capability from size. */
+  sizeRelative: SizeRelativeProfile;
   /** Strategic Recommendation Engine (Phase 2) — deterministic, report-only. */
   recommendations: RecommendationEngineResult;
   scoreConfidence: Record<string, ScoreConfidence>;
@@ -326,9 +329,12 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   // Strategic Recommendation Engine (report-only): deterministic rules over the
   // interpretation layer ONLY (interpretation + normalized + scores + signals +
   // tech stack). No raw findings, no Claude.
+  // Capability-vs-size lens (report-only): compares the capability scores against
+  // the capability expected at this attendance — the divergence is the signal.
+  const sizeRelative = computeSizeRelative(interpretation.attendance_estimate.value, strategicScores);
   const recommendations = runRecommendationEngine({
     interpretation, normalized, scores: strategicScores, strategicSignals,
-    dimensionCounts: strategicDimensionCounts, technologyStack: techStack, accessLevel,
+    dimensionCounts: strategicDimensionCounts, technologyStack: techStack, sizeRelative, accessLevel,
   });
 
   // ── TEMPORARY INSTRUMENTATION (DOSSIER_DEBUG) — trace where contacts vanish ──
@@ -383,7 +389,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   return {
     identity, findings, conflicts, contamination, synthesis, facts, leadership, dossier, strategic,
     fieldEstimates, officialSite, accessLevel, officialCrawled, crawl, coverage, sourceCoverage, digital, techStack,
-    strategicSignals, strategicDimensionCounts, raw, normalized, interpretation, strategicScores, recommendations, scoreConfidence: scoreConf,
+    strategicSignals, strategicDimensionCounts, raw, normalized, interpretation, strategicScores, sizeRelative, recommendations, scoreConfidence: scoreConf,
     tokens: usage.inputTokens + usage.outputTokens,
     cost: usage.costEstimate,
   };

@@ -54,6 +54,15 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
     L.push('- attendance_evidence:');
     for (const a of I.attendance_evidence) L.push(`  - ${a.factor}: ${a.detail}${a.evidence_ids.length ? ` [${a.evidence_ids.join(', ')}]` : ''}`);
   }
+  // Capability-vs-size lens: where capability diverges from what size predicts.
+  const sr = b.sizeRelative;
+  if (sr && sr.awa != null) {
+    L.push('### Capability vs. size');
+    L.push(`- posture: **${sr.posture.replace(/_/g, ' ')}** · expected capability ~${sr.size_expectation} at AWA ~${sr.awa}`);
+    for (const r of sr.reads) L.push(`  - ${r.dimension.replace(/_/g, ' ')}: ${r.score} vs ~${r.expected} (${r.read}, Δ${r.delta >= 0 ? '+' : ''}${r.delta})`);
+    if (sr.modernization_opportunity) L.push('- ⚑ **Modernization opportunity** — large church, digital capability below size expectation.');
+    if (sr.above_weight) L.push('- ⚑ **Punching above its weight** — small church with capability beyond its size.');
+  }
   L.push('');
 
   // ── 3. Leadership ───────────────────────────────────────────────────────────

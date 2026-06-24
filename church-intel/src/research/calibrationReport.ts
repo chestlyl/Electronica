@@ -310,6 +310,14 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
     if (r.interpretation?.attendance_evidence?.length) L.push(`  - attendance_evidence: ${r.interpretation.attendance_evidence.map((a) => a.factor).join(', ')}`);
     L.push(`- online attendance: ${withConf(f.online_attendance_estimate)}`);
     L.push(`- staff count: ${withConf(f.staff_count)} · campus count: ${withConf(f.campus_count)}`);
+    // Capability-vs-size lens: divergence of capability from what size predicts.
+    const srz = r.sizeRelative;
+    if (srz && srz.awa != null) {
+      L.push(`- **capability vs. size:** ${srz.posture.replace(/_/g, ' ')} · expected capability ~${srz.size_expectation} at AWA ~${srz.awa}`);
+      L.push(`  - ${srz.reads.map((rd) => `${rd.dimension.replace(/_/g, ' ')} ${rd.score} vs ~${rd.expected} (${rd.read})`).join(' · ')}`);
+      if (srz.modernization_opportunity) L.push('  - ⚑ modernization opportunity (large church, digital below size expectation)');
+      if (srz.above_weight) L.push('  - ⚑ punching above its weight (small church, capability beyond size)');
+    }
 
     L.push('### Strategic');
     L.push('_Score values are synthesized; CONFIDENCE reflects evidence coverage (see checklist)._');

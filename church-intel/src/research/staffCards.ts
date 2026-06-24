@@ -76,6 +76,15 @@ function looksLikeTitle(s: string): boolean {
 }
 
 /** Recover {name, title} staff cards from rendered innerText (or raw text). */
+// Tokens that mark a "name" as a nav button / ministry label, not a person
+// (e.g. "BUILDING CAMPAIGN UPDATE", "PARENT EMAILS", "LIFE NEEDS", "Read More").
+const NON_PERSON_NAME = /\b(update|updates|emails?|campaign|building|needs|resources?|ministr(?:y|ies)|giving|newsletter|calendar|events?|prayer|missions?|outreach|baptisms?|blessings?|volunteer|donate|welcome|menu|search|cart|login|register|read\s+more|learn\s+more|see\s+more|next\s+steps|parent|sermons?|podcasts?|directions?)\b/i;
+export function isPersonName(name: string): boolean {
+  if (/[0-9@]/.test(name) || /\b(a\.?m\.?|p\.?m\.?)\b/i.test(name)) return false;
+  if (NON_PERSON_NAME.test(name)) return false;
+  return true;
+}
+
 export function extractStaffCards(text: string): StaffCard[] {
   const cards: StaffCard[] = [];
   const seen = new Set<string>();
@@ -83,7 +92,7 @@ export function extractStaffCards(text: string): StaffCard[] {
     const name = cleanName(rawName);
     const title = rawTitle.replace(/\s+/g, ' ').trim();
     const key = name.toLowerCase();
-    if (!name || !title || seen.has(key)) return;
+    if (!name || !title || seen.has(key) || !isPersonName(name)) return;
     seen.add(key);
     cards.push({ name, title });
   };

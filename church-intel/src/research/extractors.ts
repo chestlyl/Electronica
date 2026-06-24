@@ -1,4 +1,4 @@
-import { roleFromTitle, stripHonorific } from './staffCards.js';
+import { roleFromTitle, stripHonorific, isPersonName } from './staffCards.js';
 import { isChurchCenterUrl } from './digitalSignals.js';
 import type { SourceFinding } from './dossier.js';
 import type { EvidenceAccessLevel } from '../types.js';
@@ -323,6 +323,7 @@ const NON_PERSON_CONTAINS = /\b(church|communities|community|ministries|ministry
 function isLikelyPersonName(name: string): boolean {
   if (/[0-9@]/.test(name) || /\b(a\.?m\.?|p\.?m\.?)\b/i.test(name)) return false;   // times / emails / numbers
   if (NON_PERSON_FIRST.test(name) || NON_PERSON_CONTAINS.test(name)) return false;   // nav text / org name
+  if (/^(read|learn|see|click|more|details)\b/i.test(name) || !isPersonName(name)) return false; // nav buttons / ministry labels
   return true;
 }
 

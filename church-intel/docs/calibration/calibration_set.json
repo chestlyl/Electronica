@@ -2,7 +2,7 @@
   { "id": "cornerstone-akron",            "name": "Cornerstone Church",        "city": "Akron",       "state": "OH", "url": "https://www.cornerstonechurch.info" },
   { "id": "christs-community-glendale",   "name": "Christ's Community Church", "city": "Glendale",    "state": "AZ", "url": "https://cccaz.org" },
   { "id": "pure-heart-glendale",          "name": "Pure Heart Church",         "city": "Glendale",    "state": "AZ", "url": "https://www.pureheart.org" },
-  { "id": "grace-bath",                   "name": "Grace Church",              "city": "Bath",        "state": "OH", "url": "https://www.gracechurchs.org" },
+  { "id": "grace-bath",                   "name": "Grace Church",              "city": "Bath",        "state": "OH", "url": "https://www.gracechurches.org" },
   { "id": "living-vine-stow",             "name": "Living Vine Church",        "city": "Stow",        "state": "OH", "url": "https://livingvine.church" },
   { "id": "our-finest-hour-coweta",       "name": "Our Finest Hour",           "city": "Broken Arrow","state": "OK", "url": "https://www.ofhchurch.com/" },
   { "id": "transformation-bixby",         "name": "Transformation Church",     "city": "Bixby",       "state": "OK", "url": "https://transformchurch.us/" },

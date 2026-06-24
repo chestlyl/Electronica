@@ -202,6 +202,13 @@ export function interpretDossier(input: InterpretInput): Interpretation {
   const reportedFact = facts.reported_attendance;
   const staffN = staff_count.value;
   const services = normalized.services.length;
+  const campusN = facts.campus_count?.value != null ? Number(facts.campus_count.value) : null;
+  // Role/structure patterns (more reliable than exact numbers): an executive
+  // pastor, dedicated digital/communications/missions directors, and many
+  // campuses each indicate a size FLOOR.
+  const hasExecPastor = !!roleConclusion('executive_pastor').value;
+  const roleText = [...normalized.staff_roster, ...normalized.leaders].map((r) => `${r.detail ?? ''} ${r.category ?? ''}`.toLowerCase());
+  const dirCount = [/digital/, /communicat|comms|creative|media/, /mission|outreach/].filter((re) => roleText.some((t) => re.test(t))).length;
   let attValue: number | null;
   let attendance_source: AttendanceSource;
   let attConfidence: number;
@@ -212,19 +219,22 @@ export function interpretDossier(input: InterpretInput): Interpretation {
     attendance_source = 'reported'; attConfidence = reportedFact.confidence; attMethod = 'publicly stated';
     attendance_range = { min: round25(attValue * 0.9), max: round25(attValue * 1.1) };
   } else if (staffN != null && staffN > 0) {
-    // Listed staff is a HEADCOUNT, not FTE — it often includes part-time,
-    // volunteer, and off-site roles, so the AWA/head factor sits below the ~75
-    // FTE average and the range is wide. This is a rough estimate, NOT hard-and-
-    // fast: leanly-staffed churches run below it. Larger churches carry more
-    // AWA per head. (Note: this targets in-person weekend attendance; online is
-    // tracked separately.)
-    const factor = staffN >= 25 ? 110 : staffN >= 10 ? 85 : 60;
-    let est = staffN * factor;
-    if (services >= 2) est = Math.max(est, 300);                  // 2 services ⇒ rarely under ~300
+    // We can't KNOW attendance — we read PATTERNS. Safe base: ~50 AWA per staff
+    // head (absorbs the headcount-vs-FTE inflation). Then apply size FLOORS from
+    // structural signals. This targets in-person weekend attendance (online is
+    // tracked separately) and is a pattern estimate, not an exact figure.
+    let est = staffN * 50;
+    const floors: { v: number; why: string }[] = [];
+    if (services >= 2) floors.push({ v: 300, why: `${services} service times` });
+    if (dirCount >= 2) floors.push({ v: 700, why: `${dirCount} of digital/comms/missions directors` });
+    if (hasExecPastor) floors.push({ v: 850, why: 'executive pastor on staff (~70% are 850+)' });
+    if (campusN != null && campusN >= 4) floors.push({ v: 2000, why: `${campusN} campuses (mega range)` });
+    for (const f of floors) est = Math.max(est, f.v);
     attValue = round25(est);
-    attendance_source = 'inferred'; attConfidence = 48;          // rough heuristic — modest confidence
-    attMethod = `staff headcount ~${staffN} (≈${factor} AWA/head${services >= 2 ? ` · ${services} services` : ''}; headcount may include part-time/volunteer — leanly-staffed churches run lower)`;
-    attendance_range = { min: round25(Math.max(services >= 2 ? 300 : 0, staffN * 35)), max: round25(staffN * 125) };
+    attendance_source = 'inferred'; attConfidence = floors.length ? 55 : 45;   // pattern floors firm it up a little
+    const parts = [`~50 AWA/staff × ${staffN}`, ...floors.map((f) => `≥${f.v} (${f.why})`)];
+    attMethod = `staff + role patterns (${parts.join('; ')}) — pattern estimate, not exact`;
+    attendance_range = { min: round25(Math.max(...floors.map((f) => f.v), 0, staffN * 30)), max: round25(Math.max(est * 1.6, staffN * 90)) };
   } else if (synthesis.attendance_estimate != null) {
     attValue = synthesis.attendance_estimate;
     attendance_source = 'inferred'; attConfidence = synthesis.attendance_confidence; attMethod = 'synthesis estimate';

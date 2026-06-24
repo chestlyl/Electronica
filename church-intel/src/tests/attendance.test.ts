@@ -77,26 +77,32 @@ async function main() {
   });
   const inferredStaff: SourceFinding = makeFinding({ sourceType: 'staff_page', accessLevel: 'live_official_site', url: 'https://www.midchurch.org/staff', fetched: true, status: 200, category: 'staff', text: 'team', staffCards: extractStaffCards(STAFF) });
   const iFacts: Facts = { staff_count: { value: 9, confidence: 70, evidence: '9 staff', source_url: 'https://www.midchurch.org/staff', access_level: 'live_official_site' } };
+  // STAFF fixture includes an Executive Pastor → the exec-pastor pattern floors
+  // attendance at 850 (over the 9×50=450 base).
   const iInterp = interp([inferredHome, inferredStaff], iFacts);
-  // Staff is the primary size indicator, but headcount is inflated vs FTE, so the
-  // per-head factor is conservative: 9 staff × ~60 ≈ 550, with a WIDE range and
-  // modest confidence (it's a rough heuristic, not hard-and-fast).
-  check('inferred: value = staff-headcount estimate (9×60=550), source=inferred', () => {
-    assert.strictEqual(iInterp.attendance_estimate.value, 550);
+  check('inferred: executive-pastor pattern floors attendance at 850', () => {
+    assert.strictEqual(iInterp.attendance_estimate.value, 850);
     assert.strictEqual(iInterp.attendance_source, 'inferred');
   });
-  check('inferred: confidence is modest (≤50) and range is wide', () => {
-    assert.ok(iInterp.attendance_estimate.confidence <= 50);
-    assert.ok((iInterp.attendance_range.max ?? 0) - (iInterp.attendance_range.min ?? 0) >= 600);
-  });
-  check('inferred: reasoning cites headcount caveat (part-time/volunteer)', () => {
-    assert.match(iInterp.attendance_reasoning, /staff headcount/);
-    assert.match(iInterp.attendance_reasoning, /part-time\/volunteer/);
-    assert.match(iInterp.attendance_reasoning, /Source: inferred/);
+  check('inferred: reasoning cites the pattern method + executive pastor', () => {
+    assert.match(iInterp.attendance_reasoning, /pattern estimate/);
+    assert.match(iInterp.attendance_reasoning, /executive pastor/i);
   });
   check('inferred: attendance_evidence includes staff_count + church_center_usage', () => {
     const factors = iInterp.attendance_evidence.map((a) => a.factor);
     assert.ok(factors.includes('staff_count') && factors.includes('church_center_usage'), JSON.stringify(factors));
+  });
+
+  // Base case: ~50 AWA/staff when there is no exec/director/campus signal.
+  const plainStaff = makeFinding({ sourceType: 'staff_page', accessLevel: 'live_official_site', url: 'https://www.midchurch.org/staff', fetched: true, status: 200, category: 'staff', text: 'team', staffCards: extractStaffCards('Staff\n\nJoe Smith\nLead Pastor\n\nJane Roe\nWorship Leader') });
+  const plainInterp = interp([inferredHome, plainStaff], iFacts);
+  check('inferred: ~50 AWA/staff base when no exec/director (9×50=450)', () => assert.strictEqual(plainInterp.attendance_estimate.value, 450));
+
+  // Two of {digital, communications, missions} directors → ≥700 floor.
+  const dirStaff = makeFinding({ sourceType: 'staff_page', accessLevel: 'live_official_site', url: 'https://www.midchurch.org/staff', fetched: true, status: 200, category: 'staff', text: 'team', staffCards: extractStaffCards('Staff\n\nAmy Lee\nDigital Director\n\nBob Kim\nCommunications Director\n\nJoe Smith\nLead Pastor') });
+  const dirInterp = interp([inferredHome, dirStaff], { staff_count: { value: 5, confidence: 70, evidence: '5', source_url: 'https://www.midchurch.org/staff', access_level: 'live_official_site' } });
+  check('inferred: 2 of digital/comms/missions directors → ≥700', () => {
+    assert.ok(dirInterp.attendance_estimate.value != null && dirInterp.attendance_estimate.value >= 700, String(dirInterp.attendance_estimate.value));
   });
 
   // ── synthesis fallback when staff is unknown ──────────────────────────────

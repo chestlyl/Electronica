@@ -88,7 +88,7 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   if (b.strategicScores) {
     L.push('## 6. Strategic Scores (explainable)');
     L.push('_Score = sum of APPLIED positive factors (each cites evidence). Negative factors are evidence-backed gap candidates with a recommended deduction, NOT yet applied. Bands: 0–25 weak · 26–50 emerging · 51–75 capable · 76–100 strong._');
-    for (const d of ['digital_maturity', 'growth_orientation', 'change_readiness', 'organizational_capacity', 'contactability'] as const) {
+    for (const d of ['digital_maturity', 'growth_orientation', 'organizational_capacity', 'contactability'] as const) {
       const sc = b.strategicScores[d];
       if (!sc) continue;
       L.push('');

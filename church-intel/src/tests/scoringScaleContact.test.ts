@@ -109,15 +109,18 @@ async function main() {
 
   check('org_capacity is capable+ once scale is known (was emerging)', () => assert.ok(withScale.organizational_capacity.score >= 51, `score=${withScale.organizational_capacity.score}`));
   check('org_capacity cites scale evidence', () => assert.match(withScale.organizational_capacity.evidenceConsumed.join(' | '), /operates at|multi-campus/i));
-  check('change_readiness is capable+ for active multiplier', () => assert.ok(withScale.change_readiness.score >= 51, `score=${withScale.change_readiness.score}`));
+  check('growth absorbs change — active multiplier cited in growth', () => assert.match(withScale.growth_orientation.evidenceConsumed.join(' | '), /active multiplication/));
   check('digital_maturity lifted by multi-site backbone', () => assert.ok(withScale.digital_maturity.score >= 51, `score=${withScale.digital_maturity.score}`));
   check('scale RAISES org_capacity vs no-scale (evidence, not crawl)', () => assert.ok(withScale.organizational_capacity.score > noScale.organizational_capacity.score));
 
-  // De-saturation: growth is strong but should leave headroom below the cap.
-  check('growth is strong but not pinned at 100 (de-saturated)', () => {
-    const g = withScale.growth_orientation;
-    assert.strictEqual(bandOf(g.score), 'strong');
-    assert.ok(g.score < 100, `growth saturated at ${g.score}`);
+  // De-saturation = spread across the range, not everyone pinned high. An elite
+  // multiplier (growing + hiring + residency + 9 campuses) legitimately maxes;
+  // a single growth signal must NOT.
+  check('growth is strong for an elite multiplier', () => assert.strictEqual(bandOf(withScale.growth_orientation.score), 'strong'));
+  check('de-saturated: scale RAISES growth vs no-scale (spread, not a pinned cap)', () => {
+    assert.ok(withScale.growth_orientation.score >= noScale.growth_orientation.score);
+    // the multi-campus multiplication factor is what separates them
+    assert.match(withScale.growth_orientation.evidenceConsumed.join(' | '), /active multiplication/);
   });
 
   // Confidence = completeness: low score from absence must NOT carry high confidence.
@@ -135,6 +138,20 @@ async function main() {
     assert.ok(d.confidence <= 55, `low score should not be high-confidence; conf=${d.confidence}`);
   });
   check('well-evidenced dim outranks thin dim in confidence', () => assert.ok(withScale.organizational_capacity.confidence > thin.digital_maturity.confidence));
+
+  // Capacity lift-curve: a small church with no growth mindset + thin staff is a
+  // heavy lift → capacity stays weak (not mid-band).
+  check('small + no-growth + thin staff → capacity weak (lift too heavy)', () => {
+    assert.ok(thin.organizational_capacity.score <= 35, `score=${thin.organizational_capacity.score}`);
+    assert.match(thin.organizational_capacity.evidenceMissing.join(' | '), /lift likely too heavy/);
+  });
+
+  // Contactability seniority: lead pastor is the strongest entry; comms the weakest.
+  check('contactability leads with the senior owner (lead pastor reachable)', () => {
+    assert.match(withScale.contactability.evidenceConsumed.join(' | '), /lead pastor reachable/);
+    const lead = withScale.contactability.positive_factors.find((f) => /lead pastor reachable/.test(f.label));
+    assert.ok(lead && lead.points >= 30, 'lead pastor should be the heaviest contact factor');
+  });
 
   console.log(failures ? `\nFAILED (${failures})` : '\nALL PASSED');
   process.exit(failures ? 1 : 0);

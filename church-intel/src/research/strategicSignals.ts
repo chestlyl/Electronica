@@ -37,7 +37,6 @@ export type SignalCategory =
 export type Dimension =
   | 'digital_maturity'
   | 'growth_orientation'
-  | 'change_readiness'
   | 'organizational_capacity'
   | 'contactability';
 
@@ -45,6 +44,9 @@ export type Dimension =
  * Authoritative category → dimension mapping (matches the product examples:
  * Church Center, Pushpay, job posting, residency, podcast, school, Mailchimp,
  * network affiliation). Evidence-relevance only — NOT a scoring weight.
+ *
+ * NOTE: change_readiness was merged into growth_orientation — openness to change
+ * and the drive to multiply are the same strategic axis (hesitation = its low end).
  */
 export const CATEGORY_DIMENSIONS: Record<SignalCategory, Dimension[]> = {
   church_management: ['digital_maturity', 'organizational_capacity', 'contactability'],
@@ -55,11 +57,11 @@ export const CATEGORY_DIMENSIONS: Record<SignalCategory, Dimension[]> = {
   livestream_video: ['digital_maturity', 'growth_orientation'],
   podcast: ['digital_maturity', 'growth_orientation'],
   social_media: ['digital_maturity', 'contactability'],
-  jobs_hiring: ['growth_orientation', 'organizational_capacity', 'change_readiness'],
-  internship_residency: ['growth_orientation', 'organizational_capacity', 'change_readiness'],
+  jobs_hiring: ['growth_orientation', 'organizational_capacity'],
+  internship_residency: ['growth_orientation', 'organizational_capacity'],
   school_academy: ['organizational_capacity', 'growth_orientation'],
-  network_affiliation: ['change_readiness', 'growth_orientation'],
-  outreach_partner: ['growth_orientation', 'change_readiness'],
+  network_affiliation: ['growth_orientation'],
+  outreach_partner: ['growth_orientation'],
   newsletter_email: ['digital_maturity', 'contactability'],
   app_mobile: ['digital_maturity', 'organizational_capacity'],
   communications: ['digital_maturity', 'contactability'],
@@ -67,7 +69,7 @@ export const CATEGORY_DIMENSIONS: Record<SignalCategory, Dimension[]> = {
 };
 
 export const DIMENSIONS: Dimension[] = [
-  'digital_maturity', 'growth_orientation', 'change_readiness', 'organizational_capacity', 'contactability',
+  'digital_maturity', 'growth_orientation', 'organizational_capacity', 'contactability',
 ];
 
 export interface StrategicSignal {
@@ -229,7 +231,7 @@ export function detectStrategicSignals(findings: SourceFinding[]): StrategicSign
 /** Count of signals supporting each strategic dimension. */
 export function dimensionCounts(signals: StrategicSignal[]): Record<Dimension, number> {
   const counts: Record<Dimension, number> = {
-    digital_maturity: 0, growth_orientation: 0, change_readiness: 0, organizational_capacity: 0, contactability: 0,
+    digital_maturity: 0, growth_orientation: 0, organizational_capacity: 0, contactability: 0,
   };
   for (const s of signals) for (const d of s.dimensions) counts[d]++;
   return counts;
@@ -239,5 +241,5 @@ export function dimensionCounts(signals: StrategicSignal[]): Record<Dimension, n
 export function strategicSignalSummary(signals: StrategicSignal[]): string {
   if (!signals.length) return 'no strategic signals detected';
   const c = dimensionCounts(signals);
-  return `${signals.length} signals · digital_maturity ${c.digital_maturity} · growth_orientation ${c.growth_orientation} · change_readiness ${c.change_readiness} · organizational_capacity ${c.organizational_capacity} · contactability ${c.contactability}`;
+  return `${signals.length} signals · digital_maturity ${c.digital_maturity} · growth_orientation ${c.growth_orientation} · organizational_capacity ${c.organizational_capacity} · contactability ${c.contactability}`;
 }

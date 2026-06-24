@@ -33,11 +33,11 @@ function dim(d: Dimension, score: number): ScoredDimension {
     positive_factors: [], negative_factors: [], top_factors: [], evidenceConsumed: [], evidenceMissing: [], reason: 'test',
   };
 }
-function mkScores(v: { dm: number; go: number; cr: number; oc: number; ct: number }): StrategicScores {
+// `cr` is accepted but ignored — change_readiness merged into growth_orientation.
+function mkScores(v: { dm: number; go: number; cr?: number; oc: number; ct: number }): StrategicScores {
   return {
     digital_maturity: dim('digital_maturity', v.dm),
     growth_orientation: dim('growth_orientation', v.go),
-    change_readiness: dim('change_readiness', v.cr),
     organizational_capacity: dim('organizational_capacity', v.oc),
     contactability: dim('contactability', v.ct),
   };

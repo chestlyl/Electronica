@@ -38,7 +38,7 @@ export function sizeExpectation(awa: number): number {
 }
 
 // resource/investment-scaling capability dims (NOT contactability, NOT org capacity).
-const REL_DIMS = ['digital_maturity', 'growth_orientation', 'change_readiness'] as const;
+const REL_DIMS = ['digital_maturity', 'growth_orientation'] as const;
 
 export function computeSizeRelative(awa: number | null, scores: StrategicScores): SizeRelativeProfile {
   if (awa == null) {

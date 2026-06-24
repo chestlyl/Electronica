@@ -187,91 +187,88 @@ export function scoreStrategic(input: ScoringInput): StrategicScores {
     return finalize('digital_maturity', r);
   };
 
-  // ── growth_orientation ────────────────────────────────────────────────────
+  // ── growth_orientation (the master fit signal — absorbs change readiness) ────
+  // Drive to multiply AND openness to change are the same axis; hesitation/plateau
+  // is its low end. This is the strongest predictor of "will they engage".
   const growth = () => {
     const r = new Rubric();
     baseline(r, 'growth_orientation');
-    r.want(sig('jobs_hiring'), 22, 'hiring/job postings', 'no hiring signal');
-    r.want(sig('internship_residency'), 22, 'internship/residency', 'no residency/internship');
-    r.want(sig('school_academy'), 12, 'school/academy', 'no school/academy');
-    r.want(sig('network_affiliation'), 8, 'network affiliation', 'no network affiliation');
-    r.want(either(sig('livestream_video'), sig('podcast')), 8, 'media reach', 'no media-reach signal');
-    if (I.staff_count.value != null && I.staff_count.value >= 8) r.add(8, `staffed for growth (staff_count ${I.staff_count.value})`, I.staff_count.evidence_ids);
+    const stage = I.lifecycle_stage.value;
+    const lifePts = /relaunch|revitaliz|plant/.test(stage) ? 28 : stage === 'growing' ? 22 : stage === 'established' ? 8 : 0;
+    if (lifePts > 0) r.add(lifePts, `lifecycle momentum: ${stage}`, I.lifecycle_stage.evidence_ids);
+    else r.miss(`growth hesitation (lifecycle ${stage || 'unknown'})`, 12);
+    r.want(sig('jobs_hiring'), 18, 'hiring/job postings', 'no hiring signal');
+    r.want(sig('internship_residency'), 18, 'internship/residency', 'no residency/internship');
+    r.want(sig('school_academy'), 10, 'school/academy', 'no school/academy');
+    r.want(sig('network_affiliation'), 8, 'network/movement affiliation', 'no network affiliation');
+    r.want(either(sig('livestream_video'), sig('podcast')), 6, 'media reach', 'no media-reach signal');
+    r.want(either(tech('ChMS'), tech('App')), 6, 'modern platform adoption (openness to change)', 'no modern platform adoption');
+    if (I.staff_count.value != null && I.staff_count.value >= 8) r.add(6, `staffed for growth (staff ${I.staff_count.value})`, I.staff_count.evidence_ids);
     else r.miss('staff capacity (<8 or unknown)');
-    // SCALE: actively multiplying campuses is direct evidence of growth orientation.
-    if (campuses != null && campuses >= 4) r.add(15, `multiplying campuses (${campuses})`, ['interpretation']);
+    // SCALE: actively multiplying campuses is the strongest growth + change signal.
+    if (campuses != null && campuses >= 4) r.add(16, `active multiplication (${campuses} campuses)`, ['interpretation']);
     else if (multisite) r.add(8, 'multi-site expansion', ['interpretation']);
     return finalize('growth_orientation', r);
   };
 
-  // ── change_readiness ──────────────────────────────────────────────────────
-  const change = () => {
-    const r = new Rubric();
-    baseline(r, 'change_readiness');
-    const stage = I.lifecycle_stage.value;
-    const lifePts = /relaunch|revitaliz|plant/.test(stage) ? 30 : stage === 'growing' ? 22 : stage === 'established' ? 10 : stage === 'plateaued' ? 5 : 0;
-    if (lifePts > 0) r.add(lifePts, `lifecycle: ${stage}`, I.lifecycle_stage.evidence_ids);
-    else r.miss(`lifecycle not change-oriented (${stage || 'unknown'})`);
-    r.want(sig('network_affiliation'), 16, 'network affiliation', 'no network affiliation');
-    r.want(either(sig('jobs_hiring'), sig('internship_residency')), 12, 'investing in new roles', 'no hiring/residency investment');
-    r.want(either(tech('ChMS'), tech('App')), 12, 'recent platform adoption', 'no modern platform adoption');
-    r.want(sig('forms_workflows'), 8, 'digital workflow adoption', 'no digital workflows');
-    // SCALE: active campus multiplication is the strongest possible change signal.
-    if (campuses != null && campuses >= 4) r.add(20, `active multiplication (${campuses} campuses)`, ['interpretation']);
-    else if (multisite && stage === 'growing') r.add(12, 'multi-site growth', ['interpretation']);
-    return finalize('change_readiness', r);
-  };
-
-  // ── organizational_capacity ───────────────────────────────────────────────
-  const orgcap = () => {
+  // ── organizational_capacity — "can they carry the lift of this product?" ─────
+  // A lift-curve, not "bigger = better": size anchors capacity (more manpower +
+  // systems), but under ~500 the lift is heavy — only a growth mindset AND real
+  // manpower make it viable. Takes the growth score so the small-church gate works.
+  const orgcap = (growthScore: number) => {
     const r = new Rubric();
     baseline(r, 'organizational_capacity');
-    // Staff headcount is a WEAK proxy for big churches (we usually see only named
-    // senior leaders, not total FTE) — so it carries less weight than confirmed scale.
     const sc = I.staff_count.value;
-    if (sc != null && sc >= 10) r.add(15, `large staff (${sc})`, I.staff_count.evidence_ids);
-    else if (sc != null && sc >= 5) r.add(10, `mid staff (${sc})`, I.staff_count.evidence_ids);
-    else if (sc != null && sc >= 1) r.add(5, `small staff (${sc})`, I.staff_count.evidence_ids);
-    else r.miss('staff count unknown');
+    let sizeBase = 18, sizeLabel = 'limited scale (AWA <500 or unknown)';
+    if (awa != null && awa >= 10000) { sizeBase = 64; sizeLabel = `giga scale (AWA ~${awa})`; }
+    else if (awa != null && awa >= 5000) { sizeBase = 58; sizeLabel = `large-mega scale (AWA ~${awa})`; }
+    else if (awa != null && awa >= 2000) { sizeBase = 50; sizeLabel = `mega scale (AWA ~${awa})`; }
+    else if (awa != null && awa >= 1000) { sizeBase = 38; sizeLabel = `sizable (AWA ~${awa})`; }
+    else if (awa != null && awa >= 500) { sizeBase = 28; sizeLabel = `established size (AWA ~${awa})`; }
+    r.add(sizeBase, `lift capacity — ${sizeLabel}`, awa != null ? attnEv : ['interpretation']);
+    // SMALL-CHURCH GATE: under 500, capacity hinges on growth mindset + manpower.
+    if (awa == null || awa < 500) {
+      const manpower = sc != null && sc >= 8;
+      if (growthScore >= 60 && manpower) r.add(20, 'growth mindset + manpower offset small size for the lift', I.staff_count.evidence_ids);
+      else if (growthScore >= 60 || manpower) r.add(8, growthScore >= 60 ? 'growth mindset partly offsets small size' : 'some manpower for the lift', I.staff_count.evidence_ids);
+      else r.miss('small + low growth + thin staff — lift likely too heavy', 18);
+    }
+    if (sc != null && sc >= 20) r.add(10, `deep staff (${sc})`, I.staff_count.evidence_ids);
+    else if (sc != null && sc >= 10) r.add(6, `staff (${sc})`, I.staff_count.evidence_ids);
+    else if (sc != null && sc >= 5) r.add(3, `small staff (${sc})`, I.staff_count.evidence_ids);
     const roles = (['executive_pastor', 'operations_leader', 'communications_leader'] as const)
       .filter((k) => I[k].value).map((k) => ({ k, c: I[k] }));
-    if (roles.length) r.add(Math.min(24, roles.length * 8), `leadership roles filled: ${roles.map((x) => x.k).join(', ')}`, roles.flatMap((x) => x.c.evidence_ids));
-    else r.miss('no exec/ops/comms roles identified');
-    r.want(tech('ChMS'), 10, 'operational ChMS backbone', 'no ChMS backbone');
-    r.want(sig('school_academy'), 8, 'school/academy operation', 'no school/academy');
-    r.want(either(sig('groups'), sig('forms_workflows')), 8, 'operational systems (groups/forms)', 'no operational systems');
-    if (N.staff_roster.length > 3) r.add(5, `staff roster depth (${N.staff_roster.length})`, N.staff_roster.slice(0, 5).map((x) => x.id));
-    // SCALE: a strategist infers capacity from scale — a multi-thousand-attendance,
-    // multi-campus church necessarily runs significant operational infrastructure.
-    if (awa != null && awa >= 5000) r.add(24, `operates at major scale (AWA ~${awa})`, attnEv);
-    else if (awa != null && awa >= 2000) r.add(20, `operates at scale (AWA ~${awa})`, attnEv);
-    else if (awa != null && awa >= 1000) r.add(14, `sizable congregation (AWA ~${awa})`, attnEv);
-    else if (awa != null && awa >= 500) r.add(8, `established size (AWA ~${awa})`, attnEv);
-    if (campuses != null && campuses >= 4) r.add(18, `multi-campus operation (${campuses} campuses)`, ['interpretation']);
-    else if (multisite) r.add(10, 'multi-site operation', ['interpretation']);
+    if (roles.length) r.add(Math.min(12, roles.length * 6), `exec/ops infrastructure: ${roles.map((x) => x.k).join(', ')}`, roles.flatMap((x) => x.c.evidence_ids));
+    if (campuses != null && campuses >= 4) r.add(12, `multi-campus operation (${campuses} campuses)`, ['interpretation']);
+    else if (multisite) r.add(6, 'multi-site operation', ['interpretation']);
+    r.want(tech('ChMS'), 6, 'operational ChMS backbone', 'no ChMS backbone');
+    if (N.staff_roster.length > 3) r.add(4, `staff roster depth (${N.staff_roster.length})`, N.staff_roster.slice(0, 5).map((x) => x.id));
     return finalize('organizational_capacity', r);
   };
 
-  // ── contactability ────────────────────────────────────────────────────────
+  // ── contactability — can we reach the RIGHT senior owner, in priority order? ──
+  // Lead Pastor > Exec Pastor > Operations > Comms. Comms is intentionally the
+  // WEAKEST entry: this is a comms-heavy lift, but it must be owned by senior
+  // leadership — a church reachable only through comms scores LOWER here.
   const contact = () => {
     const r = new Rubric();
     baseline(r, 'contactability');
-    if (I.office_email.value) r.add(30, `office email`, I.office_email.evidence_ids); else r.miss('no office email');
-    if (I.office_phone.value) r.add(25, `office phone`, I.office_phone.evidence_ids); else r.miss('no office phone');
-    if (I.lead_pastors.value.length) r.add(20, `lead pastor(s): ${I.lead_pastors.value.join('; ')}`, I.lead_pastors.evidence_ids); else r.miss('no named lead pastor');
-    const secondary = (['executive_pastor', 'operations_leader', 'communications_leader'] as const).filter((k) => I[k].value);
-    if (secondary.length) r.add(10, `secondary contacts: ${secondary.join(', ')}`, secondary.flatMap((k) => I[k].evidence_ids)); else r.miss('no secondary contacts');
-    r.want(sig('social_media'), 10, 'social channels', 'no social channels');
-    r.want(either(tech('ChMS'), sig('forms_workflows')), 5, 'digital contact pathway', 'no digital contact pathway');
+    if (I.lead_pastors.value.length) r.add(35, `lead pastor reachable: ${I.lead_pastors.value.join('; ')}`, I.lead_pastors.evidence_ids); else r.miss('no named lead pastor', 18);
+    if (I.executive_pastor.value) r.add(22, `executive pastor: ${I.executive_pastor.value}`, I.executive_pastor.evidence_ids); else r.miss('no executive pastor');
+    if (I.operations_leader.value) r.add(12, `operations leader: ${I.operations_leader.value}`, I.operations_leader.evidence_ids);
+    if (I.communications_leader.value) r.add(5, `communications lead (weakest entry — should not drive): ${I.communications_leader.value}`, I.communications_leader.evidence_ids);
+    if (I.office_email.value) r.add(14, 'office email channel', I.office_email.evidence_ids); else r.miss('no office email');
+    if (I.office_phone.value) r.add(10, 'office phone channel', I.office_phone.evidence_ids); else r.miss('no office phone');
+    r.want(sig('social_media'), 6, 'social channels', 'no social channels');
     return finalize('contactability', r);
   };
 
-  const builders: Record<Dimension, () => ScoredDimension> = {
-    digital_maturity: digital, growth_orientation: growth, change_readiness: change,
-    organizational_capacity: orgcap, contactability: contact,
-  };
   const out = {} as StrategicScores;
-  for (const d of DIMENSIONS) out[d] = builders[d]();
+  out.digital_maturity = digital();
+  const g = growth();
+  out.growth_orientation = g;
+  out.organizational_capacity = orgcap(g.score);
+  out.contactability = contact();
   return out;
 }
 

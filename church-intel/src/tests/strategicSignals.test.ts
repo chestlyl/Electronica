@@ -49,18 +49,18 @@ async function main() {
     assert.deepStrictEqual(CATEGORY_DIMENSIONS.church_management, ['digital_maturity', 'organizational_capacity', 'contactability']));
   check('Pushpay (giving) → digital_maturity, organizational_capacity', () =>
     assert.deepStrictEqual(CATEGORY_DIMENSIONS.giving, ['digital_maturity', 'organizational_capacity']));
-  check('job posting (jobs_hiring) → growth, organizational_capacity, change_readiness', () =>
-    assert.deepStrictEqual(CATEGORY_DIMENSIONS.jobs_hiring, ['growth_orientation', 'organizational_capacity', 'change_readiness']));
-  check('residency (internship_residency) → growth, organizational_capacity, change_readiness', () =>
-    assert.deepStrictEqual(CATEGORY_DIMENSIONS.internship_residency, ['growth_orientation', 'organizational_capacity', 'change_readiness']));
+  check('job posting (jobs_hiring) → growth, organizational_capacity', () =>
+    assert.deepStrictEqual(CATEGORY_DIMENSIONS.jobs_hiring, ['growth_orientation', 'organizational_capacity']));
+  check('residency (internship_residency) → growth, organizational_capacity', () =>
+    assert.deepStrictEqual(CATEGORY_DIMENSIONS.internship_residency, ['growth_orientation', 'organizational_capacity']));
   check('podcast → digital_maturity, growth_orientation', () =>
     assert.deepStrictEqual(CATEGORY_DIMENSIONS.podcast, ['digital_maturity', 'growth_orientation']));
   check('school_academy → organizational_capacity, growth_orientation', () =>
     assert.deepStrictEqual(CATEGORY_DIMENSIONS.school_academy, ['organizational_capacity', 'growth_orientation']));
   check('newsletter_email (Mailchimp) → digital_maturity, contactability', () =>
     assert.deepStrictEqual(CATEGORY_DIMENSIONS.newsletter_email, ['digital_maturity', 'contactability']));
-  check('network_affiliation → change_readiness, growth_orientation', () =>
-    assert.deepStrictEqual(CATEGORY_DIMENSIONS.network_affiliation, ['change_readiness', 'growth_orientation']));
+  check('network_affiliation → growth_orientation (movement openness)', () =>
+    assert.deepStrictEqual(CATEGORY_DIMENSIONS.network_affiliation, ['growth_orientation']));
 
   // ── OFH dossier: official website with preserved outbound links ───────────
   const home: SourceFinding = makeFinding({
@@ -133,12 +133,11 @@ async function main() {
     assert.ok(firstSnippetIdx === -1 || firstSnippetIdx > lastSiteIdx, 'a snippet signal preceded a website signal');
   });
 
-  // (D) five-dimension summary counts
+  // (D) four-dimension summary counts (change_readiness merged into growth)
   const dim = dimensionCounts(sigs);
-  check('dimension counts populated for all five dimensions', () => {
+  check('dimension counts populated for all four dimensions', () => {
     assert.ok(dim.digital_maturity > 0);
     assert.ok(dim.growth_orientation > 0);
-    assert.ok(dim.change_readiness > 0);
     assert.ok(dim.organizational_capacity > 0);
     assert.ok(dim.contactability > 0);
   });

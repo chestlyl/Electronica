@@ -95,7 +95,7 @@ async function main() {
     const c = scores.growth_orientation.evidenceConsumed.join(' | ');
     assert.ok(/hiring/i.test(c) || /residency|internship/i.test(c), c);
   });
-  check('OFH change_readiness reflects lifecycle (growing)', () => assert.match(scores.change_readiness.evidenceConsumed.join(' | '), /lifecycle: growing/));
+  check('OFH growth reflects lifecycle momentum (growing — change merged in)', () => assert.match(scores.growth_orientation.evidenceConsumed.join(' | '), /lifecycle momentum: growing/));
   check('OFH contactability reflects email + phone + lead pastors', () => {
     const c = scores.contactability.evidenceConsumed.join(' | ');
     assert.ok(/email/i.test(c) && /phone/i.test(c) && /lead pastor/i.test(c), c);

@@ -176,10 +176,10 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
 
     // ── Strategic Signals (deterministic evidence collection — no score change) ─
     const sig = r.strategicSignals ?? [];
-    const dim = r.strategicDimensionCounts ?? { digital_maturity: 0, growth_orientation: 0, change_readiness: 0, organizational_capacity: 0, contactability: 0 };
+    const dim = r.strategicDimensionCounts ?? { digital_maturity: 0, growth_orientation: 0, organizational_capacity: 0, contactability: 0 };
     L.push('### Strategic Signals');
     L.push('_Deterministic evidence collection only (no score change). Sorted website-first (live official site evidence leads)._');
-    L.push(`- signals supporting each dimension → digital_maturity **${dim.digital_maturity}** · growth_orientation **${dim.growth_orientation}** · change_readiness **${dim.change_readiness}** · organizational_capacity **${dim.organizational_capacity}** · contactability **${dim.contactability}**`);
+    L.push(`- signals supporting each dimension → digital_maturity **${dim.digital_maturity}** · growth_orientation **${dim.growth_orientation}** · organizational_capacity **${dim.organizational_capacity}** · contactability **${dim.contactability}**`);
     if (!sig.length) { L.push('- _(no strategic signals detected)_'); }
     else {
       L.push('| category | score relevance | anchor text | host | destination URL | source page | confidence |');
@@ -199,7 +199,7 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
       L.push('_Deterministic rubric over interpretation + normalized evidence + strategic signals + tech stack + coverage. Bands: 0–25 weak · 26–50 emerging · 51–75 capable · 76–100 strong. Report-only — not persisted._');
       L.push('| dimension | score | band | confidence | cap | evidence consumed | evidence missing |');
       L.push('|---|---|---|---|---|---|---|');
-      for (const d of ['digital_maturity', 'growth_orientation', 'change_readiness', 'organizational_capacity', 'contactability'] as const) {
+      for (const d of ['digital_maturity', 'growth_orientation', 'organizational_capacity', 'contactability'] as const) {
         const s = scores[d];
         if (!s) continue;
         const consumed = (s.evidenceConsumed.join('; ') || '—').replace(/\|/g, '/').slice(0, 140);
@@ -212,7 +212,7 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
       L.push('');
       L.push('#### Score explainability (why each score — auditable factor breakdown)');
       L.push('_Negative factors are evidence-backed GAP candidates with recommended deductions; they are NOT yet applied to the score (pending calibration)._');
-      for (const d of ['digital_maturity', 'growth_orientation', 'change_readiness', 'organizational_capacity', 'contactability'] as const) {
+      for (const d of ['digital_maturity', 'growth_orientation', 'organizational_capacity', 'contactability'] as const) {
         const s = scores[d];
         if (!s) continue;
         L.push(`- **${d}: ${s.score}** (${s.band})`);

@@ -76,7 +76,7 @@ export interface RecommendationInput {
 
 // ── derived context (pure function of the allowed inputs) ─────────────────────
 interface Ctx {
-  dm: number; go: number; cr: number; oc: number; ct: number;
+  dm: number; go: number; oc: number; ct: number;
   tech: Set<string>;                 // PlatformHit categories present
   sigCount: (cat: string) => number;
   hasSig: (cat: string) => boolean;
@@ -100,7 +100,7 @@ function buildCtx(input: RecommendationInput): Ctx {
   const tech = new Set(technologyStack.map((t) => t.category));
   const breadth = (Object.values(N) as { length: number }[]).filter((t) => t.length > 0).length;
   return {
-    dm: scores.digital_maturity.score, go: scores.growth_orientation.score, cr: scores.change_readiness.score,
+    dm: scores.digital_maturity.score, go: scores.growth_orientation.score,
     oc: scores.organizational_capacity.score, ct: scores.contactability.score,
     tech,
     sigCount: (cat) => sigCat(cat).length,
@@ -138,8 +138,8 @@ export const RULES: Rule[] = [
     emit: (c) => [{ target: 'first_conversation', value: 'Leadership Pipeline / Staffing', priority: 75, evidence: [evScore(c, 'growth_orientation'), evSignal(c, 'jobs_hiring')] }] },
   { id: 'R4_leadership_development', when: (c) => c.oc < 45 && c.leaderCount <= 1,
     emit: (c) => [{ target: 'first_conversation', value: 'Leadership Development', priority: 70, evidence: [evScore(c, 'organizational_capacity'), evInterp('staff_depth_score', `staff depth ${c.oc}`)] }] },
-  { id: 'R5_network_alignment', when: (c) => c.cr > 65 && c.hasSig('network_affiliation'),
-    emit: (c) => [{ target: 'first_conversation', value: 'Network / Movement Alignment', priority: 64, evidence: [evScore(c, 'change_readiness'), evSignal(c, 'network_affiliation')] }] },
+  { id: 'R5_network_alignment', when: (c) => c.go > 65 && c.hasSig('network_affiliation'),
+    emit: (c) => [{ target: 'first_conversation', value: 'Network / Movement Alignment', priority: 64, evidence: [evScore(c, 'growth_orientation'), evSignal(c, 'network_affiliation')] }] },
   { id: 'R6_revitalization', when: (c) => c.lifecycle === 'plateaued' || c.lifecycle === 'declining',
     emit: (c) => [{ target: 'first_conversation', value: 'Revitalization Strategy', priority: 72, evidence: [evInterp('lifecycle', `lifecycle ${c.lifecycle}`)] }] },
   { id: 'R7_multiplication', when: (c) => /plant|growing|relaunch/.test(c.lifecycle) && c.go > 60,
@@ -250,11 +250,11 @@ function growthOpportunity(c: Ctx): DimensionAnalysis {
   return { level: levelFrom(c.go), findings, evidence_refs: dedupeEvidence(ev) };
 }
 function partnershipReadiness(c: Ctx): DimensionAnalysis {
-  const ev: EvidenceRef[] = [evScore(c, 'contactability'), evScore(c, 'change_readiness')];
+  const ev: EvidenceRef[] = [evScore(c, 'contactability'), evScore(c, 'growth_orientation')];
   const findings: string[] = [];
   if (c.leadPastors.length || c.hasExec) { findings.push('decision-maker identified'); ev.push(c.hasExec ? evLead('executive_pastor', 'exec identified') : evLead('lead_pastors', 'lead pastor identified')); }
   if (c.knownVerified) { findings.push('official site verified'); ev.push(evInterp('known_church_verified', 'known church verified')); }
-  const readinessScore = Math.round(0.55 * c.ct + 0.45 * c.cr);
+  const readinessScore = Math.round(0.55 * c.ct + 0.45 * c.go);
   return { level: levelFrom(readinessScore), findings, evidence_refs: dedupeEvidence(ev) };
 }
 
@@ -304,8 +304,8 @@ export function runRecommendationEngine(input: RecommendationInput): Recommendat
 
   // 5) engagement priority + partnership probability (cite evidence)
   const leadershipCompleteness = (c.leadPastors.length ? 1 : 0) + (c.hasExec ? 1 : 0) + (c.hasOps ? 1 : 0) + (c.hasComms ? 1 : 0);
-  const partnershipProb = Math.max(0, Math.min(100, Math.round(0.4 * c.ct + 0.3 * c.cr + 5 * leadershipCompleteness + (c.knownVerified ? 10 : 0))));
-  const ppEvidence = dedupeEvidence([evScore(c, 'contactability'), evScore(c, 'change_readiness'),
+  const partnershipProb = Math.max(0, Math.min(100, Math.round(0.4 * c.ct + 0.3 * c.go + 5 * leadershipCompleteness + (c.knownVerified ? 10 : 0))));
+  const ppEvidence = dedupeEvidence([evScore(c, 'contactability'), evScore(c, 'growth_orientation'),
     ...(c.leadPastors.length ? [evLead('lead_pastors', `${c.leadPastors.length} lead(s)`)] : []),
     ...(c.knownVerified ? [evInterp('known_church_verified', 'verified')] : [])]);
 
@@ -330,13 +330,13 @@ export function runRecommendationEngine(input: RecommendationInput): Recommendat
     ({ value, evidence_refs: dedupeEvidence(evidence), reason, confidence: recConfidence(c, evidence) });
 
   const result: RecommendationEngineResult = {
-    engagement_priority: rec(priority, priorityEvidence, `contactability ${c.ct}, change_readiness ${c.cr}, leadership ${leadershipCompleteness}/4, verified=${c.knownVerified}${modernization ? ', +modernization-at-scale' : ''}`),
+    engagement_priority: rec(priority, priorityEvidence, `contactability ${c.ct}, growth ${c.go}, leadership ${leadershipCompleteness}/4, verified=${c.knownVerified}${modernization ? ', +modernization-at-scale' : ''}`),
     recommended_first_conversation: rec(fc.value, ensure(fc.evidence, evScore(c, dominantDim)), firstConv ? `top-priority rule among ${byTarget('first_conversation').length} candidates` : 'no rule fired — dominant dimension fallback'),
     recommended_entry_point: rec(ep.value, ensure(ep.evidence, evInterp('contactability_score', `contactability ${c.ct}`)), entry ? 'highest-ranked identified role' : 'no leadership role identified'),
     likely_pain_points: rec(painPoints.values, ensure(painPoints.evidence, evScore(c, 'organizational_capacity')), `${painPoints.values.length} pain point rule(s) fired`),
     likely_growth_constraints: rec(constraints.values, ensure(constraints.evidence, evScore(c, 'growth_orientation')), `${constraints.values.length} constraint rule(s) fired`),
     recommended_product_fit: rec(productFit.values, ensure(productFit.evidence, evScore(c, dominantDim)), digitalMature ? 'digital mature → optimization, not transformation' : `${productFit.values.length} product-fit rule(s) fired`),
-    partnership_probability: rec(partnershipProb, ppEvidence, `0.4·contactability + 0.3·change_readiness + leadership + verified`),
+    partnership_probability: rec(partnershipProb, ppEvidence, `0.4·contactability + 0.3·growth + leadership + verified`),
     confidence: 0,
     evidence_refs: [],
     dimensions,

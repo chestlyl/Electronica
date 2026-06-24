@@ -11,6 +11,8 @@ import { exportResults } from './export.js';
 import { runDoctor, printDoctor } from './doctor.js';
 import { discoverWebsite } from './research/discovery.js';
 import { buildDossier, type DossierBuild, type ResearchTarget } from './research/researchAgent.js';
+import { prospectArea, renderProspectBoard } from './research/prospect.js';
+import { googlePlacesProvider, searchDirectoryProvider } from './research/prospectProviders.js';
 import { renderDossierMarkdown } from './research/dossierMarkdown.js';
 import { extractAltName } from './agents/index.js';
 import { loadCalibrationSet, rowFromBuild, type CalibrationRow } from './research/calibrationSet.js';
@@ -174,6 +176,35 @@ program
           console.log(`\nPersisted dossier + ${build.conflicts.length} conflict(s) + strategic fields for church ${churchId}.`);
         }
       }
+    } finally {
+      await ctx.close();
+    }
+  });
+
+// ── prospect-area: discover UNKNOWN churches in a metro/region ──────────────
+program
+  .command('prospect-area')
+  .description('Enumerate churches in a metro/region (Google Places + search), dedupe vs the roster, score + rank by Engagement Fit')
+  .requiredOption('--metro <metro>', 'metro / region, e.g. "Greater Akron"')
+  .option('--state <state>', 'state abbreviation, e.g. OH')
+  .option('--denomination <denom>', 'optional denomination filter')
+  .option('--limit <n>', 'max churches to fully dossier (cost bound)')
+  .option('-o, --out <path>', 'write the prospecting board markdown to this path')
+  .action(async (opts) => {
+    const ctx = createLiveContext();
+    try {
+      const board = await prospectArea(
+        { metro: opts.metro, state: opts.state ?? null, denomination: opts.denomination ?? null, limit: opts.limit ? Number(opts.limit) : undefined },
+        {
+          enumerators: [googlePlacesProvider(), searchDirectoryProvider()],
+          knownRoster: async () => (await ctx.store.listChurches({ limit: 100000 })).map((c) => ({ name: c.name, website: c.website_original, city: c.city, state: c.state })),
+          buildDossier: (target) => buildDossier(target, ctx),
+          limit: config.prospect.maxDossiers,
+          onProgress: (m) => logger.info(`  ${m}`),
+        },
+      );
+      const md = renderProspectBoard(board);
+      if (opts.out) { const { writeFileSync } = await import('node:fs'); writeFileSync(opts.out, md); logger.info(`Wrote ${opts.out}`); } else console.log('\n' + md);
     } finally {
       await ctx.close();
     }

@@ -43,6 +43,12 @@ export const config = {
     // Max pages for the fetch fallback crawler.
     fetchMaxPages: num('FETCH_MAX_PAGES', 5),
   },
+  prospect: {
+    // Google Places API key for area enumeration (prospect-area command).
+    googlePlacesApiKey: process.env.GOOGLE_PLACES_API_KEY ?? '',
+    // Max churches fully dossiered per area run (cost bound).
+    maxDossiers: num('PROSPECT_MAX_DOSSIERS', 25),
+  },
   thresholds: {
     autoUpdate: num('AUTO_UPDATE_THRESHOLD', 85),
     review: num('REVIEW_THRESHOLD', 60),

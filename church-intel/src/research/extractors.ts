@@ -168,15 +168,19 @@ const STRUCTURED_FACT_MAP: Record<string, string> = {
   phone: 'office_phone',
   lead_pastor: 'lead_pastor',
   executive_pastor: 'executive_pastor',
+  discipleship_pastor: 'discipleship_pastor',
   operations_leader: 'operations_leader',
+  marketing_director: 'marketing_director',
   communications_leader: 'communications_leader',
   staff_count: 'staff_count',
 };
 
 const ROLE_RE: { field: string; source: string }[] = [
   { field: 'lead_pastor', source: `(?:lead|senior)\\s+pastor` },
-  { field: 'executive_pastor', source: `executive\\s+pastor` },
+  { field: 'executive_pastor', source: `executive\\s+(?:pastor|director)` },
+  { field: 'discipleship_pastor', source: `(?:discipleship|next\\s*steps)\\s+(?:pastor|director|minister|lead)` },
   { field: 'operations_leader', source: `(?:director of operations|operations\\s+(?:director|pastor|manager|lead))` },
+  { field: 'marketing_director', source: `(?:marketing|digital)\\s+(?:director|pastor|lead|manager|coordinator|strategist)` },
   { field: 'communications_leader', source: `(?:communications|comms|creative|media)\\s+(?:director|pastor|lead|manager|coordinator)` },
 ];
 

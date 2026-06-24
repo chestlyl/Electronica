@@ -85,6 +85,13 @@ async function main() {
   check('roleFromTitle: Operations → operations_leader', () => assert.strictEqual(roleFromTitle('Operations')?.field, 'operations_leader'));
   check('roleFromTitle: Engagement → communications_leader', () => assert.strictEqual(roleFromTitle('Engagement')?.field, 'communications_leader'));
   check('roleFromTitle: Next Gen → no role (count only)', () => assert.strictEqual(roleFromTitle('Next Gen'), null));
+  // New senior-owner roles (calibration): discipleship/next-steps + marketing/digital.
+  check('roleFromTitle: Discipleship Pastor → discipleship_pastor', () => assert.strictEqual(roleFromTitle('Discipleship Pastor')?.field, 'discipleship_pastor'));
+  check('roleFromTitle: Next Steps Director → discipleship_pastor', () => assert.strictEqual(roleFromTitle('Next Steps Director')?.field, 'discipleship_pastor'));
+  check('roleFromTitle: Marketing Director → marketing_director', () => assert.strictEqual(roleFromTitle('Marketing Director')?.field, 'marketing_director'));
+  check('roleFromTitle: Digital Director → marketing_director (digital counts as marketing)', () => assert.strictEqual(roleFromTitle('Digital Director')?.field, 'marketing_director'));
+  check('roleFromTitle: Communications Director → communications_leader (stays comms)', () => assert.strictEqual(roleFromTitle('Communications Director')?.field, 'communications_leader'));
+  check('roleFromTitle: Executive Director → executive_pastor (KoK pattern)', () => assert.strictEqual(roleFromTitle('Executive Director')?.field, 'executive_pastor'));
 
   // End-to-end: a rendered staff page (staffCards populated) flows through
   // collectWebsite → extractFacts → facts. A fake provider supplies the bundle

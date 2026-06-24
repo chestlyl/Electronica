@@ -236,9 +236,9 @@ export function scoreStrategic(input: ScoringInput): StrategicScores {
     if (sc != null && sc >= 20) r.add(10, `deep staff (${sc})`, I.staff_count.evidence_ids);
     else if (sc != null && sc >= 10) r.add(6, `staff (${sc})`, I.staff_count.evidence_ids);
     else if (sc != null && sc >= 5) r.add(3, `small staff (${sc})`, I.staff_count.evidence_ids);
-    const roles = (['executive_pastor', 'operations_leader', 'communications_leader'] as const)
+    const roles = (['executive_pastor', 'discipleship_pastor', 'operations_leader', 'marketing_director', 'communications_leader'] as const)
       .filter((k) => I[k].value).map((k) => ({ k, c: I[k] }));
-    if (roles.length) r.add(Math.min(12, roles.length * 6), `exec/ops infrastructure: ${roles.map((x) => x.k).join(', ')}`, roles.flatMap((x) => x.c.evidence_ids));
+    if (roles.length) r.add(Math.min(14, roles.length * 5), `staff infrastructure: ${roles.map((x) => x.k).join(', ')}`, roles.flatMap((x) => x.c.evidence_ids));
     if (campuses != null && campuses >= 4) r.add(12, `multi-campus operation (${campuses} campuses)`, ['interpretation']);
     else if (multisite) r.add(6, 'multi-site operation', ['interpretation']);
     r.want(tech('ChMS'), 6, 'operational ChMS backbone', 'no ChMS backbone');
@@ -253,9 +253,12 @@ export function scoreStrategic(input: ScoringInput): StrategicScores {
   const contact = () => {
     const r = new Rubric();
     baseline(r, 'contactability');
+    // Senior-owner ladder: Lead > Exec > Discipleship > Operations > Marketing > Comms.
     if (I.lead_pastors.value.length) r.add(35, `lead pastor reachable: ${I.lead_pastors.value.join('; ')}`, I.lead_pastors.evidence_ids); else r.miss('no named lead pastor', 18);
     if (I.executive_pastor.value) r.add(22, `executive pastor: ${I.executive_pastor.value}`, I.executive_pastor.evidence_ids); else r.miss('no executive pastor');
+    if (I.discipleship_pastor.value) r.add(16, `discipleship/next-steps owner: ${I.discipleship_pastor.value}`, I.discipleship_pastor.evidence_ids);
     if (I.operations_leader.value) r.add(12, `operations leader: ${I.operations_leader.value}`, I.operations_leader.evidence_ids);
+    if (I.marketing_director.value) r.add(8, `marketing/digital director: ${I.marketing_director.value}`, I.marketing_director.evidence_ids);
     if (I.communications_leader.value) r.add(5, `communications lead (weakest entry — should not drive): ${I.communications_leader.value}`, I.communications_leader.evidence_ids);
     if (I.office_email.value) r.add(14, 'office email channel', I.office_email.evidence_ids); else r.miss('no office email');
     if (I.office_phone.value) r.add(10, 'office phone channel', I.office_phone.evidence_ids); else r.miss('no office phone');

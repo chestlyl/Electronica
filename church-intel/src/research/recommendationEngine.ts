@@ -85,7 +85,7 @@ interface Ctx {
   lifecycle: string;
   archetype: string;
   leadPastors: string[];
-  hasExec: boolean; hasOps: boolean; hasComms: boolean; leaderCount: number;
+  hasExec: boolean; hasDiscipleship: boolean; hasOps: boolean; hasMarketing: boolean; hasComms: boolean; leaderCount: number;
   hasEmail: boolean; hasPhone: boolean;
   knownVerified: boolean;
   accessLevel: EvidenceAccessLevel;
@@ -110,7 +110,8 @@ function buildCtx(input: RecommendationInput): Ctx {
     hasSig: (cat) => sigCat(cat).length > 0,
     lifecycle: I.lifecycle_stage.value, archetype: I.archetype.value,
     leadPastors: I.lead_pastors.value,
-    hasExec: !!I.executive_pastor.value, hasOps: !!I.operations_leader.value, hasComms: !!I.communications_leader.value,
+    hasExec: !!I.executive_pastor.value, hasDiscipleship: !!I.discipleship_pastor.value,
+    hasOps: !!I.operations_leader.value, hasMarketing: !!I.marketing_director.value, hasComms: !!I.communications_leader.value,
     leaderCount: N.leaders.length,
     hasEmail: !!I.office_email.value, hasPhone: !!I.office_phone.value,
     knownVerified: I.known_church_verified,
@@ -161,8 +162,12 @@ export const RULES: Rule[] = [
     emit: (c) => [{ target: 'entry_point', value: 'Lead Pastor', priority: 90, evidence: [evLead('lead_pastors', `lead: ${c.leadPastors.join('; ')}`)] }] },
   { id: 'R12_entry_exec', when: (c) => c.hasExec,
     emit: (c) => [{ target: 'entry_point', value: 'Executive Pastor', priority: 78, evidence: [evLead('executive_pastor', `exec: ${c.I.executive_pastor.value}`)] }] },
+  { id: 'R12b_entry_discipleship', when: (c) => c.hasDiscipleship,
+    emit: (c) => [{ target: 'entry_point', value: 'Discipleship Pastor', priority: 66, evidence: [evLead('discipleship_pastor', `discipleship: ${c.I.discipleship_pastor.value}`)] }] },
   { id: 'R13_entry_ops', when: (c) => c.hasOps,
     emit: (c) => [{ target: 'entry_point', value: 'Operations Leader', priority: 55, evidence: [evLead('operations_leader', `ops: ${c.I.operations_leader.value}`)] }] },
+  { id: 'R13b_entry_marketing', when: (c) => c.hasMarketing,
+    emit: (c) => [{ target: 'entry_point', value: 'Marketing / Digital Director', priority: 45, evidence: [evLead('marketing_director', `marketing: ${c.I.marketing_director.value}`)] }] },
   { id: 'R14_entry_comms', when: (c) => c.hasComms,
     emit: (c) => [{ target: 'entry_point', value: 'Communications Leader (support, not driver)', priority: 35, evidence: [evLead('communications_leader', `comms: ${c.I.communications_leader.value}`)] }] },
   { id: 'R15_entry_office', when: (c) => c.leadPastors.length === 0 && !c.hasExec && !c.hasOps && !c.hasComms && (c.hasEmail || c.hasPhone),
@@ -311,7 +316,7 @@ export function runRecommendationEngine(input: RecommendationInput): Recommendat
   // capacity is the lift-gate (can they carry the product?); contactability is the
   // execution gate (can we reach the right owner?). Mega is the best fit; giga gets
   // the most benefit but is a heavier lift.
-  const leadershipCompleteness = (c.leadPastors.length ? 1 : 0) + (c.hasExec ? 1 : 0) + (c.hasOps ? 1 : 0) + (c.hasComms ? 1 : 0);
+  const leadershipCompleteness = (c.leadPastors.length ? 1 : 0) + (c.hasExec ? 1 : 0) + (c.hasDiscipleship ? 1 : 0) + (c.hasOps ? 1 : 0) + (c.hasMarketing ? 1 : 0) + (c.hasComms ? 1 : 0);
   const fitCore = 0.45 * c.go + 0.30 * c.oc + 0.25 * c.ct;
   const megaSweet = c.awa != null && c.awa >= 2000 && c.awa < 10000;
   const giga = c.awa != null && c.awa >= 10000;

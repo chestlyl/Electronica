@@ -126,9 +126,13 @@ export function extractStaffCards(text: string): StaffCard[] {
 export function roleFromTitle(title: string): { field: string; confidence: number } | null {
   const t = title.toLowerCase();
   if (/\b(lead|senior)\s+pastor\b/.test(t)) return { field: 'lead_pastor', confidence: 80 };
-  if (/\bexec(?:utive)?\s+pastor\b/.test(t)) return { field: 'executive_pastor', confidence: 80 };
+  if (/\bexec(?:utive)?\s+(pastor|director)\b/.test(t)) return { field: 'executive_pastor', confidence: 80 };
+  // Discipleship / Next Steps owner (per calibration this should own the lift before comms).
+  if (/\b(discipleship|next\s*steps)\b/.test(t)) return { field: 'discipleship_pastor', confidence: 76 };
   if (/\boperations?\b|\bops\b/.test(t)) return { field: 'operations_leader', confidence: 78 };
-  if (/\b(communications?|comms|creative|media|engagement|marketing|digital)\b/.test(t)) return { field: 'communications_leader', confidence: 75 };
+  // Marketing — "digital" counts as marketing, and it ranks ABOVE comms.
+  if (/\b(marketing|digital)\b/.test(t)) return { field: 'marketing_director', confidence: 74 };
+  if (/\b(communications?|comms|creative|media|engagement)\b/.test(t)) return { field: 'communications_leader', confidence: 72 };
   return null;
 }
 

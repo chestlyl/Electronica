@@ -68,7 +68,7 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   // ── 3. Leadership ───────────────────────────────────────────────────────────
   L.push('## 3. Leadership');
   L.push(`- Lead pastor(s): ${I.lead_pastors.value.join('; ') || '—'}`);
-  L.push(`- Executive pastor: ${I.executive_pastor.value ?? '—'} · Operations: ${I.operations_leader.value ?? '—'} · Communications: ${I.communications_leader.value ?? '—'}`);
+  L.push(`- Executive pastor: ${I.executive_pastor.value ?? '—'} · Discipleship: ${I.discipleship_pastor.value ?? '—'} · Operations: ${I.operations_leader.value ?? '—'} · Marketing/Digital: ${I.marketing_director.value ?? '—'} · Communications: ${I.communications_leader.value ?? '—'}`);
   L.push(`- Office email: ${I.office_email.value ?? '—'} · Office phone: ${I.office_phone.value ?? '—'}`);
   if (b.leadership?.length) L.push(`- All leaders found: ${b.leadership.map((l) => `${l.name} (${l.title}${l.isLead ? ', LEAD' : ''})`).join('; ')}`);
   L.push('');

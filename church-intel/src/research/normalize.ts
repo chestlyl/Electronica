@@ -109,7 +109,8 @@ export function normalizeEvidence(input: NormalizeInput): NormalizedEvidence {
   // interpreter reads — facts becomes an input, not a competing conclusion).
   const ROLE_FACT_CATEGORY: Record<string, string> = {
     lead_pastor: 'lead_pastor', executive_pastor: 'executive_pastor',
-    operations_leader: 'operations_leader', communications_leader: 'communications_leader',
+    discipleship_pastor: 'discipleship_pastor', operations_leader: 'operations_leader',
+    marketing_director: 'marketing_director', communications_leader: 'communications_leader',
   };
   const haveLeader = (name: string) => ev.leaders.some((l) => l.value.toLowerCase() === name.toLowerCase());
   let factLeaderN = 0;

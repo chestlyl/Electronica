@@ -292,10 +292,12 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
     L.push('| role | name | email | phone | confidence |');
     L.push('|---|---|---|---|---|');
     L.push(`| Lead pastor(s) | ${leadNames || '—'} | ${emailVal} | ${phoneVal} | ${leadConf} |`);
-    const roleConc = (k: 'executive_pastor' | 'operations_leader' | 'communications_leader', label: string) =>
+    const roleConc = (k: 'executive_pastor' | 'discipleship_pastor' | 'operations_leader' | 'marketing_director' | 'communications_leader', label: string) =>
       `| ${label} | ${I ? (I[k].value ?? '—') : val(f[k])} | — | — | ${I ? (I[k].value ? Math.round(I[k].confidence) : '—') : (f[k]?.confidence != null ? Math.round(f[k]!.confidence!) : '—')} |`;
     L.push(roleConc('executive_pastor', 'Executive pastor'));
+    L.push(roleConc('discipleship_pastor', 'Discipleship pastor'));
     L.push(roleConc('operations_leader', 'Operations leader'));
+    L.push(roleConc('marketing_director', 'Marketing / Digital director'));
     L.push(roleConc('communications_leader', 'Communications leader'));
     L.push(`- office email: ${emailVal} · office phone: ${phoneVal} _(church-level, not person-specific)_`);
     // Evidence display: all leader candidates (Layer-3 normalized roster).

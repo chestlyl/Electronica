@@ -93,7 +93,9 @@ export interface AttendanceFactor {
 export interface Interpretation {
   lead_pastors: Conclusion<string[]>;
   executive_pastor: Conclusion<string | null>;
+  discipleship_pastor: Conclusion<string | null>;
   operations_leader: Conclusion<string | null>;
+  marketing_director: Conclusion<string | null>;
   communications_leader: Conclusion<string | null>;
   office_email: Conclusion<string | null>;
   office_phone: Conclusion<string | null>;

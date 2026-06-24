@@ -118,8 +118,10 @@ export function deriveContactability(scoreConf: ScoreConfidence | undefined, fie
   const parts: { key: string; w: number; label: string }[] = [
     { key: 'lead_pastor', w: 30, label: 'lead pastor' },
     { key: 'executive_pastor', w: 15, label: 'exec pastor' },
+    { key: 'discipleship_pastor', w: 12, label: 'discipleship' },
     { key: 'operations_leader', w: 10, label: 'operations' },
-    { key: 'communications_leader', w: 10, label: 'communications' },
+    { key: 'marketing_director', w: 8, label: 'marketing' },
+    { key: 'communications_leader', w: 6, label: 'communications' },
     { key: 'office_email', w: 20, label: 'email' },
     { key: 'office_phone', w: 15, label: 'phone' },
   ];
@@ -286,7 +288,9 @@ export function interpretDossier(input: InterpretInput): Interpretation {
   const contactFields: FieldMap = {
     lead_pastor: { value: lead_pastors.value[0] ?? null, confidence: null },
     executive_pastor: { value: roleConclusion('executive_pastor').value, confidence: null },
+    discipleship_pastor: { value: roleConclusion('discipleship_pastor').value, confidence: null },
     operations_leader: { value: roleConclusion('operations_leader').value, confidence: null },
+    marketing_director: { value: roleConclusion('marketing_director').value, confidence: null },
     communications_leader: { value: roleConclusion('communications_leader').value, confidence: null },
     office_email: { value: office_email.value, confidence: null },
     office_phone: { value: office_phone.value, confidence: null },
@@ -316,7 +320,9 @@ export function interpretDossier(input: InterpretInput): Interpretation {
   return {
     lead_pastors,
     executive_pastor: roleConclusion('executive_pastor'),
+    discipleship_pastor: roleConclusion('discipleship_pastor'),
     operations_leader: roleConclusion('operations_leader'),
+    marketing_director: roleConclusion('marketing_director'),
     communications_leader: roleConclusion('communications_leader'),
     office_email,
     office_phone,

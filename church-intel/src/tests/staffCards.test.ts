@@ -84,7 +84,7 @@ async function main() {
   check('roleFromTitle: Lead Pastor → lead_pastor', () => assert.strictEqual(roleFromTitle('Lead Pastor')?.field, 'lead_pastor'));
   check('roleFromTitle: Operations → operations_leader', () => assert.strictEqual(roleFromTitle('Operations')?.field, 'operations_leader'));
   check('roleFromTitle: Engagement → communications_leader', () => assert.strictEqual(roleFromTitle('Engagement')?.field, 'communications_leader'));
-  check('roleFromTitle: Next Gen → no role (count only)', () => assert.strictEqual(roleFromTitle('Next Gen'), null));
+  check('roleFromTitle: Next Gen → nextgen_leader (now a first-class role)', () => assert.strictEqual(roleFromTitle('Next Gen')?.field, 'nextgen_leader'));
   // New senior-owner roles (calibration): discipleship/next-steps + marketing/digital.
   check('roleFromTitle: Discipleship Pastor → discipleship_pastor', () => assert.strictEqual(roleFromTitle('Discipleship Pastor')?.field, 'discipleship_pastor'));
   check('roleFromTitle: Next Steps Director → discipleship_pastor', () => assert.strictEqual(roleFromTitle('Next Steps Director')?.field, 'discipleship_pastor'));

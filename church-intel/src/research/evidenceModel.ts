@@ -47,6 +47,7 @@ export interface NormalizedRow {
 export interface NormalizedEvidence {
   leaders: NormalizedRow[];
   contacts: NormalizedRow[];
+  email_map: NormalizedRow[];   // every email found, bucketed (person/role/church/unassigned)
   locations: NormalizedRow[];
   services: NormalizedRow[];
   staff_roster: NormalizedRow[];
@@ -61,7 +62,7 @@ export interface NormalizedEvidence {
 
 export function emptyNormalizedEvidence(): NormalizedEvidence {
   return {
-    leaders: [], contacts: [], locations: [], services: [], staff_roster: [],
+    leaders: [], contacts: [], email_map: [], locations: [], services: [], staff_roster: [],
     technology_stack: [], external_signals: [], ministries: [], sermons_media: [],
     jobs_hiring: [], network_affiliations: [], conflicts: [],
   };

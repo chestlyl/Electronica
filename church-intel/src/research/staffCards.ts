@@ -127,8 +127,13 @@ export function roleFromTitle(title: string): { field: string; confidence: numbe
   const t = title.toLowerCase();
   if (/\b(lead|senior)\s+pastor\b/.test(t)) return { field: 'lead_pastor', confidence: 80 };
   if (/\bexec(?:utive)?\s+(pastor|director)\b/.test(t)) return { field: 'executive_pastor', confidence: 80 };
+  // Campus pastor — specific; classify before the generic ministry roles below.
+  if (/\bcampus\s+pastor\b/.test(t)) return { field: 'campus_pastor', confidence: 76 };
   // Discipleship / Next Steps owner (per calibration this should own the lift before comms).
-  if (/\b(discipleship|next\s*steps)\b/.test(t)) return { field: 'discipleship_pastor', confidence: 76 };
+  if (/\b(discipleship|next\s*steps|spiritual\s+formation)\b/.test(t)) return { field: 'discipleship_pastor', confidence: 76 };
+  if (/\b(small\s*groups?|life\s*groups?|community\s*groups?|\bgroups?\b|connections?)\b/.test(t)) return { field: 'groups_leader', confidence: 70 };
+  if (/\b(next\s*gen|nextgen|kids?|children'?s?|students?|youth|family\s+ministr|preschool)\b/.test(t)) return { field: 'nextgen_leader', confidence: 70 };
+  if (/\b(missions?|outreach|global|local\s+missions?)\b/.test(t)) return { field: 'outreach_missions_leader', confidence: 70 };
   if (/\boperations?\b|\bops\b/.test(t)) return { field: 'operations_leader', confidence: 78 };
   // Marketing — "digital" counts as marketing, and it ranks ABOVE comms.
   if (/\b(marketing|digital)\b/.test(t)) return { field: 'marketing_director', confidence: 74 };

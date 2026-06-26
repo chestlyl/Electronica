@@ -1,5 +1,7 @@
 import type { SourceFinding } from './dossier.js';
 import type { Facts, LeaderCandidate } from './extractors.js';
+import { roleFromTitle } from './staffCards.js';
+import { buildEmailMap, hostOf } from './emailMap.js';
 import type { PlatformHit } from './techStack.js';
 import type { StrategicSignal } from './strategicSignals.js';
 import type { ResearchConflict, EvidenceAccessLevel } from '../types.js';
@@ -95,8 +97,9 @@ export function normalizeEvidence(input: NormalizeInput): NormalizedEvidence {
   let rosterN = 0;
   for (const f of findings) {
     for (const card of f.staffCards ?? []) {
+      // category = the canonical relationship role (the "leadership map"), else 'staff'.
       ev.staff_roster.push({
-        id: `roster_${++rosterN}`, value: card.name, category: 'staff', detail: card.title,
+        id: `roster_${++rosterN}`, value: card.name, category: roleFromTitle(card.title)?.field ?? 'staff', detail: card.title,
         source_url: f.url, evidence_text: `${card.name} — ${card.title}`, confidence: Math.round((f.reliability ?? 0.5) * 80),
         access_level: f.accessLevel, extractor_name: 'staffCards',
       });
@@ -176,6 +179,16 @@ export function normalizeEvidence(input: NormalizeInput): NormalizedEvidence {
     if (s.category === 'livestream_video' || s.category === 'podcast') ev.sermons_media.push(row);
     if (s.category === 'groups' || s.category === 'school_academy') ev.ministries.push(row);
   });
+
+  // email_map[] — EVERY email found, bucketed + associated to a person when
+  // possible. Nothing is discarded (an unattributable address → "unassigned").
+  const staffNames = [...new Set([...ev.leaders.map((l) => l.value), ...ev.staff_roster.map((r) => r.value)])];
+  const officialDomain = hostOf(findings.find((f) => f.accessLevel === 'live_official_site' && f.fetched)?.url ?? findings.find((f) => f.accessLevel === 'live_official_site')?.url);
+  buildEmailMap(findings, staffNames, officialDomain).forEach((e, i) => ev.email_map.push({
+    id: `email_${i + 1}`, value: e.email, category: e.bucket, detail: e.person ?? e.role_hint ?? undefined,
+    source_url: e.source_url, evidence_text: e.near || e.email, confidence: e.confidence,
+    access_level: e.access_level, extractor_name: 'emailMap',
+  }));
 
   // conflicts[] — preserved disagreements (never silently resolved).
   conflicts.forEach((c, i) => ev.conflicts.push({

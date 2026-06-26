@@ -8,6 +8,8 @@ import {
 import { collectWebsite } from './sources/website.js';
 import { collectSnippets } from './sources/snippets.js';
 import { extractFacts, aggregateLeadership, debugExtractionTrace, type Facts, type LeaderCandidate } from './extractors.js';
+import { lookupReportedAttendance } from './reportedAttendanceSource.js';
+import { multiSearch } from './searchProviders.js';
 import { detectDigitalSignals, digitalEvidenceSummary, type DigitalSignals } from './digitalSignals.js';
 import { detectTechStack, type PlatformHit } from './techStack.js';
 import { detectStrategicSignals, dimensionCounts, type StrategicSignal, type Dimension } from './strategicSignals.js';
@@ -198,6 +200,18 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   const officialCrawled = officialSiteWasCrawled(findings);
   const accessLevel = dossierAccessLevel(findings);
   const facts = extractFacts(findings);
+  // Authoritative reported attendance (Outreach 100 / Hartford) — overrides the
+  // staff-pattern inference that systematically under-sizes megachurches. Best
+  // effort: a miss (small church, no network) just falls through to inference.
+  if (!facts.reported_attendance) {
+    try {
+      const rep = await lookupReportedAttendance(target.name, target.state, (q, o) => multiSearch(q, o));
+      if (rep) {
+        facts.reported_attendance = { value: rep.value, confidence: rep.confidence, evidence: rep.evidence, source_url: rep.source_url, access_level: 'third_party_directory' };
+        logger.info(`  reported attendance: ${rep.evidence}`);
+      }
+    } catch { /* non-fatal */ }
+  }
   // Aggregate ALL pastor/leader candidates (supports co-lead / multiple lead pastors).
   const leadership = aggregateLeadership(findings);
 

@@ -1,4 +1,5 @@
 import { logger } from '../lib/logger.js';
+import { config } from '../config.js';
 import type { SearchResult } from './types.js';
 
 /**
@@ -150,7 +151,70 @@ async function mojeek(query: string): Promise<ProviderOutcome> {
   }
 }
 
-const PROVIDERS = [ddgHtml, ddgLite, bing, mojeek];
+// ── Provider: Serper.dev (Google results as JSON) ───────────────────────────
+// Pure parser, exported so it can be unit-tested without a network call.
+export function parseSerper(json: unknown): SearchResult[] {
+  const j = json as { organic?: { title?: string; link?: string; snippet?: string }[]; answerBox?: { title?: string; link?: string; snippet?: string; answer?: string } };
+  const out: SearchResult[] = [];
+  const ab = j.answerBox;
+  if (ab?.link) out.push({ title: ab.title ?? '', url: ab.link, snippet: ab.snippet ?? ab.answer ?? '' });
+  for (const r of j.organic ?? []) if (r.link) out.push({ title: r.title ?? '', url: r.link, snippet: r.snippet ?? '' });
+  return out;
+}
+async function serper(query: string): Promise<ProviderOutcome> {
+  const provider = 'serper';
+  try {
+    const res = await fetch('https://google.serper.dev/search', {
+      method: 'POST', signal: AbortSignal.timeout(TIMEOUT_MS),
+      headers: { 'X-API-KEY': config.search.serperApiKey, 'content-type': 'application/json' },
+      body: JSON.stringify({ q: query, num: 10, gl: 'us', hl: 'en' }),
+    });
+    const status = res.status;
+    if (!res.ok) return { results: [], diagnostic: { provider, status, resultCount: 0, ok: false, note: `HTTP ${status}` } };
+    const results = parseSerper(await res.json());
+    return { results, diagnostic: { provider, status, resultCount: results.length, ok: results.length > 0 } };
+  } catch (err) {
+    return { results: [], diagnostic: { provider, status: 0, resultCount: 0, ok: false, note: (err as Error).message } };
+  }
+}
+
+// ── Provider: Brave Search API (JSON) ────────────────────────────────────────
+export function parseBrave(json: unknown): SearchResult[] {
+  const j = json as { web?: { results?: { title?: string; url?: string; description?: string }[] } };
+  const out: SearchResult[] = [];
+  for (const r of j.web?.results ?? []) if (r.url) out.push({ title: r.title ?? '', url: r.url, snippet: stripTags(r.description ?? '') });
+  return out;
+}
+async function brave(query: string): Promise<ProviderOutcome> {
+  const provider = 'brave';
+  try {
+    const res = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=10`, {
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+      headers: { 'X-Subscription-Token': config.search.braveApiKey, accept: 'application/json' },
+    });
+    const status = res.status;
+    if (!res.ok) return { results: [], diagnostic: { provider, status, resultCount: 0, ok: false, note: `HTTP ${status}` } };
+    const results = parseBrave(await res.json());
+    return { results, diagnostic: { provider, status, resultCount: results.length, ok: results.length > 0 } };
+  } catch (err) {
+    return { results: [], diagnostic: { provider, status: 0, resultCount: 0, ok: false, note: (err as Error).message } };
+  }
+}
+
+type Provider = (q: string) => Promise<ProviderOutcome>;
+const SCRAPER_PROVIDERS: Provider[] = [ddgHtml, ddgLite, bing, mojeek];
+
+/**
+ * Active providers in priority order. API-keyed backends (reliable JSON) lead;
+ * the HTML scrapers follow as a keyless fallback. Read at call time so a key set
+ * after module load is still honored.
+ */
+export function activeProviders(): Provider[] {
+  const keyed: Provider[] = [];
+  if (config.search.serperApiKey) keyed.push(serper);
+  if (config.search.braveApiKey) keyed.push(brave);
+  return [...keyed, ...SCRAPER_PROVIDERS];
+}
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -175,7 +239,7 @@ export async function multiSearch(
   const diagnostics: SearchDiagnostic[] = [];
   const byUrl = new Map<string, SearchResult>();
 
-  for (const provider of PROVIDERS) {
+  for (const provider of activeProviders()) {
     const { results, diagnostic } = await provider(query);
     diagnostics.push(diagnostic);
     for (const r of results) {

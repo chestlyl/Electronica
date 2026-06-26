@@ -18,7 +18,7 @@
  *   (run via `npm run test`)
  */
 import assert from 'node:assert';
-import { extractStaffCards, roleFromTitle } from '../research/staffCards.js';
+import { extractStaffCards, roleFromTitle, isPersonName } from '../research/staffCards.js';
 import { extractFacts } from '../research/extractors.js';
 import { collectWebsite } from '../research/sources/website.js';
 import { deriveContactability } from '../research/calibrationSet.js';
@@ -92,6 +92,34 @@ async function main() {
   check('roleFromTitle: Digital Director → marketing_director (digital counts as marketing)', () => assert.strictEqual(roleFromTitle('Digital Director')?.field, 'marketing_director'));
   check('roleFromTitle: Communications Director → communications_leader (stays comms)', () => assert.strictEqual(roleFromTitle('Communications Director')?.field, 'communications_leader'));
   check('roleFromTitle: Executive Director → executive_pastor (KoK pattern)', () => assert.strictEqual(roleFromTitle('Executive Director')?.field, 'executive_pastor'));
+  // Improved pastor assignment: founding + co-lead variants resolve to lead_pastor.
+  check('roleFromTitle: Founding Pastor → lead_pastor', () => assert.strictEqual(roleFromTitle('Founding Pastor')?.field, 'lead_pastor'));
+  check('roleFromTitle: Co-Lead Pastor → lead_pastor', () => assert.strictEqual(roleFromTitle('Co-Lead Pastor')?.field, 'lead_pastor'));
+  check('roleFromTitle: Senior Pastor & Founder → lead_pastor', () => assert.strictEqual(roleFromTitle('Senior Pastor & Founder')?.field, 'lead_pastor'));
+
+  // ── Priority 1: leadership classification cleanup ───────────────────────────
+  // Navigation / CTA artifacts must never be treated as people.
+  check('nav/CTA strings are NOT person names', () => {
+    for (const s of ['Watch Online', 'Plan A Visit', 'Give Now', 'New Here', 'Our Story', 'Next Steps', 'Live Stream', 'Get Involved']) {
+      assert.ok(!isPersonName(s), `"${s}" should be rejected as a person`);
+    }
+  });
+  // Organizational / collective labels must never be treated as people.
+  check('organizational labels are NOT person names', () => {
+    for (const s of ['Lead Team', 'Elder Board', 'Worship Team', 'Leadership Council', 'Our Elders', 'Staff Directory', 'Executive Team']) {
+      assert.ok(!isPersonName(s), `"${s}" should be rejected as a person`);
+    }
+  });
+  // Real names with no collective/nav tokens still pass.
+  check('real names still pass isPersonName', () => {
+    for (const s of ['Jacob Young', 'Rachel Carpenter', 'Brenda Young', 'David Stone']) assert.ok(isPersonName(s), `"${s}" should pass`);
+  });
+  // End-to-end: a staff page laced with nav + an org label yields only the 2 people.
+  check('extractStaffCards drops nav rows and org labels, keeps real people', () => {
+    const page = `Plan A Visit\nWatch Online\n\nMeet Our Team\n\nLeadership Team\n\nJacob Young\nLead Pastor\n\nMark Lee\nExecutive Pastor\n\nGive Now`;
+    const names = extractStaffCards(page).map((c) => c.name);
+    assert.deepStrictEqual(names.sort(), ['Jacob Young', 'Mark Lee']);
+  });
 
   // End-to-end: a rendered staff page (staffCards populated) flows through
   // collectWebsite → extractFacts → facts. A fake provider supplies the bundle

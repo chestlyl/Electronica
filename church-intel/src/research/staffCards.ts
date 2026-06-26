@@ -78,10 +78,22 @@ function looksLikeTitle(s: string): boolean {
 /** Recover {name, title} staff cards from rendered innerText (or raw text). */
 // Tokens that mark a "name" as a nav button / ministry label, not a person
 // (e.g. "BUILDING CAMPAIGN UPDATE", "PARENT EMAILS", "LIFE NEEDS", "Read More").
-const NON_PERSON_NAME = /\b(update|updates|emails?|campaign|building|needs|resources?|ministr(?:y|ies)|giving|newsletter|calendar|events?|prayer|missions?|outreach|baptisms?|blessings?|volunteer|donate|welcome|menu|search|cart|login|register|read\s+more|learn\s+more|see\s+more|next\s+steps|parent|sermons?|podcasts?|directions?)\b/i;
+// Includes common navigation/CTA words ("Plan", "Watch", "Give", "Connect"…) so a
+// Title-Case nav string that passes NAME_RE is still rejected.
+const NON_PERSON_NAME = /\b(update|updates|emails?|campaign|building|needs|resources?|ministr(?:y|ies)|giving|give|newsletter|calendar|events?|prayer|missions?|outreach|baptisms?|blessings?|volunteer|serve|donate|welcome|menu|search|cart|login|logout|register|subscribe|account|profile|read\s+more|learn\s+more|see\s+more|view\s+all|next\s+steps|plan|visit|watch|online|livestream|connect|involved|story|believe|beliefs|location|locations|campus|campuses|schedule|directions|parent|sermons?|podcasts?|app|blog|faq)\b/i;
+// Organizational / collective labels are NOT people ("Lead Team", "Elder Board",
+// "Worship Team", "Leadership Council", "Our Elders"). These can pass NAME_RE as
+// two Title-Case words, so reject any candidate carrying a collective-noun token.
+const ORG_LABEL = /\b(teams?|board|council|committee|cohort|department|congregation|elders?|deacons?|trustees?|staff|leadership|directory)\b/i;
+// Full-string navigation / call-to-action phrases (anchored, so real names are
+// never matched). Catches Title-Case CTAs that slip past the token lists above.
+const NAV_CTA = /^(?:plan (?:a |your )?visit|watch(?: online| live| now| party)?|give(?: now| online)?|giving|new here|i'?m new|get involved|next steps|our (?:story|team|staff|leaders|leadership|church|mission)|meet (?:the|our) (?:team|staff|leaders|pastors)|connect(?: with us)?|contact(?: us)?|join us|learn more|read more|see (?:all|more)|view all|sign in|log ?in|sign up|donate(?: now)?|listen(?: now)?|subscribe|search|menu|home|locations?|campuses?|directions|map|espa(?:ñ|n)ol|en espa(?:ñ|n)ol|prayer(?: request)?|live ?stream)$/i;
 export function isPersonName(name: string): boolean {
-  if (/[0-9@]/.test(name) || /\b(a\.?m\.?|p\.?m\.?)\b/i.test(name)) return false;
-  if (NON_PERSON_NAME.test(name)) return false;
+  const n = name.trim();
+  if (/[0-9@]/.test(n) || /\b(a\.?m\.?|p\.?m\.?)\b/i.test(n)) return false;
+  if (NON_PERSON_NAME.test(n)) return false;
+  if (ORG_LABEL.test(n)) return false;
+  if (NAV_CTA.test(n)) return false;
   return true;
 }
 
@@ -125,7 +137,8 @@ export function extractStaffCards(text: string): StaffCard[] {
 /** Map a staff-card title to a canonical relationship role (or null). */
 export function roleFromTitle(title: string): { field: string; confidence: number } | null {
   const t = title.toLowerCase();
-  if (/\b(lead|senior)\s+pastor\b/.test(t)) return { field: 'lead_pastor', confidence: 80 };
+  // Lead pastor — lead/senior/founding, and the co-lead/co-senior variants.
+  if (/\b(?:lead|senior|founding)\s+pastors?\b/.test(t) || /\bco[-\s]?(?:lead|senior)\s+pastors?\b/.test(t)) return { field: 'lead_pastor', confidence: 80 };
   if (/\bexec(?:utive)?\s+(pastor|director)\b/.test(t)) return { field: 'executive_pastor', confidence: 80 };
   // Campus pastor — specific; classify before the generic ministry roles below.
   if (/\bcampus\s+pastor\b/.test(t)) return { field: 'campus_pastor', confidence: 76 };

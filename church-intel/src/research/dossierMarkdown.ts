@@ -2,6 +2,7 @@ import { digitalEvidenceSummary } from './digitalSignals.js';
 import { strategicSignalSummary } from './strategicSignals.js';
 import { recommendationSummary } from './recommendationEngine.js';
 import { buildOutreachIntel } from './outreachIntel.js';
+import { buildContactIntel } from './contactIntel.js';
 import type { DossierBuild, ResearchTarget } from './researchAgent.js';
 
 function fmtPct(n: number | null | undefined): string {
@@ -122,9 +123,12 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   L.push(`- **Admin / office contact** — email: ${I.office_email.value ?? 'not found'} · phone: ${I.office_phone.value ?? 'not found'}`);
   L.push('');
 
-  // ── 4. Staff Emails (every email preserved, bucketed) ───────────────────────
-  L.push('## 4. Staff Emails');
-  L.push('_All emails found, nothing discarded. Buckets: person-matched · role-based · church-level · unassigned._');
+  // ── 4. Contact Intelligence (every channel preserved, organized for outreach) ─
+  const ci = buildContactIntel({ findings: b.findings, normalized: N, interpretation: I });
+  L.push('## 4. Contact Intelligence');
+  L.push('_Every contact channel found, nothing discarded. Emails bucketed: person-matched · role-based · church-level · unassigned. Plus departments, contact forms, campus contacts, and phones._');
+  L.push(`- **Primary email:** ${ci.primary_email ?? 'not found'} · **Primary phone:** ${ci.primary_phone ?? 'not found'}`);
+  L.push('');
   const bucket = (cat: string) => N.email_map.filter((e) => e.category === cat);
   const emailLines = (label: string, rows: typeof N.email_map, fmt: (e: (typeof rows)[number]) => string) => {
     L.push(`### ${label} (${rows.length})`);
@@ -135,6 +139,22 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   emailLines('Role-based', bucket('role'), (e) => `${e.value}${e.detail ? ` (${e.detail})` : ''}`);
   emailLines('Church-level', bucket('church'), (e) => `${e.value}${e.detail ? ` (${e.detail})` : ''}`);
   emailLines('Unassigned', bucket('unassigned'), (e) => `${e.value}${e.detail ? ` — ${e.detail}` : ''}`);
+  // Departments — role mailboxes grouped by the function they serve.
+  L.push(`### Department contacts (${ci.departments.length})`);
+  if (!ci.departments.length) L.push('- none found');
+  for (const d of ci.departments) L.push(`- **${d.department}:** ${d.emails.map((e) => e.value).join(', ')}`);
+  // Contact forms — a real "send us a message" form, with the page it lives on.
+  L.push(`### Contact forms (${ci.contact_forms.length})`);
+  if (!ci.contact_forms.length) L.push('- none detected');
+  for (const f of ci.contact_forms) L.push(`- ${f.url} — ${f.evidence}`);
+  // Campus / location contacts — address + nearest phone per location.
+  L.push(`### Campus / location contacts (${ci.campus_contacts.length})`);
+  if (!ci.campus_contacts.length) L.push('- none found');
+  for (const c of ci.campus_contacts) L.push(`- **${c.name}** — ${c.address ?? '—'}${c.phone ? ` · ${c.phone}` : ''} _(source: ${c.source_url || '—'})_`);
+  // Phones — deduped by number.
+  L.push(`### Phones (${ci.phones.length})`);
+  if (!ci.phones.length) L.push('- none found');
+  for (const p of ci.phones) L.push(`- ${p.value}${p.label ? ` (${p.label})` : ''} _(conf ${p.confidence})_`);
   L.push('');
 
   // ── 4. Technology Stack ─────────────────────────────────────────────────────

@@ -45,6 +45,14 @@ export const config = {
     // actually investigated rather than inferred from a homepage link.
     fetchMaxPages: num('FETCH_MAX_PAGES', 12),
   },
+  search: {
+    // Optional API-keyed search backends. When a key is present the provider is
+    // slotted AHEAD of the HTML scrapers (which return 0 results in many hosted
+    // environments) — this is what lets reported-attendance lookups actually
+    // activate. No key → the scrapers remain the keyless fallback.
+    serperApiKey: process.env.SERPER_API_KEY ?? '',
+    braveApiKey: process.env.BRAVE_SEARCH_API_KEY ?? '',
+  },
   prospect: {
     // Google Places API key for area enumeration (prospect-area command).
     googlePlacesApiKey: process.env.GOOGLE_PLACES_API_KEY ?? '',

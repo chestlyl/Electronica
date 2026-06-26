@@ -111,9 +111,12 @@ async function main() {
   const { target, build } = await buildCornerstoneOffline();
   const md = renderDossierMarkdown(target, build);
   check('dossier has a Leadership Access section', () => assert.match(md, /## 3\. Leadership Access/));
-  check('dossier has a Staff Emails section with all four buckets', () => {
-    assert.match(md, /## 4\. Staff Emails/);
+  check('dossier has a Contact Intelligence section with all four email buckets', () => {
+    assert.match(md, /## 4\. Contact Intelligence/);
     for (const b of ['Person-matched', 'Role-based', 'Church-level', 'Unassigned']) assert.ok(md.includes(`### ${b}`), `missing bucket ${b}`);
+  });
+  check('Contact Intelligence adds departments, contact forms, campus + phones', () => {
+    for (const h of ['### Department contacts', '### Contact forms', '### Campus / location contacts', '### Phones']) assert.ok(md.includes(h), `missing ${h}`);
   });
   check('every email in the map appears in the rendered dossier (nothing dropped)', () => {
     for (const e of build.normalized.email_map) assert.ok(md.includes(e.value), `email ${e.value} missing from dossier`);

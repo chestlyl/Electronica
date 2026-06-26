@@ -1,6 +1,7 @@
 import { hostOf } from './emailMap.js';
 import { logger } from '../lib/logger.js';
 import type { SearchResult } from './types.js';
+import type { SearchDiagnostic } from './searchProviders.js';
 
 /**
  * Authoritative reported-attendance source — Outreach 100 + the Hartford
@@ -68,7 +69,7 @@ export function parseAuthoritativeAttendance(results: SearchResult[], churchName
   return hits[0] ?? null;
 }
 
-export type SearchFn = (q: string, opts?: { limit?: number }) => Promise<{ results: SearchResult[] }>;
+export type SearchFn = (q: string, opts?: { limit?: number }) => Promise<{ results: SearchResult[]; diagnostics?: SearchDiagnostic[] }>;
 
 /** Look up a church's published attendance via Outreach 100 / Hartford. Best-effort. */
 export async function lookupReportedAttendance(name: string, state: string | null, search: SearchFn): Promise<ReportedAttendance | null> {
@@ -78,10 +79,14 @@ export async function lookupReportedAttendance(name: string, state: string | nul
   const all: SearchResult[] = [];
   for (const q of queries) {
     try {
-      const { results } = await search(q, { limit: 10 });
+      const { results, diagnostics } = await search(q, { limit: 10 });
       all.push(...results);
       if (debug) {
         logger.info(`  [ATTENDANCE_DEBUG] query "${q}" → ${results.length} results`);
+        // Per-provider breakdown — THE diagnostic for "why did this return 0?". A
+        // row of `status=202/0 results=0` across every provider means the search
+        // layer (not the parser) is the failure point — add a SERPER/BRAVE key.
+        for (const d of diagnostics ?? []) logger.info(`      provider=${d.provider} status=${d.status} results=${d.resultCount} ok=${d.ok}${d.note ? ` note=${d.note}` : ''}`);
         for (const r of results.slice(0, 6)) logger.info(`    [${hostOf(r.url)}] ${(r.title ?? '').slice(0, 70)} :: ${(r.snippet ?? '').slice(0, 90)}`);
       }
     } catch (e) { if (debug) logger.info(`  [ATTENDANCE_DEBUG] query "${q}" failed: ${(e as Error).message}`); }

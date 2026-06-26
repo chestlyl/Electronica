@@ -40,6 +40,20 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   if (!b.officialCrawled) L.push('> ⚠️ Official website DOM was not fetched; evidence is from indexed snippets/third-party sources, so confidence is **capped**.');
   L.push('');
 
+  // ── Coverage Validation — how much of the church did we actually investigate? ─
+  if (b.coverageReport) {
+    const cr = b.coverageReport;
+    L.push(`## Coverage: ${cr.coveragePercent}%`);
+    L.push('_What the crawl actually investigated. A `missing`/`partial` category lowers CONFIDENCE — it is not evidence of absence._');
+    L.push(`- **Complete (${cr.complete.length}):** ${cr.complete.join(', ') || '—'}`);
+    L.push(`- **Partial (${cr.partial.length}):** ${cr.partial.join(', ') || '—'}`);
+    L.push(`- **Missing (${cr.missing.length}):** ${cr.missing.join(', ') || '—'}`);
+    L.push('| category | status | investigated | note |');
+    L.push('|---|---|---|---|');
+    for (const c of cr.categories) L.push(`| ${c.category}${c.required ? ' *' : ''} | ${c.status} | ${c.investigated ? 'yes' : 'no'} | ${c.note} |`);
+    L.push('');
+  }
+
   // ── 2. Church Size — Average Weekend Attendance is a first-class metric ──────
   const awa = I.attendance_estimate.value;
   const range = I.attendance_range;

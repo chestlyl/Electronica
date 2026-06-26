@@ -11,6 +11,7 @@ import { extractFacts, aggregateLeadership, debugExtractionTrace, type Facts, ty
 import { lookupReportedAttendance } from './reportedAttendanceSource.js';
 import { multiSearch } from './searchProviders.js';
 import { detectDigitalSignals, digitalEvidenceSummary, type DigitalSignals } from './digitalSignals.js';
+import { validateCoverage, type CoverageReport } from './coverageValidation.js';
 import { detectTechStack, type PlatformHit } from './techStack.js';
 import { detectStrategicSignals, dimensionCounts, type StrategicSignal, type Dimension } from './strategicSignals.js';
 import { toRawEvidence, normalizeEvidence } from './normalize.js';
@@ -75,6 +76,8 @@ export interface DossierBuild {
   normalized: NormalizedEvidence;
   /** Layer 4 — the ONLY conclusions; report + enrich consume this same object. */
   interpretation: Interpretation;
+  /** Coverage Validation (Stage 2) — per-category complete/partial/missing + %. */
+  coverageReport: CoverageReport;
   /** Strategic Scoring v1 — rubric-based, REPORT-ONLY (not written to Supabase). */
   strategicScores: StrategicScores;
   /** Capability-vs-size lens (additive, report-only) — divergence of capability from size. */
@@ -345,6 +348,10 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     ? facts.campus_count.value
     : (facts.campus_count?.value != null && Number.isFinite(Number(facts.campus_count.value)) ? Number(facts.campus_count.value) : null);
   const multisite = (campusCount != null && campusCount >= 2) || facts.multi_site?.value === true;
+  // Coverage Validation (Stage 2): honest per-category complete/partial/missing
+  // from real crawl facts. Computed BEFORE scoring; surfaced in the dossier. Does
+  // not change any score (the scoring gate consuming it is Stage 3).
+  const coverageReport = validateCoverage({ findings, strategicSignals, techStack, digital, campusKnown: campusCount != null || multisite });
   const strategicScores = scoreStrategic({ interpretation, normalized, coverage, accessLevel, scale: { campusCount, multisite } });
   // Strategic Recommendation Engine (report-only): deterministic rules over the
   // interpretation layer ONLY (interpretation + normalized + scores + signals +
@@ -409,7 +416,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   return {
     identity, findings, conflicts, contamination, synthesis, facts, leadership, dossier, strategic,
     fieldEstimates, officialSite, accessLevel, officialCrawled, crawl, coverage, sourceCoverage, digital, techStack,
-    strategicSignals, strategicDimensionCounts, raw, normalized, interpretation, strategicScores, sizeRelative, recommendations, scoreConfidence: scoreConf,
+    strategicSignals, strategicDimensionCounts, raw, normalized, interpretation, coverageReport, strategicScores, sizeRelative, recommendations, scoreConfidence: scoreConf,
     tokens: usage.inputTokens + usage.outputTokens,
     cost: usage.costEstimate,
   };

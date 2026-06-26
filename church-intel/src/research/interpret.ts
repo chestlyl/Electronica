@@ -236,7 +236,10 @@ export function interpretDossier(input: InterpretInput): Interpretation {
     if (services >= 2) floors.push({ v: 300, why: `${services} service times` });
     if (dirCount >= 2) floors.push({ v: 700, why: `${dirCount} of digital/comms/missions directors` });
     if (hasExecPastor) floors.push({ v: 850, why: 'executive pastor on staff (~70% are 850+)' });
-    if (campusN != null && campusN >= 4) floors.push({ v: 2000, why: `${campusN} campuses (mega range)` });
+    // Multi-site is one of the strongest size signals: each campus floors ~600
+    // weekend attendees (graduated, not a single 4+ cliff). Calibrated against
+    // Grace Church (9 campuses → 5,400 floor ≈ its reported 5,372).
+    if (campusN != null && campusN >= 2) floors.push({ v: campusN * 600, why: `${campusN} campuses (~600/campus)` });
     for (const f of floors) est = Math.max(est, f.v);
     attValue = round25(est);
     attendance_source = 'inferred'; attConfidence = floors.length ? 55 : 45;   // pattern floors firm it up a little

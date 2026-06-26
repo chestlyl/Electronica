@@ -98,6 +98,13 @@ async function main() {
   const plainInterp = interp([inferredHome, plainStaff], iFacts);
   check('inferred: ~50 AWA/staff base when no exec/director (9×50=450)', () => assert.strictEqual(plainInterp.attendance_estimate.value, 450));
 
+  // Graduated campus floor (~600/campus): a 3-campus multi-site no longer reads 850.
+  const campusStaff = makeFinding({ sourceType: 'staff_page', accessLevel: 'live_official_site', url: 'https://www.midchurch.org/staff', fetched: true, status: 200, category: 'staff', text: 'team', staffCards: extractStaffCards('Staff\n\nJoe Smith\nLead Pastor') });
+  const c3 = interp([inferredHome, campusStaff], { staff_count: { value: 7, confidence: 70, evidence: '7', source_url: 'https://www.midchurch.org/staff', access_level: 'live_official_site' }, campus_count: { value: 3, confidence: 70, evidence: '3 campuses', source_url: 'https://www.midchurch.org/', access_level: 'live_official_site' } });
+  check('inferred: 3-campus multi-site floors at ~1,800 (not 850)', () => assert.ok(c3.attendance_estimate.value >= 1800, `got ${c3.attendance_estimate.value}`));
+  const c9 = interp([inferredHome, campusStaff], { staff_count: { value: 13, confidence: 70, evidence: '13', source_url: 'https://www.midchurch.org/staff', access_level: 'live_official_site' }, campus_count: { value: 9, confidence: 70, evidence: '9 campuses', source_url: 'https://www.midchurch.org/', access_level: 'live_official_site' } });
+  check('inferred: 9-campus floors ~5,400 (Grace-calibrated ≈ reported 5,372)', () => assert.ok(c9.attendance_estimate.value >= 5400, `got ${c9.attendance_estimate.value}`));
+
   // Two of {digital, communications, missions} directors → ≥700 floor.
   const dirStaff = makeFinding({ sourceType: 'staff_page', accessLevel: 'live_official_site', url: 'https://www.midchurch.org/staff', fetched: true, status: 200, category: 'staff', text: 'team', staffCards: extractStaffCards('Staff\n\nAmy Lee\nDigital Director\n\nBob Kim\nCommunications Director\n\nJoe Smith\nLead Pastor') });
   const dirInterp = interp([inferredHome, dirStaff], { staff_count: { value: 5, confidence: 70, evidence: '5', source_url: 'https://www.midchurch.org/staff', access_level: 'live_official_site' } });

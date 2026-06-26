@@ -160,9 +160,13 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
       L.push('**Positive factors**');
       if (!sc.positive_factors.length) L.push('- _(none)_');
       for (const f of sc.positive_factors) L.push(`- ${f.label} (+${f.points}) — evidence: ${f.evidence_refs.join(', ')}`);
-      L.push('**Negative factors** _(candidate deductions — not applied)_');
+      L.push('**Negative factors** _(verified absent — category investigated; candidate deductions, not applied)_');
       if (!sc.negative_factors.length) L.push('- _(none)_');
       for (const f of sc.negative_factors) L.push(`- ${f.label} (${f.points}) — evidence: ${f.evidence_refs.join(', ')}`);
+      if (sc.not_investigated.length) {
+        L.push('**Not investigated** _(category never crawled — affects CONFIDENCE only, NOT a gap)_');
+        for (const f of sc.not_investigated) L.push(`- ${f.label}`);
+      }
       L.push(`**Top drivers:** ${sc.top_factors.map((f) => `${f.label} (+${f.points})`).join(', ') || '—'}`);
     }
     L.push('');

@@ -37,6 +37,10 @@ export interface ScoreFactor {
   applied: boolean;
   evidence_refs: string[];   // normalized row ids (positives) / inspected source (negatives)
   detail: string;
+  /** Coverage gate: was the category this factor depends on actually investigated?
+   *  A negative factor for an UN-investigated category is "not investigated", not a
+   *  verified absence — it informs confidence, never a score deduction. */
+  investigated: boolean;
 }
 
 export interface ScoredDimension {
@@ -48,8 +52,9 @@ export interface ScoredDimension {
   capped: boolean;
   capReason?: string;
   positive_factors: ScoreFactor[];
-  negative_factors: ScoreFactor[];   // gap candidates (recommended deductions, not yet applied)
-  top_factors: ScoreFactor[];        // applied factors sorted by contribution (which drove the score)
+  negative_factors: ScoreFactor[];        // VERIFIED-absent gaps (category investigated) — score-eligible candidates
+  not_investigated: ScoreFactor[];        // category never crawled — confidence-only, NOT a score gap
+  top_factors: ScoreFactor[];             // applied factors sorted by contribution (which drove the score)
   evidenceConsumed: string[]; // back-compat (derived from positive_factors)
   evidenceMissing: string[];  // back-compat (derived from negative_factors)
   reason: string;
@@ -65,6 +70,11 @@ export interface ScoringInput {
   /** Confirmed structural scale — fed as evidence so capability is not understated
    *  for large churches we under-crawl. attendance comes from interpretation. */
   scale?: { campusCount?: number | null; multisite?: boolean };
+  /** Coverage gate (Stage 3): which categories were actually investigated. A "miss"
+   *  for an un-investigated category is reclassified as not-investigated, never a
+   *  verified-absent score gap. Optional → when absent, all misses are treated as
+   *  investigated (legacy behavior). NO score/confidence FORMULA changes. */
+  investigatedSet?: Set<string>;
 }
 
 export function bandOf(score: number): Band {
@@ -79,17 +89,17 @@ const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 // ── internal rubric builder: accumulates evidence-traceable contributions ─────
 class Rubric {
   readonly positives: { points: number; label: string; ids: string[] }[] = [];
-  readonly negatives: { deduction: number; label: string }[] = [];
+  readonly negatives: { deduction: number; label: string; cov?: string }[] = [];
   add(points: number, label: string, ids: string[] = []): void {
     if (points > 0) this.positives.push({ points, label, ids });
   }
-  /** Record an evidence-backed gap. Recommended deduction defaults to ~40% of the
-   *  capability's positive weight (a principled default, NOT applied to the score). */
-  miss(label: string, deduction = 5): void { this.negatives.push({ deduction, label }); }
+  /** Record an evidence-backed gap. `cov` names the coverage category this gap
+   *  depends on, so the scorer can tell verified-absent from not-investigated. */
+  miss(label: string, deduction = 5, cov?: string): void { this.negatives.push({ deduction, label, cov }); }
   /** Add a contribution if rows exist, else record the gap (with a recommended deduction). */
-  want(rows: NormalizedRow[], points: number, label: string, missingLabel: string): void {
+  want(rows: NormalizedRow[], points: number, label: string, missingLabel: string, cov?: string): void {
     if (rows.length) this.add(points, `${label}: ${rows.map((r) => r.value).join(', ')}`, rows.map((r) => r.id));
-    else this.miss(missingLabel, Math.max(3, Math.round(points * 0.4)));
+    else this.miss(missingLabel, Math.max(3, Math.round(points * 0.4)), cov);
   }
   get score(): number { return clamp(this.positives.reduce((s, p) => s + p.points, 0)); }
   get count(): number { return this.positives.length; }
@@ -102,6 +112,7 @@ function slug(s: string): string { return s.toLowerCase().replace(/[^a-z0-9]+/g,
 
 export function scoreStrategic(input: ScoringInput): StrategicScores {
   const { interpretation: I, normalized: N, coverage, accessLevel, scale } = input;
+  const investigated = (cov?: string) => !cov || !input.investigatedSet || input.investigatedSet.has(cov);
 
   const tech = (cat: string) => N.technology_stack.filter((r) => r.category === cat);
   const sig = (cat: string) => N.external_signals.filter((r) => r.category === cat);
@@ -142,17 +153,25 @@ export function scoreStrategic(input: ScoringInput): StrategicScores {
     const reason = `${band} (${score}): ${r.labels.join('; ') || 'no qualifying evidence'}${r.missing.length ? ` · gaps: ${r.missing.join(', ')}` : ''}`;
     const positive_factors: ScoreFactor[] = r.positives.map((p) => ({
       id: `pos_${slug(p.label).slice(0, 40)}`, label: p.label, points: p.points, applied: true,
-      evidence_refs: p.ids.length ? p.ids : ['interpretation'], detail: `+${p.points}`,
+      evidence_refs: p.ids.length ? p.ids : ['interpretation'], detail: `+${p.points}`, investigated: true,
     }));
-    const negative_factors: ScoreFactor[] = r.negatives.map((n) => ({
-      id: `neg_${slug(n.label).slice(0, 40)}`, label: n.label, points: -n.deduction, applied: false,
-      evidence_refs: ['inspected:normalized_evidence'], detail: `−${n.deduction} (candidate, not applied)`,
-    }));
+    // Coverage gate: a gap is only a VERIFIED absence if its category was investigated.
+    const allNegatives: ScoreFactor[] = r.negatives.map((n) => {
+      const inv = investigated(n.cov);
+      return {
+        id: `neg_${slug(n.label).slice(0, 40)}`, label: n.label, points: -n.deduction, applied: false,
+        evidence_refs: [inv ? 'inspected:normalized_evidence' : `not_investigated:${n.cov}`],
+        detail: inv ? `−${n.deduction} (candidate, not applied)` : `not investigated (${n.cov}) — confidence only`,
+        investigated: inv,
+      };
+    });
+    const negative_factors = allNegatives.filter((f) => f.investigated);
+    const not_investigated = allNegatives.filter((f) => !f.investigated);
     const top_factors = [...positive_factors].sort((a, b) => b.points - a.points).slice(0, 5);
     return {
       dimension: dim, score, band, confidence, rawConfidence, capped,
       capReason: capped ? `raw ${rawConfidence} capped to ${cap} by best evidence access level (${accessLevel})` : undefined,
-      positive_factors, negative_factors, top_factors,
+      positive_factors, negative_factors, not_investigated, top_factors,
       evidenceConsumed: r.consumed, evidenceMissing: r.missing, reason,
     };
   };
@@ -168,14 +187,14 @@ export function scoreStrategic(input: ScoringInput): StrategicScores {
   const digital = () => {
     const r = new Rubric();
     baseline(r, 'digital_maturity');
-    r.want(tech('ChMS'), 18, 'ChMS platform', 'no ChMS platform');
-    r.want(either(tech('Giving'), sig('giving')), 14, 'online giving', 'no giving platform');
-    r.want(either(tech('App'), sig('app_mobile')), 12, 'mobile app', 'no mobile app');
-    r.want(either(tech('Streaming'), sig('livestream_video')), 12, 'livestream/video', 'no livestream/sermon video');
-    r.want(sig('podcast'), 6, 'podcast', 'no podcast');
-    r.want(either(tech('Email'), sig('newsletter_email')), 6, 'email/newsletter', 'no email platform');
-    r.want(sig('forms_workflows'), 8, 'digital forms/workflows', 'no online forms');
-    r.want(either(sig('groups'), sig('events_calendar')), 8, 'groups/calendar modules', 'no groups/calendar modules');
+    r.want(tech('ChMS'), 18, 'ChMS platform', 'no ChMS platform', 'technology');
+    r.want(either(tech('Giving'), sig('giving')), 14, 'online giving', 'no giving platform', 'giving');
+    r.want(either(tech('App'), sig('app_mobile')), 12, 'mobile app', 'no mobile app', 'app/mobile');
+    r.want(either(tech('Streaming'), sig('livestream_video')), 12, 'livestream/video', 'no livestream/sermon video', 'sermons/media');
+    r.want(sig('podcast'), 6, 'podcast', 'no podcast', 'sermons/media');
+    r.want(either(tech('Email'), sig('newsletter_email')), 6, 'email/newsletter', 'no email platform', 'technology');
+    r.want(sig('forms_workflows'), 8, 'digital forms/workflows', 'no online forms', 'technology');
+    r.want(either(sig('groups'), sig('events_calendar')), 8, 'groups/calendar modules', 'no groups/calendar modules', 'groups');
     // SCALE: you cannot run multi-site worship without a streaming + comms backbone,
     // and large congregations invariably run digital systems — credit the inferred
     // infrastructure even when the specific platforms weren't crawled.
@@ -197,12 +216,12 @@ export function scoreStrategic(input: ScoringInput): StrategicScores {
     const lifePts = /relaunch|revitaliz|plant/.test(stage) ? 28 : stage === 'growing' ? 22 : stage === 'established' ? 8 : 0;
     if (lifePts > 0) r.add(lifePts, `lifecycle momentum: ${stage}`, I.lifecycle_stage.evidence_ids);
     else r.miss(`growth hesitation (lifecycle ${stage || 'unknown'})`, 12);
-    r.want(sig('jobs_hiring'), 18, 'hiring/job postings', 'no hiring signal');
+    r.want(sig('jobs_hiring'), 18, 'hiring/job postings', 'no hiring signal', 'jobs/careers');
     r.want(sig('internship_residency'), 18, 'internship/residency', 'no residency/internship');
-    r.want(sig('school_academy'), 10, 'school/academy', 'no school/academy');
+    r.want(sig('school_academy'), 10, 'school/academy', 'no school/academy', 'ministries');
     r.want(sig('network_affiliation'), 8, 'network/movement affiliation', 'no network affiliation');
-    r.want(either(sig('livestream_video'), sig('podcast')), 6, 'media reach', 'no media-reach signal');
-    r.want(either(tech('ChMS'), tech('App')), 6, 'modern platform adoption (openness to change)', 'no modern platform adoption');
+    r.want(either(sig('livestream_video'), sig('podcast')), 6, 'media reach', 'no media-reach signal', 'sermons/media');
+    r.want(either(tech('ChMS'), tech('App')), 6, 'modern platform adoption (openness to change)', 'no modern platform adoption', 'technology');
     if (I.staff_count.value != null && I.staff_count.value >= 8) r.add(6, `staffed for growth (staff ${I.staff_count.value})`, I.staff_count.evidence_ids);
     else r.miss('staff capacity (<8 or unknown)');
     // SCALE: actively multiplying campuses is the strongest growth + change signal.
@@ -241,7 +260,7 @@ export function scoreStrategic(input: ScoringInput): StrategicScores {
     if (roles.length) r.add(Math.min(14, roles.length * 5), `staff infrastructure: ${roles.map((x) => x.k).join(', ')}`, roles.flatMap((x) => x.c.evidence_ids));
     if (campuses != null && campuses >= 4) r.add(12, `multi-campus operation (${campuses} campuses)`, ['interpretation']);
     else if (multisite) r.add(6, 'multi-site operation', ['interpretation']);
-    r.want(tech('ChMS'), 6, 'operational ChMS backbone', 'no ChMS backbone');
+    r.want(tech('ChMS'), 6, 'operational ChMS backbone', 'no ChMS backbone', 'technology');
     if (N.staff_roster.length > 3) r.add(4, `staff roster depth (${N.staff_roster.length})`, N.staff_roster.slice(0, 5).map((x) => x.id));
     return finalize('organizational_capacity', r);
   };

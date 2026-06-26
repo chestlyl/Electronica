@@ -30,7 +30,7 @@ function band(score: number): Band { return score <= 25 ? 'weak' : score <= 50 ?
 function dim(d: Dimension, score: number): ScoredDimension {
   return {
     dimension: d, score, band: band(score), confidence: 60, rawConfidence: 60, capped: false,
-    positive_factors: [], negative_factors: [], top_factors: [], evidenceConsumed: [], evidenceMissing: [], reason: 'test',
+    positive_factors: [], negative_factors: [], not_investigated: [], top_factors: [], evidenceConsumed: [], evidenceMissing: [], reason: 'test',
   };
 }
 // `cr` is accepted but ignored — change_readiness merged into growth_orientation.

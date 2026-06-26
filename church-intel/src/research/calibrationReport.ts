@@ -219,9 +219,13 @@ export function renderCalibrationReport(rows: CalibrationRow[], expectations: Re
         L.push(`  - Positive factors:`);
         if (!s.positive_factors.length) L.push('    - _(none)_');
         for (const f of s.positive_factors) L.push(`    - ${f.label} (+${f.points}) — evidence: ${f.evidence_refs.join(', ')}`);
-        L.push(`  - Negative factors (candidate deductions, not applied):`);
+        L.push(`  - Negative factors (verified absent — investigated; candidate deductions, not applied):`);
         if (!s.negative_factors.length) L.push('    - _(none)_');
         for (const f of s.negative_factors) L.push(`    - ${f.label} (${f.points}) — evidence: ${f.evidence_refs.join(', ')}`);
+        if (s.not_investigated.length) {
+          L.push(`  - Not investigated (confidence only, NOT a gap):`);
+          for (const f of s.not_investigated) L.push(`    - ${f.label}`);
+        }
         const drivers = s.top_factors.map((f) => `${f.label} (+${f.points})`).join(', ');
         L.push(`  - Top drivers: ${drivers || '—'}`);
       }

@@ -352,7 +352,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   // from real crawl facts. Computed BEFORE scoring; surfaced in the dossier. Does
   // not change any score (the scoring gate consuming it is Stage 3).
   const coverageReport = validateCoverage({ findings, strategicSignals, techStack, digital, campusKnown: campusCount != null || multisite });
-  const strategicScores = scoreStrategic({ interpretation, normalized, coverage, accessLevel, scale: { campusCount, multisite } });
+  const strategicScores = scoreStrategic({ interpretation, normalized, coverage, accessLevel, scale: { campusCount, multisite }, investigatedSet: coverageReport.investigatedSet });
   // Strategic Recommendation Engine (report-only): deterministic rules over the
   // interpretation layer ONLY (interpretation + normalized + scores + signals +
   // tech stack). No raw findings, no Claude.

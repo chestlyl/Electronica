@@ -94,6 +94,20 @@ async function main() {
     assert.ok(norm.staff_roster.some((r) => r.value === 'Morgan Diaz' && r.category === 'campus_pastor'));
   });
 
+  // ── dossier renders Leadership Access + Staff Emails, preserving every email ─
+  const { buildCornerstoneOffline } = await import('../researchDemo.js');
+  const { renderDossierMarkdown } = await import('../research/dossierMarkdown.js');
+  const { target, build } = await buildCornerstoneOffline();
+  const md = renderDossierMarkdown(target, build);
+  check('dossier has a Leadership Access section', () => assert.match(md, /## 3\. Leadership Access/));
+  check('dossier has a Staff Emails section with all four buckets', () => {
+    assert.match(md, /## 4\. Staff Emails/);
+    for (const b of ['Person-matched', 'Role-based', 'Church-level', 'Unassigned']) assert.ok(md.includes(`### ${b}`), `missing bucket ${b}`);
+  });
+  check('every email in the map appears in the rendered dossier (nothing dropped)', () => {
+    for (const e of build.normalized.email_map) assert.ok(md.includes(e.value), `email ${e.value} missing from dossier`);
+  });
+
   console.log(failures ? `\nFAILED (${failures})` : '\nALL PASSED');
   process.exit(failures ? 1 : 0);
 }

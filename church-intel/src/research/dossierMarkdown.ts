@@ -65,28 +65,77 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   }
   L.push('');
 
-  // ── 3. Leadership ───────────────────────────────────────────────────────────
-  L.push('## 3. Leadership');
-  L.push(`- Lead pastor(s): ${I.lead_pastors.value.join('; ') || '—'}`);
-  L.push(`- Executive pastor: ${I.executive_pastor.value ?? '—'} · Discipleship: ${I.discipleship_pastor.value ?? '—'} · Operations: ${I.operations_leader.value ?? '—'} · Marketing/Digital: ${I.marketing_director.value ?? '—'} · Communications: ${I.communications_leader.value ?? '—'}`);
-  L.push(`- Office email: ${I.office_email.value ?? '—'} · Office phone: ${I.office_phone.value ?? '—'}`);
-  if (b.leadership?.length) L.push(`- All leaders found: ${b.leadership.map((l) => `${l.name} (${l.title}${l.isLead ? ', LEAD' : ''})`).join('; ')}`);
+  // ── 3. Leadership Access (the relationship-intelligence core) ────────────────
+  L.push('## 3. Leadership Access');
+  L.push('_The best people to contact, by role, with provenance. "not found" means we have no evidence — never invented._');
+  const N = b.normalized;
+  // Unified people list (leaders ∪ staff_roster), deduped by name, carrying role.
+  const peopleByName = new Map<string, { name: string; title: string; category: string; source_url: string; confidence: number }>();
+  const addPerson = (name: string, title: string, category: string, source_url: string, confidence: number) => {
+    const key = name.toLowerCase();
+    const ex = peopleByName.get(key);
+    const cat = category && category !== 'staff' ? category : (ex?.category ?? category);
+    peopleByName.set(key, { name, title: title || ex?.title || '', category: cat, source_url: source_url || ex?.source_url || '', confidence: Math.max(confidence ?? 0, ex?.confidence ?? 0) });
+  };
+  for (const l of N.leaders) addPerson(l.value, l.detail ?? '', l.category, l.source_url, l.confidence);
+  for (const r of N.staff_roster) addPerson(r.value, r.detail ?? '', r.category, r.source_url, r.confidence);
+  const emailByPerson = new Map<string, string>();
+  for (const e of N.email_map) if (e.category === 'person' && e.detail) emailByPerson.set(e.detail.toLowerCase(), e.value);
+
+  const ROLE_GROUPS: { label: string; cats: string[]; why: string }[] = [
+    { label: 'Lead Pastor', cats: ['lead_pastor'], why: 'Vision owner and ultimate decision-maker; sets whether the church engages at all.' },
+    { label: 'Executive Pastor', cats: ['executive_pastor'], why: 'Operational decision-maker — often the real buyer/champion for a systems initiative.' },
+    { label: 'Operations', cats: ['operations_leader'], why: 'Owns execution capacity and internal systems; gauges whether they can carry the lift.' },
+    { label: 'Discipleship / Groups', cats: ['discipleship_pastor', 'groups_leader'], why: 'Owns the ministry outcome this product serves — a credible, non-comms internal champion.' },
+    { label: 'Communications / Marketing', cats: ['communications_leader', 'marketing_director'], why: 'Executes the work but should NOT drive the relationship — support, not the entry point.' },
+    { label: 'Campus Pastor', cats: ['campus_pastor'], why: 'Local entry point for a multi-site church; a warm path into a specific campus.' },
+    { label: 'Outreach / Missions', cats: ['outreach_missions_leader'], why: 'Signals growth/multiplication orientation; aligns with a movement angle.' },
+    { label: 'NextGen / Family', cats: ['nextgen_leader'], why: 'Family/next-gen systems owner; relevant when the angle is the discipleship pipeline.' },
+  ];
+  let anyAccess = false;
+  for (const g of ROLE_GROUPS) {
+    const matches = [...peopleByName.values()].filter((p) => g.cats.includes(p.category));
+    for (const p of matches) {
+      anyAccess = true;
+      const email = emailByPerson.get(p.name.toLowerCase()) ?? 'not found';
+      L.push(`- **${g.label}: ${p.name}** — ${p.title || '—'}`);
+      L.push(`  - email: ${email} · phone: not found · source: ${p.source_url || '—'} · confidence: ${Math.round(p.confidence)}`);
+      L.push(`  - why: ${g.why}`);
+    }
+  }
+  if (!anyAccess) L.push('- _(no role-holders extracted — see Staff Emails + roster below)_');
+  L.push(`- **Admin / office contact** — email: ${I.office_email.value ?? 'not found'} · phone: ${I.office_phone.value ?? 'not found'}`);
+  L.push('');
+
+  // ── 4. Staff Emails (every email preserved, bucketed) ───────────────────────
+  L.push('## 4. Staff Emails');
+  L.push('_All emails found, nothing discarded. Buckets: person-matched · role-based · church-level · unassigned._');
+  const bucket = (cat: string) => N.email_map.filter((e) => e.category === cat);
+  const emailLines = (label: string, rows: typeof N.email_map, fmt: (e: (typeof rows)[number]) => string) => {
+    L.push(`### ${label} (${rows.length})`);
+    if (!rows.length) { L.push('- none found'); return; }
+    for (const e of rows) L.push(`- ${fmt(e)} _(source: ${e.source_url || '—'}, conf ${Math.round(e.confidence)})_`);
+  };
+  emailLines('Person-matched', bucket('person'), (e) => `${e.value} → **${e.detail ?? '?'}**`);
+  emailLines('Role-based', bucket('role'), (e) => `${e.value}${e.detail ? ` (${e.detail})` : ''}`);
+  emailLines('Church-level', bucket('church'), (e) => `${e.value}${e.detail ? ` (${e.detail})` : ''}`);
+  emailLines('Unassigned', bucket('unassigned'), (e) => `${e.value}${e.detail ? ` — ${e.detail}` : ''}`);
   L.push('');
 
   // ── 4. Technology Stack ─────────────────────────────────────────────────────
-  L.push('## 4. Technology Stack');
+  L.push('## 5. Technology Stack');
   if (b.techStack?.length) for (const t of b.techStack) L.push(`- ${t.platform_name} (${t.category}) — confidence ${t.confidence}`);
   else L.push('- _(no known platform hosts detected)_');
   L.push('');
 
   // ── 5. Strategic Signals ────────────────────────────────────────────────────
-  L.push('## 5. Strategic Signals');
+  L.push('## 6. Strategic Signals');
   L.push(`- ${b.strategicSignals?.length ? strategicSignalSummary(b.strategicSignals) : 'none detected'}`);
   L.push('');
 
   // ── 6. Strategic Scores (explainable) ───────────────────────────────────────
   if (b.strategicScores) {
-    L.push('## 6. Strategic Scores (explainable)');
+    L.push('## 7. Strategic Scores (explainable)');
     L.push('_Score = sum of APPLIED positive factors (each cites evidence). Negative factors are evidence-backed gap candidates with a recommended deduction, NOT yet applied. Bands: 0–25 weak · 26–50 emerging · 51–75 capable · 76–100 strong._');
     for (const d of ['digital_maturity', 'growth_orientation', 'organizational_capacity', 'contactability'] as const) {
       const sc = b.strategicScores[d];
@@ -108,7 +157,7 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   if (b.recommendations) {
     const r = b.recommendations;
     const ev = (refs: { id: string }[]) => refs.map((e) => e.id).join(', ') || '—';
-    L.push('## 7. Strategic Recommendations');
+    L.push('## 8. Strategic Recommendations');
     L.push(`- **Engagement fit:** ${r.engagement_fit.value}/100 — ${r.engagement_fit.reason}`);
     L.push(`- **Engagement priority:** ${r.engagement_priority.value} _(evidence: ${ev(r.engagement_priority.evidence_refs)})_`);
     L.push(`- **First conversation:** ${r.recommended_first_conversation.value} _(evidence: ${ev(r.recommended_first_conversation.evidence_refs)})_`);

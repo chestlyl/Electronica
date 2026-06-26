@@ -1,6 +1,7 @@
 import { digitalEvidenceSummary } from './digitalSignals.js';
 import { strategicSignalSummary } from './strategicSignals.js';
 import { recommendationSummary } from './recommendationEngine.js';
+import { buildOutreachIntel } from './outreachIntel.js';
 import type { DossierBuild, ResearchTarget } from './researchAgent.js';
 
 function fmtPct(n: number | null | undefined): string {
@@ -166,6 +167,23 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
     L.push(`- **Likely pain points:** ${r.likely_pain_points.value.join(', ') || '—'}`);
     L.push(`- **Product fit:** ${r.recommended_product_fit.value.join(', ') || '—'}`);
     L.push(`- **Partnership probability:** ${r.partnership_probability.value}% · overall confidence ${fmtPct(r.confidence)}`);
+    L.push('');
+  }
+
+  // ── 9. Outreach Intelligence (deterministic relationship strategy) ──────────
+  if (b.recommendations && b.strategicScores && b.sizeRelative) {
+    const oi = buildOutreachIntel({ interpretation: I, normalized: b.normalized, scores: b.strategicScores, recommendations: b.recommendations, sizeRelative: b.sizeRelative });
+    const fmtC = (c: typeof oi.best_first_contact) => c ? `${c.name} (${c.role}) — ${c.email ?? 'email not found'} · ${c.why}` : 'none identified';
+    L.push('## 9. Outreach Intelligence');
+    L.push(`- **Best first contact:** ${fmtC(oi.best_first_contact)}`);
+    L.push(`- **Fallback contact:** ${fmtC(oi.fallback_contact)}`);
+    L.push(`- **Warmest entry point:** ${oi.warmest_entry_point}`);
+    L.push(`- **Recommended message angle:** ${oi.message_angle}`);
+    L.push(`- **Evidence for this angle:** ${oi.supporting_evidence.join('; ') || '—'}`);
+    L.push('- **Risks / sensitivities:**');
+    for (const x of oi.risks.length ? oi.risks : ['none flagged']) L.push(`  - ${x}`);
+    L.push('- **What NOT to lead with:**');
+    for (const x of oi.do_not_lead_with) L.push(`  - ${x}`);
     L.push('');
   }
 

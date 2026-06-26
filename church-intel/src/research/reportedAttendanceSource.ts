@@ -1,4 +1,5 @@
 import { hostOf } from './emailMap.js';
+import { logger } from '../lib/logger.js';
 import type { SearchResult } from './types.js';
 
 /**
@@ -73,9 +74,19 @@ export type SearchFn = (q: string, opts?: { limit?: number }) => Promise<{ resul
 export async function lookupReportedAttendance(name: string, state: string | null, search: SearchFn): Promise<ReportedAttendance | null> {
   const loc = state ? ` ${state}` : '';
   const queries = [`${name}${loc} Outreach 100 attendance`, `${name}${loc} Hartford Institute megachurch attendance`];
+  const debug = process.env.PROSPECT_DEBUG === '1' || process.env.ATTENDANCE_DEBUG === '1';
   const all: SearchResult[] = [];
   for (const q of queries) {
-    try { const { results } = await search(q, { limit: 10 }); all.push(...results); } catch { /* non-fatal */ }
+    try {
+      const { results } = await search(q, { limit: 10 });
+      all.push(...results);
+      if (debug) {
+        logger.info(`  [ATTENDANCE_DEBUG] query "${q}" → ${results.length} results`);
+        for (const r of results.slice(0, 6)) logger.info(`    [${hostOf(r.url)}] ${(r.title ?? '').slice(0, 70)} :: ${(r.snippet ?? '').slice(0, 90)}`);
+      }
+    } catch (e) { if (debug) logger.info(`  [ATTENDANCE_DEBUG] query "${q}" failed: ${(e as Error).message}`); }
   }
-  return parseAuthoritativeAttendance(all, name);
+  const parsed = parseAuthoritativeAttendance(all, name);
+  if (debug) logger.info(`  [ATTENDANCE_DEBUG] parser → ${parsed ? `${parsed.value} (${parsed.source})` : 'no authoritative figure matched'} from ${all.length} total results`);
+  return parsed;
 }

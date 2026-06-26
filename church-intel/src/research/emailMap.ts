@@ -85,10 +85,21 @@ function matchPersonLocal(local: string, staffNames: string[]): string | null {
   }
   return null;
 }
-/** Match a staff name appearing in the surrounding text (weaker — a nearby card). */
-function matchPersonAdjacency(near: string, staffNames: string[]): string | null {
+/**
+ * Match a staff name appearing in the surrounding text (weaker — a nearby card).
+ * Gated by local-part CONSISTENCY: if the local-part contains a name-like run
+ * (≥4 letters) that isn't part of the adjacent name, it's a DIFFERENT person
+ * (e.g. "dhiggins@" sitting next to "Jennifer Brumit") → do NOT attribute it.
+ * Short/initials local-parts (e.g. "md@") are ambiguous, so adjacency is trusted.
+ */
+function matchPersonAdjacency(local: string, near: string, staffNames: string[]): string | null {
   const nearL = near.toLowerCase();
-  for (const name of staffNames) if (name.length >= 5 && nearL.includes(name.toLowerCase())) return name;
+  const runs = local.match(/[a-z]{4,}/g) ?? [];
+  for (const name of staffNames) {
+    if (name.length < 5 || !nearL.includes(name.toLowerCase())) continue;
+    const compact = name.toLowerCase().replace(/[^a-z]/g, '');
+    if (runs.every((r) => compact.includes(r))) return name; // consistent (or no long runs)
+  }
   return null;
 }
 
@@ -104,7 +115,7 @@ export function classifyEmail(rec: EmailRecord, staffNames: string[], officialDo
   if (roleM && !CHURCH_GENERAL.test(local)) return { ...rec, bucket: 'role', person: null, role_hint: roleM[1], confidence: onDomain ? 70 : 52 };
   if (CHURCH_GENERAL.test(local)) return { ...rec, bucket: 'church', person: null, role_hint: local.replace(/[._-].*$/, ''), confidence: onDomain ? 76 : 54 };
   // 3) weaker: a staff name sits next to the address in the page text.
-  const byAdj = matchPersonAdjacency(rec.near, staffNames);
+  const byAdj = matchPersonAdjacency(local, rec.near, staffNames);
   if (byAdj) return { ...rec, bucket: 'person', person: byAdj, role_hint: null, confidence: onDomain ? 68 : 50 };
   // 4) unmatched: personal webmail or an unknown same-domain mailbox — preserved, not dropped
   return { ...rec, bucket: 'unassigned', person: null, role_hint: isPersonalEmail(rec.email) ? 'personal webmail' : (onDomain ? 'church domain, unattributed' : null), confidence: 32 };

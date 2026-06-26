@@ -47,6 +47,17 @@ async function main() {
   check('church: info@grace.org → church', () => assert.strictEqual(classifyEmail(rec('info@grace.org'), STAFF, DOMAIN).bucket, 'church'));
   check('church: office@grace.org → church', () => assert.strictEqual(classifyEmail(rec('office@grace.org'), STAFF, DOMAIN).bucket, 'church'));
 
+  // ── adjacency must not mis-attribute a different person (Cross Point bug) ────
+  check('adjacency REJECTED when local-part names a different person (dhiggins ≠ Brumit)', () => {
+    // "dhiggins@" sits in text next to "Jennifer Brumit" — must NOT be attributed to her.
+    const c = classifyEmail(rec('dhiggins@grace.org', 'Jennifer Brumit — Groups Director dhiggins@grace.org'), ['Jennifer Brumit'], DOMAIN);
+    assert.notStrictEqual(c.person, 'Jennifer Brumit');
+    assert.strictEqual(c.bucket, 'unassigned');
+  });
+  check('adjacency STILL works for a consistent first-name local-part (morgan ↔ Morgan Diaz)', () => {
+    assert.strictEqual(classifyEmail(rec('morgan@grace.org', 'Morgan Diaz, Exec Pastor morgan@grace.org'), ['Morgan Diaz'], DOMAIN).person, 'Morgan Diaz');
+  });
+
   // ── nothing dropped: personal webmail preserved as unassigned ───────────────
   check('unassigned: personal gmail preserved (NOT dropped)', () => {
     const c = classifyEmail(rec('sebastianw3965@gmail.com'), STAFF, DOMAIN);

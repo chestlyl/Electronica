@@ -66,6 +66,13 @@ export const config = {
   dashboard: {
     port: num('DASHBOARD_PORT', 4000),
   },
+  api: {
+    // Shared secret Base44 must present as `Authorization: Bearer <CIP_API_KEY>`.
+    // The backend owns every other secret (Anthropic, Supabase, Places); Base44
+    // only ever holds this one bearer token.
+    cipApiKey: process.env.CIP_API_KEY ?? '',
+    port: num('CIP_API_PORT', 4100),
+  },
 };
 
 export type AppConfig = typeof config;

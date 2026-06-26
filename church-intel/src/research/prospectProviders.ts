@@ -26,18 +26,34 @@ export function googlePlacesProvider(apiKey = config.prospect.googlePlacesApiKey
     async enumerate(area: AreaQuery): Promise<ChurchCandidate[]> {
       if (!apiKey) throw new Error('GOOGLE_PLACES_API_KEY not set');
       const q = `churches in ${area.metro}${area.state ? `, ${area.state}` : ''}${area.denomination ? ` ${area.denomination}` : ''}`;
+      const debug = process.env.PROSPECT_DEBUG === '1';
       const out: ChurchCandidate[] = [];
       let pageToken: string | undefined;
       for (let page = 0; page < 3; page++) {
+        // Match the working manual curl: query + key only. (A `type=church`
+        // restriction makes legacy Text Search return INVALID_REQUEST.)
         const url = new URL('https://maps.googleapis.com/maps/api/place/textsearch/json');
         url.searchParams.set('query', q);
-        url.searchParams.set('type', 'church');
         url.searchParams.set('key', apiKey);
         if (pageToken) url.searchParams.set('pagetoken', pageToken);
-        const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
-        const data = (await res.json()) as { status: string; results?: any[]; next_page_token?: string; error_message?: string };
+        let data: { status: string; results?: any[]; next_page_token?: string; error_message?: string };
+        try {
+          const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+          const body = await res.text();
+          if (debug) logger.info(`  [PROSPECT_DEBUG] places page ${page} http ${res.status}: ${body.slice(0, 400)}`);
+          data = JSON.parse(body);
+        } catch (e) {
+          // First-page failure = the provider failed (caller fails closed).
+          // Later-page failure = keep what we already have (pagination is best-effort).
+          if (page === 0) throw new Error(`Places request failed: ${(e as Error).message}`);
+          logger.info(`google_places: pagination stopped at page ${page} (${(e as Error).message}); keeping ${out.length}`);
+          break;
+        }
         if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-          throw new Error(`Places ${data.status}${data.error_message ? `: ${data.error_message}` : ''}`);
+          const msg = `Places ${data.status}${data.error_message ? `: ${data.error_message}` : ''}`;
+          if (page === 0) throw new Error(msg);
+          logger.info(`google_places: pagination stopped at page ${page} (${msg}); keeping ${out.length}`);
+          break;
         }
         for (const r of data.results ?? []) {
           const { city, state } = parseCityState(r.formatted_address ?? '');

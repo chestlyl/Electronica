@@ -8,9 +8,10 @@
  */
 import assert from 'node:assert';
 import {
-  prospectArea, dedupeCandidates, isKnown, normName, domainOf, renderProspectBoard,
+  prospectArea, dedupeCandidates, isKnown, normName, domainOf, renderProspectBoard, candidateRejectReason,
   type ChurchCandidate, type ProspectProvider, type KnownChurch,
 } from '../research/prospect.js';
+import { googlePlacesProvider } from '../research/prospectProviders.js';
 import type { DossierBuild, ResearchTarget } from '../research/researchAgent.js';
 
 let failures = 0;
@@ -115,6 +116,68 @@ async function main() {
     assert.match(md, /\*\*NEW\*\*/);       // unknowns flagged
     assert.match(md, /New Hope/);
   });
+
+  // ── P2 quality gate: hard-reject junk, keep real churches ───────────────────
+  const TN = { metro: 'Nashville', state: 'TN' };
+  const rejected = (name: string, website: string | null = null) => candidateRejectReason(cand(name, 'TN', website, 'x'), TN);
+  check('REJECT: 305 Church St, Nashville, TN 37201 (street address)', () => assert.strictEqual(rejected('305 Church St, Nashville, TN 37201'), 'street address'));
+  check('REJECT: Your Church (generic placeholder)', () => assert.ok(rejected('Your Church')));
+  check('REJECT: Church In Nashville (city-keyword construction)', () => assert.strictEqual(rejected('Church In Nashville'), 'city-keyword construction'));
+  check('REJECT: Church in Nashville (lowercase variant)', () => assert.strictEqual(rejected('Church in Nashville'), 'city-keyword construction'));
+  check('REJECT: City Church Network (directory/aggregator)', () => assert.ok(rejected('City Church Network')));
+  check('REJECT: church whose only site is a directory host', () => assert.strictEqual(rejected('Some Church', 'https://www.yelp.com/biz/x'), 'directory host as website'));
+  check('KEEP: Cross Point Church', () => assert.strictEqual(rejected('Cross Point Church'), null));
+  check('KEEP: Church of the City', () => assert.strictEqual(rejected('Church of the City'), null));
+  check('KEEP: The Belonging Co', () => assert.strictEqual(rejected('The Belonging Co'), null));
+  check('KEEP: LifePoint Church', () => assert.strictEqual(rejected('LifePoint Church'), null));
+
+  // ── P4 dedupe: stopword-heavy names no longer collapse to one ───────────────
+  check('dedupe keeps "Church of the City" and "City Church" distinct (no empty-name collapse)', () => {
+    const merged = dedupeCandidates([cand('Church of the City', 'TN', null, 'x'), cand('City Church', 'TN', null, 'x')]);
+    assert.strictEqual(merged.length, 2);
+  });
+  check('normName does not collapse all-stopword names to empty', () => {
+    assert.notStrictEqual(normName('Church of the City'), '');
+    assert.notStrictEqual(normName('Church of the City'), normName('City Church'));
+  });
+
+  // ── P3 fail-closed: Places yields nothing → no search_directory-only board ───
+  const placesEmpty: ProspectProvider = { name: 'google_places', enumerate: async () => [] };
+  const searchJunk: ProspectProvider = { name: 'search_directory', enumerate: async () => [cand('Your Church', 'TN', null, 'search_directory'), cand('Cross Point Church', 'TN', null, 'search_directory')] };
+  const failClosed = await prospectArea(TN, { enumerators: [placesEmpty, searchJunk], knownRoster: async () => [], buildDossier: mockDossier });
+  check('FAIL-CLOSED: Places empty → status insufficient_candidates, 0 dossiered', () => {
+    assert.strictEqual(failClosed.status, 'insufficient_candidates');
+    assert.strictEqual(failClosed.dossiered, 0);
+    assert.strictEqual(failClosed.entries.length, 0);
+  });
+  check('FAIL-CLOSED board renders the insufficient-candidates warning', () => assert.match(renderProspectBoard(failClosed), /Insufficient quality candidates/));
+
+  // ── P1/P4 provider: first page retained even if pagination (page 2) fails ───
+  const PAGE1 = { status: 'OK', results: [{ name: 'Cross Point Church', formatted_address: '123 Main St, Nashville, TN 37000' }, { name: 'The Belonging Co', formatted_address: '456 2nd Ave, Nashville, TN 37000' }], next_page_token: 'TOKEN' };
+  const PAGE2_FAIL = { status: 'INVALID_REQUEST' };
+  const origFetch = (globalThis as any).fetch;
+  (globalThis as any).fetch = async (url: any) => {
+    const u = String(url);
+    const body = u.includes('pagetoken=') ? PAGE2_FAIL : PAGE1;
+    return new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    const places = googlePlacesProvider('FAKE_KEY');
+    const got = await places.enumerate(TN);
+    check('Places: page-1 results retained when page 2 fails (no throw)', () => {
+      assert.strictEqual(got.length, 2);
+      assert.deepStrictEqual(got.map((c) => c.name).sort(), ['Cross Point Church', 'The Belonging Co']);
+    });
+  } finally { (globalThis as any).fetch = origFetch; }
+
+  // First-page failure DOES throw (so the caller fails closed).
+  (globalThis as any).fetch = async () => new Response(JSON.stringify({ status: 'INVALID_REQUEST', error_message: 'bad' }), { status: 200, headers: { 'content-type': 'application/json' } });
+  try {
+    const places = googlePlacesProvider('FAKE_KEY');
+    let threw = false;
+    try { await places.enumerate(TN); } catch { threw = true; }
+    check('Places: first-page failure throws (→ caller fails closed)', () => assert.ok(threw));
+  } finally { (globalThis as any).fetch = origFetch; }
 
   console.log(failures ? `\nFAILED (${failures})` : '\nALL PASSED');
   process.exit(failures ? 1 : 0);

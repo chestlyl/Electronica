@@ -60,7 +60,10 @@ export interface ProspectEntry {
 
 export interface ProspectBoard {
   area: AreaQuery;
+  status: 'ok' | 'insufficient_candidates';
+  note?: string;                 // why, when status != ok
   total_found: number;           // distinct candidates enumerated
+  rejected: number;              // candidates hard-rejected by the quality gate
   known_count: number;
   unknown_count: number;
   dossiered: number;             // how many we fully scored (bounded by limit)
@@ -78,7 +81,12 @@ export interface ProspectDeps {
 // ── normalization for dedup / known-matching ─────────────────────────────────
 const STOPWORDS = /\b(the|a|an|of|at|for|church|chapel|ministries|ministry|fellowship|community|worship|center|centre|assembly|cathedral|tabernacle|house|city)\b/g;
 export function normName(name: string | null | undefined): string {
-  return (name ?? '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9\s]/g, ' ').replace(STOPWORDS, ' ').replace(/\s+/g, ' ').trim();
+  const cleaned = (name ?? '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  const stripped = cleaned.replace(STOPWORDS, ' ').replace(/\s+/g, ' ').trim();
+  // Fall back to the full cleaned name when stripping leaves nothing — otherwise
+  // all-stopword names ("Church of the City", "City Church") collapse to "" and
+  // get wrongly merged into a single candidate.
+  return stripped || cleaned;
 }
 export function domainOf(url: string | null | undefined): string {
   if (!url) return '';
@@ -86,6 +94,51 @@ export function domainOf(url: string | null | undefined): string {
     const u = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`);
     return u.hostname.replace(/^www\./, '').toLowerCase();
   } catch { return ''; }
+}
+
+// ── candidate quality gate (runs BEFORE any dossier is built) ─────────────────
+const STATE_NAMES: Record<string, string> = {
+  TN: 'tennessee', CA: 'california', OH: 'ohio', TX: 'texas', FL: 'florida', GA: 'georgia',
+  AZ: 'arizona', OK: 'oklahoma', NC: 'north carolina', SC: 'south carolina', NY: 'new york',
+};
+// A pure placeholder / generic name with no church-specific identity.
+const GENERIC_PLACEHOLDER = new Set([
+  'your church', 'the church', 'a church', 'our church', 'my church', 'this church',
+  'new church', 'local church', 'a local church', 'church', 'churches', 'find a church',
+  'home', 'welcome', 'about us', 'contact us', 'city church network',
+]);
+// Directory / aggregator / SEO artifacts.
+const AGGREGATOR = /\b(network|directory|listings?|guide|near\s*me|find\s+a\s+church|churches\s+near|best\s+churches|top\s+\d+|yellow\s*pages|reviews?)\b/i;
+// A street address ("305 Church St, Nashville, TN 37201").
+const STREETISH = /^\s*\d{1,6}\s+\S|\b\d{1,6}\s+[A-Za-z][\w .'-]*\b(st|street|ave|avenue|rd|road|blvd|boulevard|dr|drive|ln|lane|hwy|highway|pkwy|parkway|ct|court|way|pike|pl|place|cir|circle|ste|suite|unit|#)\b|,\s*[A-Z]{2}\s*\d{5}/i;
+// Directory/aggregator hosts (a candidate whose only "site" is one of these is not a church).
+const DIRECTORY_HOST = /(^|\.)(yelp|yellowpages|faithstreet|churchfinder|churchangel|usachurches|tripadvisor|mapquest|manta|chamberofcommerce|foursquare|niche|wikipedia|city-data|loopnet|zillow|apartments|ourchurch|google|bing|facebook|instagram|youtube)\./i;
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const GENERIC_TOKENS = new Set(['church', 'churches', 'chapel', 'the', 'of', 'a', 'an', 'in', 'at', 'for', 'and', 'to', 'our']);
+
+/** Why a candidate should be hard-rejected before we ever build a dossier — or null if it passes. */
+export function candidateRejectReason(c: ChurchCandidate, area: AreaQuery): string | null {
+  const name = (c.name ?? '').trim();
+  if (!name || name.length < 3) return 'empty/too-short name';
+  if (STREETISH.test(name)) return 'street address';
+  const lower = name.toLowerCase();
+  if (GENERIC_PLACEHOLDER.has(lower)) return 'generic placeholder';
+  if (AGGREGATOR.test(name)) return 'directory/aggregator artifact';
+  if (c.website && DIRECTORY_HOST.test(domainOf(c.website) + '.')) return 'directory host as website';
+  // "Church in/at/near/of <metro|state>" — a geographic locator, not a church name.
+  const geo = [
+    (area.metro ?? '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').trim(),
+    (area.state ?? '').toLowerCase(),
+    STATE_NAMES[(area.state ?? '').toUpperCase()] ?? '',
+  ].filter(Boolean);
+  for (const g of geo) {
+    if (new RegExp(`\\bchurch(es)?\\s+(in|at|near|of|serving|for)\\s+${escapeRe(g)}\\b`, 'i').test(lower)) return 'city-keyword construction';
+  }
+  // No church-specific identity: strip generic words + geo tokens; nothing distinctive left.
+  const geoTokens = new Set(geo.flatMap((g) => g.split(/\s+/)));
+  const distinctive = lower.replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((t) => t && !GENERIC_TOKENS.has(t) && !geoTokens.has(t));
+  if (!distinctive.length) return 'no church-specific identity';
+  return null;
 }
 
 /** Merge candidates that are the same church (same normalized name OR same domain). */
@@ -168,12 +221,34 @@ export async function prospectArea(area: AreaQuery, deps: ProspectDeps): Promise
   }
   // 2) dedupe
   const deduped = dedupeCandidates(raw);
-  // 3) tag known vs unknown
+  // 3) QUALITY GATE — hard-reject junk BEFORE spending any tokens on dossiers.
+  const debug = process.env.PROSPECT_DEBUG === '1';
+  const quality: ChurchCandidate[] = [];
+  let rejected = 0;
+  for (const c of deduped) {
+    const reason = candidateRejectReason(c, area);
+    if (reason) { rejected++; if (debug) log(`reject "${c.name}" — ${reason}`); }
+    else quality.push(c);
+  }
+  log(`${deduped.length} distinct · ${quality.length} passed quality gate · ${rejected} rejected`);
+
+  // 4) FAIL CLOSED — Google Places is the trusted primary source. If it produced
+  // no usable candidate, refuse to build dossiers on search_directory-only junk.
+  const PRIMARY = 'google_places';
+  const hasPrimary = deps.enumerators.some((p) => p.name === PRIMARY);
+  const primaryAccepted = quality.filter((c) => c.sources.includes(PRIMARY)).length;
+  if (hasPrimary && primaryAccepted === 0) {
+    const note = `Google Places returned no usable candidates — failing closed rather than dossiering ${quality.length} search-directory-only candidate(s).`;
+    log(`INSUFFICIENT QUALITY CANDIDATES: ${note}`);
+    return { area, status: 'insufficient_candidates', note, total_found: deduped.length, rejected, known_count: 0, unknown_count: 0, dossiered: 0, entries: [] };
+  }
+
+  // 5) tag known vs unknown (on the quality survivors only)
   const known = await deps.knownRoster();
-  const tagged = deduped.map((c) => ({ c, known: isKnown(c, known) }));
+  const tagged = quality.map((c) => ({ c, known: isKnown(c, known) }));
   const knownCount = tagged.filter((t) => t.known).length;
-  log(`${deduped.length} distinct churches · ${deduped.length - knownCount} unknown · ${knownCount} known`);
-  // 4) prioritize unknowns into the cost budget, then dossier each
+  log(`${quality.length} candidates · ${quality.length - knownCount} unknown · ${knownCount} known`);
+  // 6) prioritize unknowns into the cost budget, then dossier each
   const ordered = [...tagged.filter((t) => !t.known), ...tagged.filter((t) => t.known)];
   const limit = area.limit ?? deps.limit ?? 25;
   const slice = ordered.slice(0, limit);
@@ -182,9 +257,9 @@ export async function prospectArea(area: AreaQuery, deps: ProspectDeps): Promise
     try { const b = await deps.buildDossier(toTarget(c)); entries.push(toEntry(c, isK, b)); log(`dossier: ${c.name} → fit ${entries[entries.length - 1].fit}`); }
     catch (e) { log(`dossier failed: ${c.name} (${(e as Error).message})`); }
   }
-  // 5) rank by Engagement Fit (desc); unknowns break ties first (they're the goal)
+  // 7) rank by Engagement Fit (desc); unknowns break ties first (they're the goal)
   entries.sort((a, z) => z.fit - a.fit || (Number(a.known) - Number(z.known)));
-  return { area, total_found: deduped.length, known_count: knownCount, unknown_count: deduped.length - knownCount, dossiered: entries.length, entries };
+  return { area, status: 'ok', total_found: deduped.length, rejected, known_count: knownCount, unknown_count: quality.length - knownCount, dossiered: entries.length, entries };
 }
 
 /** Markdown prospecting board (ranked by Engagement Fit; unknowns flagged). */
@@ -192,7 +267,13 @@ export function renderProspectBoard(board: ProspectBoard): string {
   const L: string[] = [];
   const a = board.area;
   L.push(`# Area Prospecting — ${a.metro}${a.state ? `, ${a.state}` : ''}${a.denomination ? ` · ${a.denomination}` : ''}`);
-  L.push(`_${board.total_found} churches found · ${board.unknown_count} unknown / ${board.known_count} known · ${board.dossiered} scored · ranked by Engagement Fit_`);
+  if (board.status === 'insufficient_candidates') {
+    L.push('');
+    L.push(`> ⚠️ **Insufficient quality candidates.** ${board.note ?? ''}`);
+    L.push(`> _${board.total_found} enumerated · ${board.rejected} rejected by the quality gate · 0 dossiered (failed closed)._`);
+    return L.join('\n');
+  }
+  L.push(`_${board.total_found} found · ${board.rejected} rejected (quality gate) · ${board.unknown_count} unknown / ${board.known_count} known · ${board.dossiered} scored · ranked by Engagement Fit_`);
   L.push('');
   L.push('| # | church | known? | fit | priority | entry point | archetype | AWA | dig | grw | cap | con | site |');
   L.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|');

@@ -40,8 +40,10 @@ export const config = {
     // Force the plain-HTTP fetch crawler even when Chromium is available
     // (useful in locked-down/serverless environments).
     forceFetchFallback: bool('FORCE_FETCH_FALLBACK', false),
-    // Max pages for the fetch fallback crawler.
-    fetchMaxPages: num('FETCH_MAX_PAGES', 5),
+    // Max pages for the fetch fallback crawler. Raised to cover the expanded
+    // page set (giving/sermons/groups/locations/jobs) so optional categories are
+    // actually investigated rather than inferred from a homepage link.
+    fetchMaxPages: num('FETCH_MAX_PAGES', 12),
   },
   prospect: {
     // Google Places API key for area enumeration (prospect-area command).

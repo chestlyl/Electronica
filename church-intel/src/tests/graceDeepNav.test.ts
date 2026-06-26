@@ -88,6 +88,12 @@ async function main() {
   check('categorizeLink: /about/our-team → staff', () => assert.strictEqual(categorizeLink('/about/our-team', 'Our Team'), 'staff'));
   check('categorizeLink: plain /about still → about (regression)', () => assert.strictEqual(categorizeLink('/about', 'About'), 'about'));
   check('categorizeLink: /people → staff', () => assert.strictEqual(categorizeLink('/people', 'Our People'), 'staff'));
+  // Crawl Expansion: giving / sermons / groups / jobs are now first-class pages.
+  check('categorizeLink: /give → giving', () => assert.strictEqual(categorizeLink('/give', 'Give'), 'giving'));
+  check('categorizeLink: /messages → sermons', () => assert.strictEqual(categorizeLink('/messages', 'Watch Messages'), 'sermons'));
+  check('categorizeLink: /groups → groups (not ministries)', () => assert.strictEqual(categorizeLink('/groups', 'Groups'), 'groups'));
+  check('categorizeLink: /careers → jobs', () => assert.strictEqual(categorizeLink('/careers', 'Careers'), 'jobs'));
+  check('categorizeLink: /ministries → ministries (groups moved out)', () => assert.strictEqual(categorizeLink('/ministries', 'Ministries'), 'ministries'));
 
   // (2)+(3) homepage anchor → /about/leaders selected, crawled, mined
   const ctx = {

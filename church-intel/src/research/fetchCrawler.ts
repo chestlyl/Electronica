@@ -13,7 +13,7 @@ import type {
 } from './types.js';
 
 /** Upper bound on fallback path probes (minimum-coverage, not exhaustive). */
-const FALLBACK_MAX_PROBES = 10;
+const FALLBACK_MAX_PROBES = 18;
 /** Per-category probe cap so a long staff path list can't starve contact/about. */
 const PER_CATEGORY_MAX_PROBES = 5;
 
@@ -250,6 +250,12 @@ export class FetchResearch implements ResearchProvider {
           { covered: () => fetchedCats.has('staff') || fetchedCats.has('leadership'), fallbackCat: 'staff', paths: ['/staff', '/about/leaders', '/leadership', '/about/leadership', '/leaders', '/team', '/our-team', '/about/staff', '/meet-the-team', '/people'] },
           { covered: () => fetchedCats.has('contact'), fallbackCat: 'contact', paths: ['/contact', '/connect', '/contact-us'] },
           { covered: () => fetchedCats.has('about'), fallbackCat: 'about', paths: ['/about', '/about-us', '/who-we-are'] },
+          // Valuable coverage categories — probe the well-known roots when a
+          // JS-injected nav hides the links from the homepage HTML.
+          { covered: () => fetchedCats.has('giving'), fallbackCat: 'giving', paths: ['/give', '/giving', '/generosity'] },
+          { covered: () => fetchedCats.has('sermons'), fallbackCat: 'sermons', paths: ['/sermons', '/messages', '/watch', '/media'] },
+          { covered: () => fetchedCats.has('groups'), fallbackCat: 'groups', paths: ['/groups', '/small-groups', '/community'] },
+          { covered: () => fetchedCats.has('locations'), fallbackCat: 'locations', paths: ['/locations', '/campuses'] },
         ];
         const already = new Set<string>(pages.flatMap((p) => [p.url, p.finalUrl]));
         let probes = 0;

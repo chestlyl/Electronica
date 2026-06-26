@@ -16,12 +16,18 @@ export const PAGE_CATEGORIES: { category: string; keywords: string[] }[] = [
   { category: 'about', keywords: ['about', 'who-we-are', 'our-story', 'whoweare'] },
   { category: 'beliefs', keywords: ['belief', 'what-we-believe', 'values', 'doctrine', 'mission-vision'] },
   { category: 'contact', keywords: ['contact', 'connect', 'visit', 'plan-a-visit', 'plan-your-visit'] },
+  // Giving / sermons / groups pages reveal the platform stack + ministry systems
+  // a strategic score depends on — crawl them, don't infer from a link alone.
+  { category: 'giving', keywords: ['give', 'giving', 'donate', 'generosity', 'tithe', 'pledge'] },
+  { category: 'sermons', keywords: ['sermon', 'messages', 'message', 'watch', 'listen', 'media-library'] },
+  { category: 'groups', keywords: ['small-group', 'life-group', 'community-group', 'groups'] },
   { category: 'locations', keywords: ['location', 'campus', 'campuses', 'times', 'service-times'] },
-  { category: 'ministries', keywords: ['ministr', 'groups', 'discipleship'] },
+  { category: 'ministries', keywords: ['ministr', 'discipleship'] },
   { category: 'missions', keywords: ['mission', 'outreach', 'global', 'serve'] },
   { category: 'church-planting', keywords: ['plant', 'church-planting', 'multiply', 'multiplication'] },
   { category: 'residency', keywords: ['residency', 'internship', 'cohort', 'school-of-ministry', 'training'] },
   { category: 'partners', keywords: ['partner', 'network', 'affiliation'] },
+  { category: 'jobs', keywords: ['job', 'career', 'employment', 'hiring', 'openings', 'work-here'] },
 ];
 
 /** Match a link (href + anchor text) to the first page category it fits. */

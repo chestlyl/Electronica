@@ -1,0 +1,1447 @@
+{
+  "by_denomination": [
+    {
+      "denomination": "Southern Baptist Convention",
+      "movement_family": "Protestantism",
+      "churches": 44696,
+      "membership": 16266920,
+      "website": "http://sbc.net"
+    },
+    {
+      "denomination": "United Methodist Church",
+      "movement_family": "Protestantism",
+      "churches": 34398,
+      "membership": 7931733,
+      "website": "https://www.umc.org"
+    },
+    {
+      "denomination": "Roman Catholic Church Council",
+      "movement_family": "Latin Church",
+      "churches": 19081,
+      "membership": 63400000,
+      "website": "www.vatican.va"
+    },
+    {
+      "denomination": "Churches of Christ",
+      "movement_family": "Protestantism",
+      "churches": 13000,
+      "membership": 1639495,
+      "website": "www.church-of-christ.org"
+    },
+    {
+      "denomination": "Presbyterian Church (USA)",
+      "movement_family": "Protestantism",
+      "churches": 10820,
+      "membership": 2941412,
+      "website": "https://pcusa.org"
+    },
+    {
+      "denomination": "Evangelical Lutheran Church in America",
+      "movement_family": "Protestantism",
+      "churches": 10448,
+      "membership": 4709956,
+      "website": "www.elca.org"
+    },
+    {
+      "denomination": "National Baptist Convention, USA, Inc.",
+      "movement_family": "Protestantism",
+      "churches": 9000,
+      "membership": 5000000,
+      "website": "https://www.nationalbaptist.com"
+    },
+    {
+      "denomination": "African Methodist Episcopal Church",
+      "movement_family": "Protestantism",
+      "churches": 7130,
+      "membership": 1857186,
+      "website": "https://www.ame-church.com"
+    },
+    {
+      "denomination": "Episcopal Church in the United States",
+      "movement_family": "Protestantism",
+      "churches": 7095,
+      "membership": 2154572,
+      "website": "www.episcopalchurch.org"
+    },
+    {
+      "denomination": "Church of God (Cleveland, Tennessee)",
+      "movement_family": "Pentecostalism",
+      "churches": 6666,
+      "membership": 1067106,
+      "website": "https://churchofgod.org"
+    },
+    {
+      "denomination": "Lutheran Church–Missouri Synod",
+      "movement_family": "Protestantism",
+      "churches": 6075,
+      "membership": 2383084,
+      "website": "http://www.lcms.org"
+    },
+    {
+      "denomination": "Baptist General Convention of Texas",
+      "movement_family": "Protestantism",
+      "churches": 5700,
+      "membership": 2372733,
+      "website": "www.bgct.org"
+    },
+    {
+      "denomination": "Independent Christian Churches and Churches of Christ",
+      "movement_family": "Protestantism",
+      "churches": 5471,
+      "membership": 1439253,
+      "website": "www.christian-church.org"
+    },
+    {
+      "denomination": "United Church of Christ",
+      "movement_family": "Protestantism",
+      "churches": 5377,
+      "membership": 1145281,
+      "website": "www.ucc.org"
+    },
+    {
+      "denomination": "Seventh-day Adventist Church",
+      "movement_family": "Protestantism",
+      "churches": 4958,
+      "membership": 1004419,
+      "website": "https://www.adventist.org"
+    },
+    {
+      "denomination": "Church of the Nazarene",
+      "movement_family": "Protestantism",
+      "churches": 4689,
+      "membership": 645048,
+      "website": "https://nazarene.org"
+    },
+    {
+      "denomination": "United Pentecostal Church International",
+      "movement_family": "Pentecostalism",
+      "churches": 4358,
+      "membership": 646304,
+      "website": "www.upci.org"
+    },
+    {
+      "denomination": "Christian Church (Disciples of Christ)",
+      "movement_family": "Protestantism",
+      "churches": 3731,
+      "membership": 689507,
+      "website": "www.disciples.org"
+    },
+    {
+      "denomination": "Christian Methodist Episcopal Church",
+      "movement_family": "Protestantism",
+      "churches": 3500,
+      "membership": 850000,
+      "website": "https://thecmechurch.org"
+    },
+    {
+      "denomination": "African Methodist Episcopal Zion Church",
+      "movement_family": "Protestantism",
+      "churches": 3337,
+      "membership": 14000000,
+      "website": "https://amez.org"
+    },
+    {
+      "denomination": "Baptist Bible Fellowship International",
+      "movement_family": "Protestantism",
+      "churches": 3294,
+      "membership": 525165,
+      "website": "https://www.bbfi.org"
+    },
+    {
+      "denomination": "National Association of Free Will Baptists",
+      "movement_family": "Protestantism",
+      "churches": 2369,
+      "membership": 185798,
+      "website": "www.nafwb.org"
+    },
+    {
+      "denomination": "The Christian Missionary Alliance",
+      "movement_family": "Pentecostalism",
+      "churches": 2297,
+      "membership": 482449,
+      "website": "http://www.cmalliance.org/"
+    },
+    {
+      "denomination": "Church of God (Anderson, Indiana)",
+      "movement_family": "Pentecostalism",
+      "churches": 2100,
+      "membership": 252905,
+      "website": "http://jesusisthesubject.org"
+    },
+    {
+      "denomination": "International Pentecostal Holiness Church",
+      "movement_family": "Pentecostalism",
+      "churches": 2010,
+      "membership": 257758,
+      "website": "https://iphc.org"
+    },
+    {
+      "denomination": "American Baptist Association",
+      "movement_family": "Protestantism",
+      "churches": 1867,
+      "membership": 280987,
+      "website": "www.abaptist.org"
+    },
+    {
+      "denomination": "Church of God of Prophecy",
+      "movement_family": "Pentecostalism",
+      "churches": 1858,
+      "membership": 91106,
+      "website": "https://cogop.org"
+    },
+    {
+      "denomination": "Cooperative Baptist Fellowship",
+      "movement_family": "Protestantism",
+      "churches": 1800,
+      "membership": null,
+      "website": "https://cbf.net"
+    },
+    {
+      "denomination": "Progressive National Baptist Convention",
+      "movement_family": "Protestantism",
+      "churches": 1800,
+      "membership": 2500000,
+      "website": "https://www.pnbc.org"
+    },
+    {
+      "denomination": "Pentecostal Assemblies of the World, Inc",
+      "movement_family": "Pentecostalism",
+      "churches": 1750,
+      "membership": 1500000,
+      "website": "www.pawinc.org"
+    },
+    {
+      "denomination": "Primitive Baptists",
+      "movement_family": "Protestantism",
+      "churches": 1643,
+      "membership": 49227,
+      "website": "www.primitivebaptist.org"
+    },
+    {
+      "denomination": "Wesleyan Church",
+      "movement_family": "Protestantism",
+      "churches": 1626,
+      "membership": 138164,
+      "website": "https://www.wesleyan.org"
+    },
+    {
+      "denomination": "Presbyterian Church in America",
+      "movement_family": "Protestantism",
+      "churches": 1593,
+      "membership": 340736,
+      "website": "https://pcanet.org"
+    },
+    {
+      "denomination": "Christian Congregation, Inc.",
+      "movement_family": "Protestantism",
+      "churches": 1496,
+      "membership": 122181,
+      "website": "812 West Hemlock Street"
+    },
+    {
+      "denomination": "International Church of the Foursquare Gospel",
+      "movement_family": "Pentecostalism",
+      "churches": 1480,
+      "membership": null,
+      "website": "http://foursquare.org"
+    },
+    {
+      "denomination": "Independent Fundamentalist Baptist Churches",
+      "movement_family": "Protestantism",
+      "churches": 1400,
+      "membership": 150000,
+      "website": null
+    },
+    {
+      "denomination": "Converge",
+      "movement_family": "Protestantism",
+      "churches": 1312,
+      "membership": 140494,
+      "website": "https://converge.org"
+    },
+    {
+      "denomination": "Baptist Missionary Association of America",
+      "movement_family": "Protestantism",
+      "churches": 1306,
+      "membership": 177463,
+      "website": "www.bmaam.org"
+    },
+    {
+      "denomination": "General Association of Regular Baptist Churches",
+      "movement_family": "Protestantism",
+      "churches": 1274,
+      "membership": 157728,
+      "website": "www.garbc.org"
+    },
+    {
+      "denomination": "Evangelical Free Church of America",
+      "movement_family": "Protestantism",
+      "churches": 1273,
+      "membership": 336000,
+      "website": "www.efca.org"
+    },
+    {
+      "denomination": "Full Gospel Fellowship of Churches and Ministries, International",
+      "movement_family": "Pentecostalism",
+      "churches": 1273,
+      "membership": 432632,
+      "website": "www.fgfcmi.org"
+    },
+    {
+      "denomination": "Wisconsin Evangelical Lutheran Synod",
+      "movement_family": "Protestantism",
+      "churches": 1264,
+      "membership": 394241,
+      "website": "https://www.wels.net"
+    },
+    {
+      "denomination": "Salvation Army",
+      "movement_family": "Protestantism",
+      "churches": 1263,
+      "membership": 495659,
+      "website": "www.salvationarmy.org"
+    },
+    {
+      "denomination": "The Plymouth Brethren number around 1 million members",
+      "movement_family": "Protestantism",
+      "churches": 1200,
+      "membership": 86000,
+      "website": "https://en.wikipedia.org/wiki/Plymouth_Brethren"
+    },
+    {
+      "denomination": "Calvary Chapel",
+      "movement_family": "Pentecostalism",
+      "churches": 1200,
+      "membership": 500000,
+      "website": "https://calvarychapel.com"
+    },
+    {
+      "denomination": "Pentecostal Church of God",
+      "movement_family": "Pentecostalism",
+      "churches": 1158,
+      "membership": 90030,
+      "website": "www.pcg.org"
+    },
+    {
+      "denomination": "ARC Network",
+      "movement_family": "Networks, Community and New Paradigm Churches",
+      "churches": 1100,
+      "membership": null,
+      "website": "https://www.arcchurches.com"
+    },
+    {
+      "denomination": "Church of the Brethren",
+      "movement_family": "Protestantism",
+      "churches": 1069,
+      "membership": 134844,
+      "website": "www.brethren.org"
+    },
+    {
+      "denomination": "World Baptist Fellowship",
+      "movement_family": "Protestantism",
+      "churches": 998,
+      "membership": null,
+      "website": "www.wbfi.net"
+    },
+    {
+      "denomination": "Free Methodist Church",
+      "movement_family": "Protestantism",
+      "churches": 979,
+      "membership": 71171,
+      "website": "http://fmcusa.org"
+    },
+    {
+      "denomination": "Mennonites",
+      "movement_family": "Protestantism",
+      "churches": 935,
+      "membership": 109174,
+      "website": null
+    },
+    {
+      "denomination": "Reformed Church in America",
+      "movement_family": "Protestantism",
+      "churches": 891,
+      "membership": 264863,
+      "website": "www.rca.org"
+    },
+    {
+      "denomination": "Evangelical Covenant Church",
+      "movement_family": "Protestantism",
+      "churches": 821,
+      "membership": 107379,
+      "website": "www.covchurch.org"
+    },
+    {
+      "denomination": "United American Free Will Baptist Church",
+      "movement_family": "Protestantism",
+      "churches": 816,
+      "membership": 50000,
+      "website": "www.uafwbc.org"
+    },
+    {
+      "denomination": "Christian Reformed Church in North America",
+      "movement_family": "Protestantism",
+      "churches": 781,
+      "membership": 185665,
+      "website": "www.crcna.org"
+    },
+    {
+      "denomination": "Conservative Baptist Association of America",
+      "movement_family": "Protestantism",
+      "churches": 752,
+      "membership": 200000,
+      "website": "https://venturechurches.org"
+    },
+    {
+      "denomination": "Anglican Communion of North America",
+      "movement_family": "Protestantism",
+      "churches": 735,
+      "membership": 100000,
+      "website": "www.theacna.org"
+    },
+    {
+      "denomination": "Orthodox Church in America",
+      "movement_family": "Orthodoxy",
+      "churches": 725,
+      "membership": 900000,
+      "website": "www.oca.org"
+    },
+    {
+      "denomination": "General Association of General Baptists",
+      "movement_family": "Protestantism",
+      "churches": 698,
+      "membership": 61500,
+      "website": "www.generalbaptist.com"
+    },
+    {
+      "denomination": "Friends General Conference",
+      "movement_family": "Protestantism",
+      "churches": 650,
+      "membership": 34000,
+      "website": "www.fgcquaker.org"
+    },
+    {
+      "denomination": "Cowboy Church Network of North America",
+      "movement_family": "Networks, Community and New Paradigm Churches",
+      "churches": 650,
+      "membership": null,
+      "website": "www.cowboycn.org"
+    },
+    {
+      "denomination": "Greek Orthodox Archdiocese of America",
+      "movement_family": "Eastern Orthodoxy",
+      "churches": 560,
+      "membership": 1500000,
+      "website": "www.goarch.org"
+    },
+    {
+      "denomination": "American Baptist Churches USA",
+      "movement_family": "Protestantism",
+      "churches": 558,
+      "membership": 1358351,
+      "website": "https://www.abc-usa.org"
+    },
+    {
+      "denomination": "National Primitive Baptist Convention of the U.S.A.",
+      "movement_family": "Protestantism",
+      "churches": 547,
+      "membership": 53630,
+      "website": "http://www.npbcconvention.org"
+    },
+    {
+      "denomination": "Association of Vineyard Churches",
+      "movement_family": "Pentecostalism",
+      "churches": 529,
+      "membership": 155000,
+      "website": "https://www.vineyard.org"
+    },
+    {
+      "denomination": "Southwide Baptist Fellowship",
+      "movement_family": "Protestantism",
+      "churches": 500,
+      "membership": 10000,
+      "website": "www.wayoflife.org"
+    },
+    {
+      "denomination": "Friends United Meeting",
+      "movement_family": "Protestantism",
+      "churches": 472,
+      "membership": 41184,
+      "website": "www.fum.org"
+    },
+    {
+      "denomination": "Church of Our Lord Jesus Christ of the Apostolic Faith",
+      "movement_family": "Pentecostalism",
+      "churches": 450,
+      "membership": 30000,
+      "website": "www.apostolic-faith.org"
+    },
+    {
+      "denomination": "National Association of Congregational Christian Churches",
+      "movement_family": "Protestantism",
+      "churches": 432,
+      "membership": 70000,
+      "website": "www.naccc.org"
+    },
+    {
+      "denomination": "Missionary Church",
+      "movement_family": "Protestantism",
+      "churches": 423,
+      "membership": 43026,
+      "website": "www.mcusa.org"
+    },
+    {
+      "denomination": "North American Baptist Conference",
+      "movement_family": "Protestantism",
+      "churches": 416,
+      "membership": 64000,
+      "website": "www.nabconference.org"
+    },
+    {
+      "denomination": "Assemblies of the Lord Jesus Christ",
+      "movement_family": "Pentecostalism",
+      "churches": 413,
+      "membership": null,
+      "website": "www.aljc.org"
+    },
+    {
+      "denomination": "ECO (recent split from PCUSA)",
+      "movement_family": "Protestantism",
+      "churches": 401,
+      "membership": null,
+      "website": "https://eco-pres.org"
+    },
+    {
+      "denomination": "Bible Way Church of Our Lord Jesus Christ World Wide, Inc.",
+      "movement_family": "Pentecostalism",
+      "churches": 350,
+      "membership": 300000,
+      "website": "www.biblewaychurch.org"
+    },
+    {
+      "denomination": "Church of God in Christ",
+      "movement_family": "Pentecostalism",
+      "churches": 336,
+      "membership": 32000,
+      "website": "https://www.cogic.org"
+    },
+    {
+      "denomination": "Old Regular Baptist Churches",
+      "movement_family": "Protestantism",
+      "churches": 326,
+      "membership": 15218,
+      "website": "www.pages.suddenlink.net/orb/orb/index.htm"
+    },
+    {
+      "denomination": "Orthodox Presbyterian Church",
+      "movement_family": "Protestantism",
+      "churches": 320,
+      "membership": 28780,
+      "website": "www.opc.org"
+    },
+    {
+      "denomination": "New Apostolic Church of North America",
+      "movement_family": "Protestantism",
+      "churches": 314,
+      "membership": 38778,
+      "website": "www.nak.org"
+    },
+    {
+      "denomination": "Open Bible Churches",
+      "movement_family": "Pentecostalism",
+      "churches": 302,
+      "membership": 45000,
+      "website": "www.openbible.org"
+    },
+    {
+      "denomination": "Korean Presbyterian Church in America",
+      "movement_family": "Protestantism",
+      "churches": 300,
+      "membership": 55100,
+      "website": "www.kapc.org"
+    },
+    {
+      "denomination": "Advent Christian Church General Conference",
+      "movement_family": null,
+      "churches": 294,
+      "membership": 23629,
+      "website": "www.adventchristian.org"
+    },
+    {
+      "denomination": "Evangelical Friends International",
+      "movement_family": "Protestantism",
+      "churches": 288,
+      "membership": 39913,
+      "website": "www.evangelicalfriends.org"
+    },
+    {
+      "denomination": "Conservative Congregational Christian Conference",
+      "movement_family": "Protestantism",
+      "churches": 284,
+      "membership": 41772,
+      "website": "www.ccccusa.org"
+    },
+    {
+      "denomination": "Association of Free Lutheran Congregations",
+      "movement_family": "Protestantism",
+      "churches": 276,
+      "membership": 44000,
+      "website": "www.aflc.org"
+    },
+    {
+      "denomination": "Associate Reformed Presbyterian Church",
+      "movement_family": "Protestantism",
+      "churches": 270,
+      "membership": 35206,
+      "website": "www.arpsynod.org"
+    },
+    {
+      "denomination": "Fellowship of Grace Brethren Churches",
+      "movement_family": "Protestantism",
+      "churches": 260,
+      "membership": 30371,
+      "website": "www.fgbc.org"
+    },
+    {
+      "denomination": "Antiochian Orthodox Christian Archdiocese of North America",
+      "movement_family": "Orthodoxy",
+      "churches": 256,
+      "membership": 430000,
+      "website": "www.antiochian.org"
+    },
+    {
+      "denomination": "Original Freewill Baptist Convention",
+      "movement_family": "Protestantism",
+      "churches": 250,
+      "membership": 40000,
+      "website": "www.ofwb.org"
+    },
+    {
+      "denomination": "Congregational Holiness Church",
+      "movement_family": "Pentecostalism",
+      "churches": 250,
+      "membership": 18000,
+      "website": "www.ch.church.com"
+    },
+    {
+      "denomination": "Brethren in Christ Church",
+      "movement_family": "Protestantism",
+      "churches": 232,
+      "membership": 20739,
+      "website": "www.bic-church.org"
+    },
+    {
+      "denomination": "Anglican Church of Canada",
+      "movement_family": "Protestantism",
+      "churches": 230,
+      "membership": null,
+      "website": "http://www.anglican.ca"
+    },
+    {
+      "denomination": "United Church of God",
+      "movement_family": null,
+      "churches": 230,
+      "membership": 15000,
+      "website": "www.ucg.org"
+    },
+    {
+      "denomination": "Churches of Christ in Christian Union",
+      "movement_family": "Protestantism",
+      "churches": 227,
+      "membership": 11164,
+      "website": "www.cccuhq.org"
+    },
+    {
+      "denomination": "Church of the United Brethren in Christ",
+      "movement_family": "Protestantism",
+      "churches": 217,
+      "membership": 22740,
+      "website": "www.ub.org"
+    },
+    {
+      "denomination": "Evangelical Presbyterian Church",
+      "movement_family": "Protestantism",
+      "churches": 207,
+      "membership": 89190,
+      "website": "www.epc.org"
+    },
+    {
+      "denomination": "U.S. Mennonite Brethren",
+      "movement_family": "Protestantism",
+      "churches": 201,
+      "membership": 30000,
+      "website": "www.usmb.org"
+    },
+    {
+      "denomination": "Apostolic Episcopal Church",
+      "movement_family": "Orthodoxy",
+      "churches": 200,
+      "membership": 12000,
+      "website": "bertilpersson.com/"
+    },
+    {
+      "denomination": "Church of God and Saints of Christ",
+      "movement_family": null,
+      "churches": 200,
+      "membership": 40000,
+      "website": "www.cogasoc.net"
+    },
+    {
+      "denomination": "American Evangelical Christian Churches",
+      "movement_family": "Protestantism",
+      "churches": 192,
+      "membership": 17400,
+      "website": "www.aeccministries.com"
+    },
+    {
+      "denomination": "Congregational Methodist Church",
+      "movement_family": "Protestantism",
+      "churches": 187,
+      "membership": 14738,
+      "website": "www.congregationalmethodist.org"
+    },
+    {
+      "denomination": "Church of God (Seventh-Day)",
+      "movement_family": "Protestantism",
+      "churches": 185,
+      "membership": 11000,
+      "website": "https://cog7.org"
+    },
+    {
+      "denomination": "Church of God Seventh Day",
+      "movement_family": null,
+      "churches": 185,
+      "membership": 11000,
+      "website": "www.cog7.org"
+    },
+    {
+      "denomination": "Fire Baptized Holiness Church of God",
+      "movement_family": "Pentecostalism",
+      "churches": 170,
+      "membership": null,
+      "website": "www.fbhchurch.org"
+    },
+    {
+      "denomination": "Christadelphians",
+      "movement_family": null,
+      "churches": 170,
+      "membership": 15000,
+      "website": null
+    },
+    {
+      "denomination": "Church of God General Conference",
+      "movement_family": null,
+      "churches": 162,
+      "membership": 7634,
+      "website": "www.abc-coggc.org"
+    },
+    {
+      "denomination": "Moravians",
+      "movement_family": "Protestantism",
+      "churches": 160,
+      "membership": 40341,
+      "website": "www.moravian.org"
+    },
+    {
+      "denomination": "International Council of Community Churches",
+      "movement_family": "Networks, Community and New Paradigm Churches",
+      "churches": 155,
+      "membership": 73174,
+      "website": "www.icccusa.com"
+    },
+    {
+      "denomination": "Malankara Orthodox Syrian Church",
+      "movement_family": "Orthodoxy",
+      "churches": 154,
+      "membership": 70000,
+      "website": "http://malankaraorthodoxchurch.in/"
+    },
+    {
+      "denomination": "Reformed Episcopal Church",
+      "movement_family": "Protestantism",
+      "churches": 152,
+      "membership": 10000,
+      "website": "www.rechurch.org"
+    },
+    {
+      "denomination": "Cumberland Presbyterian Church in America",
+      "movement_family": "Protestantism",
+      "churches": 152,
+      "membership": 15142,
+      "website": "www.cumberland.org/cpca"
+    },
+    {
+      "denomination": "Evangelical Congregational Church",
+      "movement_family": "Protestantism",
+      "churches": 150,
+      "membership": 19337,
+      "website": "www.eccenter.com"
+    },
+    {
+      "denomination": "Pentecostal Free Will Baptist Church, Inc",
+      "movement_family": "Pentecostalism",
+      "churches": 150,
+      "membership": 28000,
+      "website": "www.pfwb.org"
+    },
+    {
+      "denomination": "Church of Christ (Holiness) U.S.A.",
+      "movement_family": "Pentecostalism",
+      "churches": 148,
+      "membership": 11468,
+      "website": "www.cochusa.com"
+    },
+    {
+      "denomination": "Beachy Amish Mennonite Churches",
+      "movement_family": "Protestantism",
+      "churches": 144,
+      "membership": 10000,
+      "website": "www.beachyam.org"
+    },
+    {
+      "denomination": "Church of God in Christ, Mennonite",
+      "movement_family": "Protestantism",
+      "churches": 141,
+      "membership": 14262,
+      "website": "www.cogicm.org"
+    },
+    {
+      "denomination": "Church of God (Holiness)",
+      "movement_family": "Pentecostalism",
+      "churches": 140,
+      "membership": 8000,
+      "website": "www.cogh.net"
+    },
+    {
+      "denomination": "Interstate and Foreign Landmark Missionary Baptist Association",
+      "movement_family": "Protestantism",
+      "churches": 135,
+      "membership": 14225,
+      "website": null
+    },
+    {
+      "denomination": "Evangelical Church of North America",
+      "movement_family": "Protestantism",
+      "churches": 135,
+      "membership": 15011,
+      "website": "www.theevangelicalchurch.com"
+    },
+    {
+      "denomination": "Apostolic World Christian Fellowship",
+      "movement_family": "Pentecostalism",
+      "churches": 135,
+      "membership": null,
+      "website": "www.awcf.org"
+    },
+    {
+      "denomination": "Evangelical Lutheran Synod",
+      "movement_family": "Protestantism",
+      "churches": 131,
+      "membership": 19945,
+      "website": "www.evangelicallutheransynod.org"
+    },
+    {
+      "denomination": "Apostolic Overcoming Holy Church of God, Inc.",
+      "movement_family": "Pentecostalism",
+      "churches": 129,
+      "membership": 10714,
+      "website": "www.aohchurch.com"
+    },
+    {
+      "denomination": "Grace Gospel Fellowship",
+      "movement_family": "Protestantism",
+      "churches": 128,
+      "membership": 60000,
+      "website": "www.ggfusa.org"
+    },
+    {
+      "denomination": "Alliance of Baptist Churches",
+      "movement_family": "Protestantism",
+      "churches": 127,
+      "membership": 65000,
+      "website": "www.allianceofbaptists.org"
+    },
+    {
+      "denomination": "Polish National Catholic Church",
+      "movement_family": "Latin Church",
+      "churches": 126,
+      "membership": 60000,
+      "website": "www.pncc.org"
+    },
+    {
+      "denomination": "Church of the Living God (Christian Workers for Fellowship)",
+      "movement_family": "Pentecostalism",
+      "churches": 120,
+      "membership": 20000,
+      "website": null
+    },
+    {
+      "denomination": "International Communion of the Charismatic Episcopal Church",
+      "movement_family": "Protestantism",
+      "churches": 117,
+      "membership": null,
+      "website": "www.iccec.org"
+    },
+    {
+      "denomination": "Brethren Church (Ashland)",
+      "movement_family": "Protestantism",
+      "churches": 117,
+      "membership": 10287,
+      "website": "www.brethrenchurch.org"
+    },
+    {
+      "denomination": "Universal Fellowship of Metropolitan Community Churches",
+      "movement_family": "Networks, Community and New Paradigm Churches",
+      "churches": 115,
+      "membership": 15666,
+      "website": "www.mccchurch.org"
+    },
+    {
+      "denomination": "Church of the Lutheran Brethren of America",
+      "movement_family": "Protestantism",
+      "churches": 110,
+      "membership": 14427,
+      "website": "www.clba.org"
+    },
+    {
+      "denomination": "Conservative Mennonite Conference",
+      "movement_family": "Protestantism",
+      "churches": 110,
+      "membership": 11557,
+      "website": "www.cmcrosedale.org"
+    },
+    {
+      "denomination": "Evangelical Methodist Church",
+      "movement_family": "Protestantism",
+      "churches": 108,
+      "membership": 7348,
+      "website": "www.emchurch.org"
+    },
+    {
+      "denomination": "Armenian Apostolic Church of America",
+      "movement_family": "Orthodoxy",
+      "churches": 108,
+      "membership": 1010000,
+      "website": "www.armenianprelacy.org"
+    },
+    {
+      "denomination": "Society of Saint Pius X",
+      "movement_family": "Latin Church",
+      "churches": 103,
+      "membership": 20000,
+      "website": "www.sspx.org"
+    },
+    {
+      "denomination": "Southern Methodist Church",
+      "movement_family": "Protestantism",
+      "churches": 101,
+      "membership": 6000,
+      "website": "www.southernmethodistchurch.org"
+    },
+    {
+      "denomination": "Elim Fellowship",
+      "movement_family": "Pentecostalism",
+      "churches": 100,
+      "membership": 20000,
+      "website": "www.elim.edu"
+    },
+    {
+      "denomination": "Reformed Catholic Church",
+      "movement_family": "Latin Church",
+      "churches": 100,
+      "membership": 57000,
+      "website": "www.reformedcatholicchurch.org"
+    },
+    {
+      "denomination": "Coptic Orthodox Church",
+      "movement_family": "Orthodoxy",
+      "churches": 100,
+      "membership": 300000,
+      "website": "www.coptic.net"
+    },
+    {
+      "denomination": "Philadelphia Church of God",
+      "movement_family": null,
+      "churches": 100,
+      "membership": 5000,
+      "website": "www.pcog.org"
+    },
+    {
+      "denomination": "Duck River and Kindred Association",
+      "movement_family": "Protestantism",
+      "churches": 99,
+      "membership": 10188,
+      "website": "www.duckriverbaptistassociation.org"
+    },
+    {
+      "denomination": "International Churches of Christ",
+      "movement_family": "Protestantism",
+      "churches": 99,
+      "membership": 79161,
+      "website": "www.icoc.org"
+    },
+    {
+      "denomination": "Seventh Day Baptists",
+      "movement_family": "Protestantism",
+      "churches": 96,
+      "membership": 6200,
+      "website": "www.seventhdaybaptist.org"
+    },
+    {
+      "denomination": "International Fellowship of Christian Assemblies",
+      "movement_family": "Pentecostalism",
+      "churches": 96,
+      "membership": 7200,
+      "website": "www.ccna.org"
+    },
+    {
+      "denomination": "Separate Baptists in Christ",
+      "movement_family": "Protestantism",
+      "churches": 94,
+      "membership": 8716,
+      "website": "www.separatebaptist.org"
+    },
+    {
+      "denomination": "Church of the Lutheran Confession",
+      "movement_family": "Protestantism",
+      "churches": 87,
+      "membership": 8390,
+      "website": "www.clclutheran.org"
+    },
+    {
+      "denomination": "Apostolic Christian Churches of America",
+      "movement_family": "Pentecostalism",
+      "churches": 84,
+      "membership": 23980,
+      "website": "www.apostolicchristian.org"
+    },
+    {
+      "denomination": "Reformed Presbyterian Church of North America",
+      "movement_family": "Protestantism",
+      "churches": 80,
+      "membership": 6347,
+      "website": "www.reformedpresbyterian.org"
+    },
+    {
+      "denomination": "American Carpatho-Russian Orthodox Church",
+      "movement_family": "Orthodoxy",
+      "churches": 80,
+      "membership": 12840,
+      "website": "www.acrod.org"
+    },
+    {
+      "denomination": "Foursquare Church Canada",
+      "movement_family": "Pentecostalism",
+      "churches": 78,
+      "membership": null,
+      "website": "https://www.foursquare.ca"
+    },
+    {
+      "denomination": "The Alliance Canada",
+      "movement_family": "Pentecostalism",
+      "churches": 78,
+      "membership": 64900,
+      "website": "https://www.cmacan.org/"
+    },
+    {
+      "denomination": "Evangelical Association of Reformed and Congregational Churches",
+      "movement_family": "Protestantism",
+      "churches": 75,
+      "membership": null,
+      "website": "www.evangelicalassociation.org"
+    },
+    {
+      "denomination": "American Association of Lutheran Churches",
+      "movement_family": "Protestantism",
+      "churches": 70,
+      "membership": 16000,
+      "website": "www.taalc.org"
+    },
+    {
+      "denomination": "Association of Reformed Baptist Churches of America",
+      "movement_family": "Protestantism",
+      "churches": 69,
+      "membership": null,
+      "website": "www.arbca.org"
+    },
+    {
+      "denomination": "Serbian Orthodox Church in the U.S.A.",
+      "movement_family": "Orthodoxy",
+      "churches": 68,
+      "membership": 67000,
+      "website": "www.serbianorthodoxchurch.org"
+    },
+    {
+      "denomination": "Romanian Orthodox Episcopate of America",
+      "movement_family": "Orthodoxy",
+      "churches": 64,
+      "membership": 10635,
+      "website": "www.roea.org"
+    },
+    {
+      "denomination": "Apostolic Lutheran Church of America",
+      "movement_family": "Protestantism",
+      "churches": 60,
+      "membership": 90000,
+      "website": "www.apostoliclutheran.org"
+    },
+    {
+      "denomination": "Latvian Evangelical Lutheran Church in America",
+      "movement_family": "Protestantism",
+      "churches": 60,
+      "membership": 12010,
+      "website": "www.dcdraudze.org"
+    },
+    {
+      "denomination": "Bible Fellowship Church",
+      "movement_family": "Protestantism",
+      "churches": 60,
+      "membership": 7605,
+      "website": "www.mybfc.org"
+    },
+    {
+      "denomination": "Old German Baptist Brethren",
+      "movement_family": "Protestantism",
+      "churches": 56,
+      "membership": 6299,
+      "website": "www.cob-net.org"
+    },
+    {
+      "denomination": "Berean Fundamental Church",
+      "movement_family": "Protestantism",
+      "churches": 55,
+      "membership": 12000,
+      "website": "www.bereanchurchfellowship.org"
+    },
+    {
+      "denomination": "Old Order (Wisler) Mennonite Churches",
+      "movement_family": "Protestantism",
+      "churches": 47,
+      "membership": 7100,
+      "website": "www.mhsc.ca"
+    },
+    {
+      "denomination": "Fellowship of Evangelical Churches",
+      "movement_family": "Protestantism",
+      "churches": 42,
+      "membership": 6621,
+      "website": "www.fecministries.org"
+    },
+    {
+      "denomination": "Syrian (Syriac) Orthodox Church of Antioch (Archdiocese of the Eastern United States)",
+      "movement_family": "Orthodoxy",
+      "churches": 37,
+      "membership": 32500,
+      "website": "www.syrianorthodoxchurch.org"
+    },
+    {
+      "denomination": "Bible Presbyterian Church",
+      "movement_family": "Protestantism",
+      "churches": 32,
+      "membership": 10000,
+      "website": "www.bpc.org"
+    },
+    {
+      "denomination": "Protestant Reformed Churches in America",
+      "movement_family": "Protestantism",
+      "churches": 29,
+      "membership": 7630,
+      "website": "www.prca.org (unofficial)"
+    },
+    {
+      "denomination": "Apostolic Catholic Assyrian Church Of The East, North American Diocese",
+      "movement_family": "Orthodoxy",
+      "churches": 19,
+      "membership": 35118,
+      "website": "www.cired.org"
+    },
+    {
+      "denomination": "Apostolic Faith Mission Church of God",
+      "movement_family": "Pentecostalism",
+      "churches": 18,
+      "membership": 9120,
+      "website": "806 Muscogee Road"
+    },
+    {
+      "denomination": "Netherlands Reformed Congregations in North America",
+      "movement_family": "Protestantism",
+      "churches": 17,
+      "membership": 5000,
+      "website": "www.nrcrws.org"
+    },
+    {
+      "denomination": "Ecumenical Catholic Church USA",
+      "movement_family": "Latin Church",
+      "churches": 14,
+      "membership": 5000,
+      "website": "www.ecc-usa.org"
+    },
+    {
+      "denomination": "American Catholic Church in the United States",
+      "movement_family": "Latin Church",
+      "churches": 13,
+      "membership": 5000,
+      "website": "www.accus.us"
+    },
+    {
+      "denomination": "Apostolic Catholic Orthodox Church",
+      "movement_family": "Latin Church",
+      "churches": 10,
+      "membership": 8500,
+      "website": "www.apostoliccatholic.org"
+    },
+    {
+      "denomination": "Schwenkfelder Church",
+      "movement_family": "Protestantism",
+      "churches": 6,
+      "membership": 2800,
+      "website": "www.schwenkfelder.org"
+    },
+    {
+      "denomination": "African Orthodox Church",
+      "movement_family": "Orthodoxy",
+      "churches": 1,
+      "membership": 5000,
+      "website": "netministries.org/see/churches.exe/ch26904"
+    },
+    {
+      "denomination": "Albanian Orthodox Archdiocese in America",
+      "movement_family": "Orthodoxy",
+      "churches": 1,
+      "membership": 40000,
+      "website": "www.orthodoxalbania.org"
+    }
+  ],
+  "deep_denominations": [
+    {
+      "denomination": "Assembly of God",
+      "field_churches": 11116,
+      "field_staff": 22885,
+      "states": 50
+    },
+    {
+      "denomination": "Southern Baptist",
+      "field_churches": 4798,
+      "field_staff": 24410,
+      "states": 39
+    },
+    {
+      "denomination": "Foursquare",
+      "field_churches": 1480,
+      "field_staff": 4264,
+      "states": 49
+    },
+    {
+      "denomination": "ECO",
+      "field_churches": 400,
+      "field_staff": 3018,
+      "states": 38
+    }
+  ],
+  "by_state_mega": [
+    {
+      "state": "Texas",
+      "mega_churches": 319
+    },
+    {
+      "state": "California",
+      "mega_churches": 283
+    },
+    {
+      "state": "Florida",
+      "mega_churches": 189
+    },
+    {
+      "state": "Georgia",
+      "mega_churches": 127
+    },
+    {
+      "state": "North Carolina",
+      "mega_churches": 92
+    },
+    {
+      "state": "Tennessee",
+      "mega_churches": 91
+    },
+    {
+      "state": "Washington",
+      "mega_churches": 83
+    },
+    {
+      "state": "Ohio",
+      "mega_churches": 79
+    },
+    {
+      "state": "Virginia",
+      "mega_churches": 74
+    },
+    {
+      "state": "Illinois",
+      "mega_churches": 73
+    },
+    {
+      "state": "Missouri",
+      "mega_churches": 60
+    },
+    {
+      "state": "Indiana",
+      "mega_churches": 59
+    },
+    {
+      "state": "Michigan",
+      "mega_churches": 59
+    },
+    {
+      "state": "New York",
+      "mega_churches": 56
+    },
+    {
+      "state": "Pennsylvania",
+      "mega_churches": 55
+    },
+    {
+      "state": "Alabama",
+      "mega_churches": 54
+    },
+    {
+      "state": "South Carolina",
+      "mega_churches": 53
+    },
+    {
+      "state": "Arizona",
+      "mega_churches": 47
+    },
+    {
+      "state": "Maryland",
+      "mega_churches": 45
+    },
+    {
+      "state": "Oregon",
+      "mega_churches": 44
+    },
+    {
+      "state": "Colorado",
+      "mega_churches": 42
+    },
+    {
+      "state": "Oklahoma",
+      "mega_churches": 40
+    },
+    {
+      "state": "Canada",
+      "mega_churches": 39
+    },
+    {
+      "state": "Louisiana",
+      "mega_churches": 33
+    },
+    {
+      "state": "Minnesota",
+      "mega_churches": 29
+    },
+    {
+      "state": "Kentucky",
+      "mega_churches": 28
+    },
+    {
+      "state": "New Jersey",
+      "mega_churches": 27
+    },
+    {
+      "state": "Wisconsin",
+      "mega_churches": 22
+    },
+    {
+      "state": "Arkansas",
+      "mega_churches": 21
+    },
+    {
+      "state": "Kansas",
+      "mega_churches": 19
+    },
+    {
+      "state": "Nevada",
+      "mega_churches": 18
+    },
+    {
+      "state": "Mississippi",
+      "mega_churches": 17
+    },
+    {
+      "state": "Idaho",
+      "mega_churches": 16
+    },
+    {
+      "state": "Alaska",
+      "mega_churches": 12
+    },
+    {
+      "state": "Nebraska",
+      "mega_churches": 11
+    },
+    {
+      "state": "Hawaii",
+      "mega_churches": 10
+    },
+    {
+      "state": "Iowa",
+      "mega_churches": 10
+    },
+    {
+      "state": "Connecticut",
+      "mega_churches": 8
+    },
+    {
+      "state": "District of Columbia",
+      "mega_churches": 7
+    },
+    {
+      "state": "North Dakota",
+      "mega_churches": 6
+    },
+    {
+      "state": "Utah",
+      "mega_churches": 6
+    },
+    {
+      "state": "West Virginia",
+      "mega_churches": 6
+    },
+    {
+      "state": "New Mexico",
+      "mega_churches": 5
+    },
+    {
+      "state": "Montana",
+      "mega_churches": 4
+    },
+    {
+      "state": "New Hampshire",
+      "mega_churches": 4
+    },
+    {
+      "state": "South Dakota",
+      "mega_churches": 4
+    },
+    {
+      "state": "Wyoming",
+      "mega_churches": 3
+    },
+    {
+      "state": "Delaware",
+      "mega_churches": 2
+    },
+    {
+      "state": "Maine",
+      "mega_churches": 1
+    },
+    {
+      "state": "Rhode Island",
+      "mega_churches": 0
+    },
+    {
+      "state": "Vermont",
+      "mega_churches": 0
+    }
+  ]
+}

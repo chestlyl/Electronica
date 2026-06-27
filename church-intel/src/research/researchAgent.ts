@@ -19,6 +19,7 @@ import { interpretDossier } from './interpret.js';
 import { scoreStrategic, type StrategicScores } from './strategicScoring.js';
 import { runRecommendationEngine, type RecommendationEngineResult } from './recommendationEngine.js';
 import { computeSizeRelative, type SizeRelativeProfile } from './sizeRelative.js';
+import { computeContaminationSources, enforceContamination, type ContaminationSources } from './contamination.js';
 import { normalizedCounts, type RawEvidence, type NormalizedEvidence, type Interpretation } from './evidenceModel.js';
 import { computeCoverage, scoreConfidence, contactabilityConfidence, computeSourceCoverage, sourceCoverageSummary, type CoverageRow, type ScoreConfidence, type SourceCoverageRow } from './coverage.js';
 import { dossierSynthesisPrompt, type DossierSynthesis } from '../claude/dossierPrompt.js';
@@ -52,6 +53,8 @@ export interface DossierBuild {
   findings: SourceFinding[];
   conflicts: ResearchConflict[];
   contamination: string[];
+  /** Contaminated source set (hosts/urls) — enforced out of the relationship layer. */
+  contaminationSources: ContaminationSources;
   synthesis: DossierSynthesis;
   facts: Facts;
   leadership: LeaderCandidate[];
@@ -153,15 +156,6 @@ function detectConflicts(findings: SourceFinding[]): ResearchConflict[] {
   return conflicts;
 }
 
-function detectContamination(identity: DiscoveryResult): string[] {
-  const flags: string[] = [];
-  for (const c of identity.candidates) {
-    if (c.nameFull && c.cityStatus === 'conflict' && (c.kind === 'official_church' || c.source === 'search')) {
-      flags.push(`Same-name church at ${c.host} appears to be in a different city/state (${c.url}) — not this church; do not attribute its facts here.`);
-    }
-  }
-  return [...new Set(flags)];
-}
 
 export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): Promise<DossierBuild> {
   const identity = await discoverWebsite({
@@ -199,7 +193,11 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   const findings = [...website, ...snippets];
 
   const conflicts = detectConflicts(findings);
-  const contamination = detectContamination(identity);
+  // Contamination: same-name churches in a DIFFERENT city/state. Detected here;
+  // the human-readable flags feed the dossier, and the source set is enforced
+  // (contaminated relationship evidence removed) after scoring runs.
+  const contaminationSources = computeContaminationSources(identity);
+  const contamination = contaminationSources.flags;
   const officialCrawled = officialSiteWasCrawled(findings);
   const accessLevel = dossierAccessLevel(findings);
   const facts = extractFacts(findings);
@@ -364,6 +362,16 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     dimensionCounts: strategicDimensionCounts, technologyStack: techStack, sizeRelative, accessLevel,
   });
 
+  // ── Contamination enforcement ──────────────────────────────────────────────
+  // Remove same-name-different-city evidence from the RELATIONSHIP layer so it
+  // can never surface in Leadership Access / Contact Intelligence / Outreach
+  // Intelligence. Runs AFTER scoring + recommendations, so score values and
+  // recommendation logic are unchanged — only displayed/persisted contacts clean.
+  const contaminationRemoved = enforceContamination(normalized, interpretation, contaminationSources).removed;
+  if (contaminationRemoved && process.env.DOSSIER_DEBUG) {
+    logger.info(`  contamination: removed ${contaminationRemoved} relationship row(s) from ${contaminationSources.hosts.size} flagged source(s)`);
+  }
+
   // ── TEMPORARY INSTRUMENTATION (DOSSIER_DEBUG) — trace where contacts vanish ──
   if (process.env.DOSSIER_DEBUG) {
     logger.info(`\n══ DOSSIER_DEBUG: ${target.name} ══`);
@@ -414,7 +422,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   }
 
   return {
-    identity, findings, conflicts, contamination, synthesis, facts, leadership, dossier, strategic,
+    identity, findings, conflicts, contamination, contaminationSources, synthesis, facts, leadership, dossier, strategic,
     fieldEstimates, officialSite, accessLevel, officialCrawled, crawl, coverage, sourceCoverage, digital, techStack,
     strategicSignals, strategicDimensionCounts, raw, normalized, interpretation, coverageReport, strategicScores, sizeRelative, recommendations, scoreConfidence: scoreConf,
     tokens: usage.inputTokens + usage.outputTokens,

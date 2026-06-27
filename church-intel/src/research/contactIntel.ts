@@ -1,3 +1,4 @@
+import { hostOf } from './emailMap.js';
 import type { SourceFinding } from './dossier.js';
 import type { NormalizedEvidence, NormalizedRow, Interpretation } from './evidenceModel.js';
 import type { EvidenceAccessLevel } from '../types.js';
@@ -60,6 +61,10 @@ export interface ContactIntelInput {
   findings: SourceFinding[];
   normalized: NormalizedEvidence;
   interpretation: Interpretation;
+  /** Hosts of contaminated (same-name, different-city) sources to exclude from
+   *  phone/form detection. Email/campus buckets come from the already-cleaned
+   *  normalized evidence. */
+  contaminatedHosts?: Set<string>;
 }
 
 // Map a role mailbox / role hint to a human department label. Order matters:
@@ -160,7 +165,12 @@ function buildCampusContacts(normalized: NormalizedEvidence, phones: ContactChan
 }
 
 export function buildContactIntel(input: ContactIntelInput): ContactIntelligence {
-  const { findings, normalized, interpretation } = input;
+  const { normalized, interpretation } = input;
+  // Exclude contaminated (same-name, different-city) findings from phone/form
+  // detection. Email + campus buckets already come from cleaned normalized rows.
+  const findings = input.contaminatedHosts?.size
+    ? input.findings.filter((f) => !input.contaminatedHosts!.has(hostOf(f.url)))
+    : input.findings;
   const emails = normalized.email_map;
   const church_emails = emails.filter((e) => e.category === 'church').map(toChannel);
   const role_emails = emails.filter((e) => e.category === 'role').map(toChannel);

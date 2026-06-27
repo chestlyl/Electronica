@@ -124,7 +124,7 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   L.push('');
 
   // ── 4. Contact Intelligence (every channel preserved, organized for outreach) ─
-  const ci = buildContactIntel({ findings: b.findings, normalized: N, interpretation: I });
+  const ci = buildContactIntel({ findings: b.findings, normalized: N, interpretation: I, contaminatedHosts: b.contaminationSources?.hosts });
   L.push('## 4. Contact Intelligence');
   L.push('_Every contact channel found, nothing discarded. Emails bucketed: person-matched · role-based · church-level · unassigned. Plus departments, contact forms, campus contacts, and phones._');
   L.push(`- **Primary email:** ${ci.primary_email ?? 'not found'} · **Primary phone:** ${ci.primary_phone ?? 'not found'}`);
@@ -254,6 +254,7 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   L.push('');
   L.push(`### Contamination flags (${b.contamination.length})`);
   if (!b.contamination.length) L.push('- none detected');
+  else L.push('_Enforced: evidence from these sources is excluded from Leadership Access, Contact Intelligence, and Outreach Intelligence._');
   for (const c of b.contamination) L.push(`- ${c}`);
   L.push('');
   L.push('### Recommended next verification step');

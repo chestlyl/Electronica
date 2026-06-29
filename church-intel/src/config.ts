@@ -73,6 +73,13 @@ export const config = {
     cipApiKey: process.env.CIP_API_KEY ?? '',
     port: num('CIP_API_PORT', 4100),
   },
+  base44: {
+    // The Base44 front-end app is the system of record for the UI. The agent
+    // PUBLISHES dossier results into its entity API. Keys live in .env only.
+    appId: process.env.BASE44_APP_ID ?? '',
+    apiKey: process.env.BASE44_API_KEY ?? '',
+    baseUrl: process.env.BASE44_BASE_URL ?? 'https://church-intel-flow.base44.app/api',
+  },
 };
 
 export type AppConfig = typeof config;

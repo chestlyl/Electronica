@@ -14,6 +14,8 @@ import { buildDossier, type DossierBuild, type ResearchTarget } from './research
 import { prospectArea, renderProspectBoard } from './research/prospect.js';
 import { googlePlacesProvider, searchDirectoryProvider } from './research/prospectProviders.js';
 import { renderDossierMarkdown } from './research/dossierMarkdown.js';
+import { publishDossierToBase44 } from './base44/publish.js';
+import { assertBase44Configured, logBase44Target } from './base44/client.js';
 import { extractAltName } from './agents/index.js';
 import { loadCalibrationSet, rowFromBuild, type CalibrationRow } from './research/calibrationSet.js';
 import { renderCalibrationReport } from './research/calibrationReport.js';
@@ -138,6 +140,31 @@ program
       const target: ResearchTarget = { name: opts.name, city: opts.city ?? null, state: opts.state ?? null, originalWebsite: opts.url, alternateName: null };
       const build = await buildDossier(target, ctx);
       await emitDossier(target, build, opts.out);
+    } finally {
+      await ctx.close();
+    }
+  });
+
+program
+  .command('publish-base44')
+  .description('Research a church and PUBLISH the dossier into the Base44 front-end app')
+  .requiredOption('--url <url>', 'official website')
+  .requiredOption('--name <name>', 'church name')
+  .option('--city <city>', 'city')
+  .option('--state <state>', 'state')
+  .option('-o, --out <path>', 'also write the dossier markdown to this path')
+  .action(async (opts) => {
+    assertBase44Configured();
+    logBase44Target();
+    const ctx = createLiveContext();
+    try {
+      const target: ResearchTarget = { name: opts.name, city: opts.city ?? null, state: opts.state ?? null, originalWebsite: opts.url, alternateName: null };
+      const build = await buildDossier(target, ctx);
+      if (opts.out) { const { writeFileSync } = await import('node:fs'); writeFileSync(opts.out, renderDossierMarkdown(target, build)); }
+      const res = await publishDossierToBase44(target, build);
+      const c = res.counts;
+      logger.info(`Published "${opts.name}" → Church ${res.church_id} (${res.created ? 'created' : 'updated'})`);
+      logger.info(`  contacts ${c.contacts} · technology ${c.technologies} · signals ${c.signals} · coverage ${c.coverage} · scores ${c.scores} · raw evidence ${c.rawEvidence}`);
     } finally {
       await ctx.close();
     }

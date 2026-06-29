@@ -48,6 +48,23 @@ export function isContaminatedUrl(url: string | null | undefined, sources: Conta
   return !!h && sources.hosts.has(h);
 }
 
+/**
+ * Partition findings into kept (this church) vs removed (a same-name church in a
+ * different city/state). Run BEFORE any extraction so contaminated evidence never
+ * counts toward facts, leaders, contacts, coverage, OR scores. With no
+ * contaminated sources this is a no-op, so clean churches are unaffected.
+ */
+export function filterContaminatedFindings<T extends { url: string }>(
+  findings: T[],
+  sources: ContaminationSources,
+): { kept: T[]; removed: T[] } {
+  if (!sources.hosts.size && !sources.urls.size) return { kept: findings, removed: [] };
+  const kept: T[] = [];
+  const removed: T[] = [];
+  for (const f of findings) (isContaminatedUrl(f.url, sources) ? removed : kept).push(f);
+  return { kept, removed };
+}
+
 const digits = (s: string): string => s.replace(/\D/g, '');
 
 /**

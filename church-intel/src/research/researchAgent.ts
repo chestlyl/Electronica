@@ -19,7 +19,7 @@ import { interpretDossier } from './interpret.js';
 import { scoreStrategic, type StrategicScores } from './strategicScoring.js';
 import { runRecommendationEngine, type RecommendationEngineResult } from './recommendationEngine.js';
 import { computeSizeRelative, type SizeRelativeProfile } from './sizeRelative.js';
-import { computeContaminationSources, enforceContamination, type ContaminationSources } from './contamination.js';
+import { computeContaminationSources, enforceContamination, filterContaminatedFindings, type ContaminationSources } from './contamination.js';
 import { normalizedCounts, type RawEvidence, type NormalizedEvidence, type Interpretation } from './evidenceModel.js';
 import { computeCoverage, scoreConfidence, contactabilityConfidence, computeSourceCoverage, sourceCoverageSummary, type CoverageRow, type ScoreConfidence, type SourceCoverageRow } from './coverage.js';
 import { dossierSynthesisPrompt, type DossierSynthesis } from '../claude/dossierPrompt.js';
@@ -190,14 +190,23 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   // facts win when present, but snippet-sourced contacts survive as a fallback
   // whenever the (possibly thin) official homepage lacks them.
   const [website, snippets] = await Promise.all([collectWebsite(ctx), collectSnippets(ctx)]);
-  const findings = [...website, ...snippets];
+  const allFindings = [...website, ...snippets];
+
+  // ── Contamination enforcement (UPSTREAM) ───────────────────────────────────
+  // Same-name churches in a DIFFERENT city/state are detected by discovery
+  // (candidates with cityStatus='conflict'). Exclude their evidence BEFORE any
+  // extraction, so it never counts toward this church's facts, leaders, contacts,
+  // coverage, OR scores. Formulas/weights/recommendation rules are unchanged —
+  // only the input evidence is filtered. Clean churches (no contaminated source)
+  // are byte-for-byte unaffected (the filter is a no-op).
+  const contaminationSources = computeContaminationSources(identity);
+  const { kept: findings, removed: contaminatedFindings } = filterContaminatedFindings(allFindings, contaminationSources);
+  const contamination = contaminationSources.flags;
+  if (contaminatedFindings.length && process.env.DOSSIER_DEBUG) {
+    logger.info(`  contamination: excluded ${contaminatedFindings.length} finding(s) from ${contaminationSources.hosts.size} flagged source(s) before extraction`);
+  }
 
   const conflicts = detectConflicts(findings);
-  // Contamination: same-name churches in a DIFFERENT city/state. Detected here;
-  // the human-readable flags feed the dossier, and the source set is enforced
-  // (contaminated relationship evidence removed) after scoring runs.
-  const contaminationSources = computeContaminationSources(identity);
-  const contamination = contaminationSources.flags;
   const officialCrawled = officialSiteWasCrawled(findings);
   const accessLevel = dossierAccessLevel(findings);
   const facts = extractFacts(findings);
@@ -362,14 +371,13 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     dimensionCounts: strategicDimensionCounts, technologyStack: techStack, sizeRelative, accessLevel,
   });
 
-  // ── Contamination enforcement ──────────────────────────────────────────────
-  // Remove same-name-different-city evidence from the RELATIONSHIP layer so it
-  // can never surface in Leadership Access / Contact Intelligence / Outreach
-  // Intelligence. Runs AFTER scoring + recommendations, so score values and
-  // recommendation logic are unchanged — only displayed/persisted contacts clean.
+  // Defensive secondary pass: contaminated findings were already excluded
+  // upstream (before extraction), so this normally removes nothing. It guards the
+  // normalized/interpretation layer against any contaminated row that reached it
+  // by a non-finding path. No-op when the upstream filter already cleaned things.
   const contaminationRemoved = enforceContamination(normalized, interpretation, contaminationSources).removed;
   if (contaminationRemoved && process.env.DOSSIER_DEBUG) {
-    logger.info(`  contamination: removed ${contaminationRemoved} relationship row(s) from ${contaminationSources.hosts.size} flagged source(s)`);
+    logger.info(`  contamination: secondary pass removed ${contaminationRemoved} relationship row(s)`);
   }
 
   // ── TEMPORARY INSTRUMENTATION (DOSSIER_DEBUG) — trace where contacts vanish ──

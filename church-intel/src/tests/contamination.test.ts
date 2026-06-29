@@ -11,7 +11,7 @@
  */
 import assert from 'node:assert';
 import { buildCornerstoneOffline } from '../researchDemo.js';
-import { computeContaminationSources, enforceContamination, isContaminatedUrl, type ContaminationSources } from '../research/contamination.js';
+import { computeContaminationSources, enforceContamination, filterContaminatedFindings, isContaminatedUrl, type ContaminationSources } from '../research/contamination.js';
 import { buildContactIntel } from '../research/contactIntel.js';
 import { buildOutreachIntel } from '../research/outreachIntel.js';
 import type { NormalizedRow } from '../research/evidenceModel.js';
@@ -47,8 +47,36 @@ async function main() {
     assert.ok(!isContaminatedUrl('https://theonecity.org/staff', s));
   });
 
+  // ── UPSTREAM filter: contaminated findings excluded BEFORE extraction ───────
+  check('filterContaminatedFindings drops contaminated findings, keeps the real church', () => {
+    const s: ContaminationSources = { hosts: new Set([BAD_HOST]), urls: new Set([BAD_URL]), flags: [] };
+    const findings = [
+      { url: 'https://theonecity.org/' }, { url: 'https://theonecity.org/staff' }, { url: BAD_URL },
+    ];
+    const { kept, removed } = filterContaminatedFindings(findings, s);
+    assert.strictEqual(kept.length, 2);
+    assert.strictEqual(removed.length, 1);
+    assert.ok(kept.every((f) => f.url.includes('theonecity.org')));
+  });
+  check('filterContaminatedFindings is a no-op when nothing is contaminated', () => {
+    const empty: ContaminationSources = { hosts: new Set(), urls: new Set(), flags: [] };
+    const findings = [{ url: 'https://a.org' }, { url: 'https://b.org' }];
+    const { kept, removed } = filterContaminatedFindings(findings, empty);
+    assert.strictEqual(kept, findings, 'returns the same array reference (true no-op)');
+    assert.strictEqual(removed.length, 0);
+  });
+
   // ── enforcement on a REAL offline build with injected contamination ─────────
   const { build } = await buildCornerstoneOffline();
+
+  // End-to-end upstream proof: the Cornerstone fixture injects a same-name decoy
+  // ("Cornerstone Church | Faraway, TX"). It must be flagged AND already excluded
+  // from `findings` before any extraction ran — so it never reached scoring.
+  check('upstream: the same-name decoy is flagged AND excluded from findings before extraction', () => {
+    assert.ok(build.contaminationSources.hosts.has('synthetic-samename-church.example'), 'decoy host flagged');
+    assert.ok(!build.findings.some((f) => f.url.includes('synthetic-samename')), 'decoy excluded from findings');
+  });
+
   const N = build.normalized, I = build.interpretation;
   const cleanLeadCount = N.leaders.length;
   const realLead = N.leaders[0]?.value;                                  // a genuine Cornerstone leader

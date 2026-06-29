@@ -11,9 +11,12 @@
  */
 import assert from 'node:assert';
 import { buildCornerstoneOffline } from '../researchDemo.js';
-import { computeContaminationSources, enforceContamination, filterContaminatedFindings, isContaminatedUrl, type ContaminationSources } from '../research/contamination.js';
+import { computeContaminationSources, enforceContamination, filterContaminatedFindings, isContaminatedUrl, sameNameCompetitorHosts, distinctiveNameKey, isOfficialHost, COLLISION_THRESHOLD, type ContaminationSources } from '../research/contamination.js';
 import { buildContactIntel } from '../research/contactIntel.js';
 import { buildOutreachIntel } from '../research/outreachIntel.js';
+import { aggregateLeadership } from '../research/extractors.js';
+import { buildEmailMap } from '../research/emailMap.js';
+import { makeFinding, type SourceFinding } from '../research/dossier.js';
 import type { NormalizedRow } from '../research/evidenceModel.js';
 
 let failures = 0;
@@ -140,6 +143,60 @@ async function main() {
     const r = enforceContamination(b2.normalized, b2.interpretation, { hosts: new Set(), urls: new Set(), flags: [] });
     assert.strictEqual(r.removed, 0);
     assert.strictEqual(b2.normalized.leaders.length, before);
+  });
+
+  // ── COLLISION-AWARE contact gating (One City Church Nashville, known_church) ─
+  // The real failure: third-party snippets about OTHER same-name churches, with
+  // NO discovery conflict candidate (so detection found nothing). Gating keys off
+  // how many same-name church DOMAINS appear.
+  console.log('\nCollision-aware contact gating');
+  const OFFICIAL = 'theonecity.org';
+  const efield = (email: string, url: string) => ({ field_name: 'email', value: email, confidence: 80, evidence_text: email, source_url: url, source_type: 'official_site' as const, access_level: 'search_snippets' as const });
+  const fnd = (url: string, opts: Partial<SourceFinding> = {}): SourceFinding =>
+    makeFinding({ sourceType: 'search', accessLevel: 'search_snippets', url, fetched: false, status: 200, ...opts });
+
+  const oneCityFindings: SourceFinding[] = [
+    // the REAL church (official domain)
+    makeFinding({ sourceType: 'staff_page', accessLevel: 'live_official_site', url: `https://www.${OFFICIAL}/ourleaders`, fetched: true, status: 200, category: 'staff', text: 'Meet our leaders.', staffCards: [{ name: 'Hollis Thomas', title: 'Senior Pastor' }] }),
+    makeFinding({ sourceType: 'official_site', accessLevel: 'live_official_site', url: `https://www.${OFFICIAL}/give`, fetched: true, status: 200, category: 'giving', text: 'Give online. business@theonecity.org', fields: [efield('business@theonecity.org', `https://www.${OFFICIAL}/give`)] }),
+    // OTHER same-name churches + generic third parties (the contamination)
+    fnd('https://www.onecitychurchlancaster.com/our-leadership-team', { snippet: 'Alec Becker — Lead Pastor. bill@onecitychurchlancaster.com', fields: [efield('alec@onecitychurchlancaster.com', 'https://www.onecitychurchlancaster.com/our-leadership-team'), efield('bill@onecitychurchlancaster.com', 'https://www.onecitychurchlancaster.com/our-leadership-team')] }),
+    fnd('https://www.onecitymemphis.org/staff-leaders', { snippet: 'Our Lead Pastor serves Memphis.' }),
+    fnd('https://onecity.church/staff/', { snippet: 'Staff page.' }),
+    fnd('https://www.12newsnow.com/article/cathedral-in-the-pines-becomes-one-city-church', { snippet: 'Randy Feldschau — Senior Pastor of the Beaumont congregation.' }),
+    fnd('https://www.church.nyc/staff', { snippet: 'Carlos serves as Executive Pastor.' }),
+  ];
+
+  check('distinctiveNameKey strips generic tokens ("One City Church" → "onecity")', () => {
+    assert.strictEqual(distinctiveNameKey('One City Church'), 'onecity');
+  });
+  const competitors = sameNameCompetitorHosts('One City Church', oneCityFindings, OFFICIAL);
+  check('sameNameCompetitorHosts finds the other same-name church domains (≥ threshold)', () => {
+    assert.ok(competitors.size >= COLLISION_THRESHOLD, `found ${competitors.size}: ${[...competitors].join(', ')}`);
+    assert.ok(competitors.has('onecitychurchlancaster.com') && competitors.has('onecitymemphis.org'));
+    assert.ok(!competitors.has(OFFICIAL), 'the official host is not a competitor');
+    assert.ok(![...competitors].some((h) => /12newsnow|church\.nyc/.test(h)), 'generic third parties are not counted as same-name');
+  });
+
+  // Apply the gate exactly as researchAgent does: restrict contacts to the official domain.
+  const restrict = competitors.size >= COLLISION_THRESHOLD;
+  const contactFindings = oneCityFindings.filter((f) => isOfficialHost(f.url, OFFICIAL));
+  const leaders = aggregateLeadership(restrict ? contactFindings : oneCityFindings);
+  const emails = buildEmailMap(restrict ? contactFindings : oneCityFindings, leaders.map((l) => l.name), OFFICIAL);
+
+  check('gated leaders: only the real pastor (Hollis Thomas), none of the same-name decoys', () => {
+    const names = leaders.map((l) => l.name);
+    assert.ok(names.includes('Hollis Thomas'), 'real pastor kept');
+    for (const bad of ['Randy Feldschau', 'Alec Becker', 'Carlos']) assert.ok(!names.includes(bad), `${bad} must be excluded`);
+  });
+  check('gated emails: only the official-domain address, no other-church emails', () => {
+    const vals = emails.map((e) => e.email);
+    assert.ok(vals.includes('business@theonecity.org'), 'official email kept');
+    for (const bad of ['alec@onecitychurchlancaster.com', 'bill@onecitychurchlancaster.com']) assert.ok(!vals.includes(bad), `${bad} must be excluded`);
+  });
+  check('distinctive name → NO restriction (third-party fallback preserved)', () => {
+    const distinctive = sameNameCompetitorHosts('Redemption Hill Church', oneCityFindings, 'redemptionhill.org');
+    assert.strictEqual(distinctive.size, 0, 'no same-name collisions for a distinctive name');
   });
 
   console.log(failures ? `\nFAILED (${failures})` : '\nALL PASSED');

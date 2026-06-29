@@ -88,7 +88,7 @@ export function mapDossierBuild(target: ResearchTarget, build: DossierBuild): Ma
     priority: build.recommendations?.engagement_priority?.value ?? null,
   };
 
-  const contact = buildContactIntel({ findings: build.findings, normalized: N, interpretation: I, contaminatedHosts: build.contaminationSources?.hosts });
+  const contact = buildContactIntel({ findings: build.contactFindings ?? build.findings, normalized: N, interpretation: I, contaminatedHosts: build.contaminationSources?.hosts });
   const outreach = build.recommendations && build.strategicScores && build.sizeRelative
     ? buildOutreachIntel({ interpretation: I, normalized: N, scores: build.strategicScores, recommendations: build.recommendations, sizeRelative: build.sizeRelative })
     : {};

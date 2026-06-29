@@ -25,6 +25,46 @@ export interface ContaminationSources {
   flags: string[];        // human-readable, same strings the dossier already showed
 }
 
+// ── Collision-aware contact gating ───────────────────────────────────────────
+// Common church names ("One City Church", "Grace Church") collide: the snippet
+// search pulls in many DIFFERENT same-name churches, whose pastors/emails/phones
+// then get mis-attributed to the target. When several same-name church DOMAINS
+// appear, we trust only the verified official domain for NAMED CONTACTS.
+
+/** ≥ this many distinct same-name competitor domains ⇒ restrict to the official site. */
+export const COLLISION_THRESHOLD = 2;
+
+const GENERIC_NAME_TOKENS = new Set(['church', 'churches', 'the', 'of', 'a', 'an', 'and', 'fellowship', 'chapel', 'ministries', 'ministry']);
+// Hosts that are platforms/aggregators/socials, not a church's own domain.
+const NON_CHURCH_HOST = /(facebook|instagram|youtube|youtu\.be|twitter|x\.com|tiktok|threads|vimeo|linkedin|yelp|indeed|ziprecruiter|glassdoor|reddit|wikipedia|google|play\.google|apps\.apple|churchstaffing|ministryjobs|justchurchjobs|churchjobs|planningcenter|subsplash|pushpay|tithe|tithely|mapquest|yellowpages|crunchbase|zoominfo)/i;
+
+/** The distinctive, generic-stripped name key (e.g. "One City Church" → "onecity"). */
+export function distinctiveNameKey(name: string): string {
+  return name.toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/).filter(Boolean).filter((t) => !GENERIC_NAME_TOKENS.has(t)).join('');
+}
+
+export function isOfficialHost(url: string | null | undefined, officialHost: string): boolean {
+  if (!officialHost) return false;
+  const h = hostOf(url);
+  return !!h && (h === officialHost || h.endsWith(`.${officialHost}`));
+}
+
+/** Distinct non-official, non-platform hosts whose domain carries the church's
+ *  name key — i.e. OTHER same-name churches. Size drives the collision decision. */
+export function sameNameCompetitorHosts(name: string, findings: { url: string }[], officialHost: string): Set<string> {
+  const key = distinctiveNameKey(name);
+  const out = new Set<string>();
+  if (key.length < 5) return out;                          // too generic/short to key on safely
+  for (const f of findings) {
+    const h = hostOf(f.url);
+    if (!h || isOfficialHost(f.url, officialHost) || NON_CHURCH_HOST.test(h)) continue;
+    const label = h.replace(/\.[a-z.]+$/, '').replace(/[^a-z0-9]/g, '');
+    if (label.includes(key)) out.add(h);
+  }
+  return out;
+}
+
 /** Same-name church in a DIFFERENT city/state = a contaminated source. */
 export function computeContaminationSources(identity: DiscoveryResult): ContaminationSources {
   const hosts = new Set<string>();

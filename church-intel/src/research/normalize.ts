@@ -71,6 +71,10 @@ export function extractServiceTimes(findings: SourceFinding[]): { time: string; 
 
 export interface NormalizeInput {
   findings: SourceFinding[];
+  /** Subset of findings allowed for NAMED-CONTACT tables (staff roster, email
+   *  map, locations). Defaults to `findings`. Set by the collision/contamination
+   *  gate so wrong-church contacts never enter the relationship layer. */
+  contactFindings?: SourceFinding[];
   facts: Facts;
   leadership: LeaderCandidate[];
   techStack: PlatformHit[];
@@ -81,6 +85,7 @@ export interface NormalizeInput {
 export function normalizeEvidence(input: NormalizeInput): NormalizedEvidence {
   const ev = emptyNormalizedEvidence();
   const { findings, facts, leadership, techStack, strategicSignals, conflicts } = input;
+  const contactFindings = input.contactFindings ?? findings;
 
   // leaders[] — every leader candidate, with provenance (NOT a single conclusion).
   leadership.forEach((l, i) => {
@@ -95,7 +100,7 @@ export function normalizeEvidence(input: NormalizeInput): NormalizedEvidence {
 
   // staff_roster[] — raw {name,title} cards as collected (superset of leaders).
   let rosterN = 0;
-  for (const f of findings) {
+  for (const f of contactFindings) {
     for (const card of f.staffCards ?? []) {
       // category = the canonical relationship role (the "leadership map"), else 'staff'.
       ev.staff_roster.push({
@@ -142,7 +147,7 @@ export function normalizeEvidence(input: NormalizeInput): NormalizedEvidence {
 
   // locations[] — conservative address extraction from contact/home/about pages.
   let locN = 0;
-  for (const f of findings) {
+  for (const f of contactFindings) {
     if (!['home', 'contact', 'about'].includes(f.category ?? '')) continue;
     const text = `${f.title ?? ''} ${(f.fetched ? f.text : f.snippet) ?? ''}`;
     const m = text.match(ADDRESS_RE);
@@ -184,7 +189,7 @@ export function normalizeEvidence(input: NormalizeInput): NormalizedEvidence {
   // possible. Nothing is discarded (an unattributable address → "unassigned").
   const staffNames = [...new Set([...ev.leaders.map((l) => l.value), ...ev.staff_roster.map((r) => r.value)])];
   const officialDomain = hostOf(findings.find((f) => f.accessLevel === 'live_official_site' && f.fetched)?.url ?? findings.find((f) => f.accessLevel === 'live_official_site')?.url);
-  buildEmailMap(findings, staffNames, officialDomain).forEach((e, i) => ev.email_map.push({
+  buildEmailMap(contactFindings, staffNames, officialDomain).forEach((e, i) => ev.email_map.push({
     id: `email_${i + 1}`, value: e.email, category: e.bucket, detail: e.person ?? e.role_hint ?? undefined,
     source_url: e.source_url, evidence_text: e.near || e.email, confidence: e.confidence,
     access_level: e.access_level, extractor_name: 'emailMap',

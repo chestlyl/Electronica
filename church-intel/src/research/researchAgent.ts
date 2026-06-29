@@ -19,7 +19,7 @@ import { interpretDossier } from './interpret.js';
 import { scoreStrategic, type StrategicScores } from './strategicScoring.js';
 import { runRecommendationEngine, type RecommendationEngineResult } from './recommendationEngine.js';
 import { computeSizeRelative, type SizeRelativeProfile } from './sizeRelative.js';
-import { computeContaminationSources, enforceContamination, filterContaminatedFindings, type ContaminationSources } from './contamination.js';
+import { computeContaminationSources, enforceContamination, filterContaminatedFindings, isContaminatedUrl, sameNameCompetitorHosts, isOfficialHost, COLLISION_THRESHOLD, type ContaminationSources } from './contamination.js';
 import { normalizedCounts, type RawEvidence, type NormalizedEvidence, type Interpretation } from './evidenceModel.js';
 import { computeCoverage, scoreConfidence, contactabilityConfidence, computeSourceCoverage, sourceCoverageSummary, type CoverageRow, type ScoreConfidence, type SourceCoverageRow } from './coverage.js';
 import { dossierSynthesisPrompt, type DossierSynthesis } from '../claude/dossierPrompt.js';
@@ -51,6 +51,12 @@ export interface ResearchDeps {
 export interface DossierBuild {
   identity: DiscoveryResult;
   findings: SourceFinding[];
+  /** Findings allowed for NAMED-CONTACT attribution (collision-/contamination-gated). */
+  contactFindings: SourceFinding[];
+  /** True when a common name forced contacts to the official domain only. */
+  contactRestricted: boolean;
+  /** Other same-name church domains seen (drives contactRestricted). */
+  sameNameDomains: string[];
   conflicts: ResearchConflict[];
   contamination: string[];
   /** Contaminated source set (hosts/urls) — enforced out of the relationship layer. */
@@ -104,6 +110,9 @@ export interface CrawlDiagnostics {
 }
 
 const clamp = (n: number) => Math.max(0, Math.min(100, n));
+// Deterministic facts that name a PERSON or a direct contact channel — gated to
+// official sources under collision (a wrong-church value here is contamination).
+const CONTACT_FACT_KEYS = ['office_email', 'office_phone', 'lead_pastor', 'executive_pastor', 'discipleship_pastor', 'operations_leader', 'marketing_director', 'communications_leader'];
 function hostOf(url: string): string {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
 }
@@ -206,10 +215,33 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     logger.info(`  contamination: excluded ${contaminatedFindings.length} finding(s) from ${contaminationSources.hosts.size} flagged source(s) before extraction`);
   }
 
+  // ── Collision-aware contact gating ─────────────────────────────────────────
+  // Common names ("One City Church", "Grace Church") collide: the snippet search
+  // surfaces many DIFFERENT same-name churches whose pastors/emails/phones would
+  // otherwise be mis-attributed here. When several same-name church DOMAINS show
+  // up, attribute NAMED CONTACTS (leaders, emails, phones) ONLY from the verified
+  // official domain. Distinctive-name churches keep third-party fallback.
+  const officialHost = hostOf(officialSite ?? '').toLowerCase();
+  const sameNameDomains = sameNameCompetitorHosts(target.name, findings, officialHost);
+  const restrictContacts = !!officialHost && sameNameDomains.size >= COLLISION_THRESHOLD;
+  const contactAllowed = (url: string): boolean =>
+    !isContaminatedUrl(url, contaminationSources) && (!restrictContacts || isOfficialHost(url, officialHost));
+  const contactFindings = findings.filter((f) => contactAllowed(f.url));
+  if (restrictContacts && process.env.DOSSIER_DEBUG) {
+    logger.info(`  contamination: common name "${target.name}" — ${sameNameDomains.size} same-name domain(s) [${[...sameNameDomains].join(', ')}]; contacts restricted to ${officialHost}`);
+  }
+
   const conflicts = detectConflicts(findings);
   const officialCrawled = officialSiteWasCrawled(findings);
   const accessLevel = dossierAccessLevel(findings);
   const facts = extractFacts(findings);
+  // Collision gate: drop NAMED-CONTACT facts that came from a non-official source.
+  if (restrictContacts) {
+    for (const k of CONTACT_FACT_KEYS) {
+      const fact = facts[k];
+      if (fact && fact.value != null && !contactAllowed(String(fact.source_url))) delete facts[k];
+    }
+  }
   // Authoritative reported attendance (Outreach 100 / Hartford) — overrides the
   // staff-pattern inference that systematically under-sizes megachurches. Best
   // effort: a miss (small church, no network) just falls through to inference.
@@ -222,8 +254,9 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
       }
     } catch { /* non-fatal */ }
   }
-  // Aggregate ALL pastor/leader candidates (supports co-lead / multiple lead pastors).
-  const leadership = aggregateLeadership(findings);
+  // Aggregate ALL pastor/leader candidates (supports co-lead / multiple lead
+  // pastors). Collision-gated: only contact-allowed (official) sources.
+  const leadership = aggregateLeadership(contactFindings);
 
   // Rendered-DOM crawl diagnostics (from the official homepage finding).
   const liveFindings = findings.filter((f) => f.accessLevel === 'live_official_site');
@@ -342,7 +375,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   // Conclusions are produced ONLY here (interpretDossier), from normalized
   // evidence — never from raw page text. Report + enrich consume `interpretation`.
   const raw = toRawEvidence(findings);
-  const normalized = normalizeEvidence({ findings, facts, leadership, techStack, strategicSignals, conflicts });
+  const normalized = normalizeEvidence({ findings, contactFindings, facts, leadership, techStack, strategicSignals, conflicts });
   const interpretation = interpretDossier({
     normalized, synthesis, facts, accessLevel, scoreConfidence: scoreConf,
     identity: { inputMode: identity.inputMode, websiteVerificationStatus: identity.websiteVerificationStatus, identityVerdict: identity.identityVerdict },
@@ -430,7 +463,8 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   }
 
   return {
-    identity, findings, conflicts, contamination, contaminationSources, synthesis, facts, leadership, dossier, strategic,
+    identity, findings, contactFindings, contactRestricted: restrictContacts, sameNameDomains: [...sameNameDomains],
+    conflicts, contamination, contaminationSources, synthesis, facts, leadership, dossier, strategic,
     fieldEstimates, officialSite, accessLevel, officialCrawled, crawl, coverage, sourceCoverage, digital, techStack,
     strategicSignals, strategicDimensionCounts, raw, normalized, interpretation, coverageReport, strategicScores, sizeRelative, recommendations, scoreConfidence: scoreConf,
     tokens: usage.inputTokens + usage.outputTokens,

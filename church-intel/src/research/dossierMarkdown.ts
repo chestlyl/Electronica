@@ -84,6 +84,9 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   // ── 3. Leadership Access (the relationship-intelligence core) ────────────────
   L.push('## 3. Leadership Access');
   L.push('_The best people to contact, by role, with provenance. "not found" means we have no evidence — never invented._');
+  if (b.contactRestricted) {
+    L.push(`> ⚠️ **Common church name** — ${b.sameNameDomains.length} other same-name church domain(s) were found (${b.sameNameDomains.slice(0, 4).join(', ')}${b.sameNameDomains.length > 4 ? '…' : ''}). To avoid cross-church contamination, contacts are attributed **only from the official domain**; third-party listings were not trusted for this church.`);
+  }
   const N = b.normalized;
   // Unified people list (leaders ∪ staff_roster), deduped by name, carrying role.
   const peopleByName = new Map<string, { name: string; title: string; category: string; source_url: string; confidence: number }>();
@@ -124,7 +127,7 @@ export function renderDossierMarkdown(target: ResearchTarget, b: DossierBuild): 
   L.push('');
 
   // ── 4. Contact Intelligence (every channel preserved, organized for outreach) ─
-  const ci = buildContactIntel({ findings: b.findings, normalized: N, interpretation: I, contaminatedHosts: b.contaminationSources?.hosts });
+  const ci = buildContactIntel({ findings: b.contactFindings ?? b.findings, normalized: N, interpretation: I, contaminatedHosts: b.contaminationSources?.hosts });
   L.push('## 4. Contact Intelligence');
   L.push('_Every contact channel found, nothing discarded. Emails bucketed: person-matched · role-based · church-level · unassigned. Plus departments, contact forms, campus contacts, and phones._');
   L.push(`- **Primary email:** ${ci.primary_email ?? 'not found'} · **Primary phone:** ${ci.primary_phone ?? 'not found'}`);

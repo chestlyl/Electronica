@@ -62,7 +62,11 @@ export function validateCoverage(input: CoverageInput): CoverageReport {
   // platform-revealing pages: where a tech/app/giving stack actually shows up.
   const platformPages = fetched('giving', 'groups', 'app', 'sermons');
   const appDetected = digital.church_app || digital.platforms.length > 0;
-  const techDetected = techStack.length > 0 || digital.platforms.length > 0;
+  // 'technology' coverage = CORE infrastructure (ChMS/Giving/App/Website/Email).
+  // Streaming (YouTube/Vimeo) belongs to sermons/media, and a single homepage
+  // link to it must not, by itself, mark the tech stack "investigated".
+  const coreTech = techStack.filter((t) => t.category !== 'Streaming');
+  const techDetected = coreTech.length > 0 || digital.platforms.length > 0;
 
   type Spec = { category: string; required?: boolean; complete: boolean; partial: boolean; investigated: boolean; ids: string[]; note: string };
   const specs: Spec[] = [
@@ -76,7 +80,7 @@ export function validateCoverage(input: CoverageInput): CoverageReport {
     { category: 'giving', complete: fetched('giving'), partial: sig('giving'), investigated: fetched('giving'), ids: pageIds('giving').concat(sigIds('giving')), note: fetched('giving') ? 'giving page fetched' : (sig('giving') ? 'give link/signal only, page not crawled' : 'not investigated') },
     { category: 'sermons/media', complete: fetched('sermons'), partial: sig('livestream_video', 'podcast'), investigated: fetched('sermons'), ids: pageIds('sermons').concat(sigIds('livestream_video', 'podcast')), note: fetched('sermons') ? 'media page fetched' : (sig('livestream_video', 'podcast') ? 'media link/signal only, page not crawled' : 'not investigated') },
     { category: 'app/mobile', complete: appDetected, partial: sig('app_mobile') || (!appDetected && platformPages), investigated: appDetected || platformPages, ids: sigIds('app_mobile'), note: appDetected ? `app/platform detected` : (platformPages ? 'platform pages crawled, no app found (verified absent)' : 'not investigated') },
-    { category: 'technology', complete: techDetected, partial: !techDetected && platformPages, investigated: techDetected || platformPages, ids: techStack.map((t) => t.platform_name), note: techDetected ? techStack.map((t) => t.platform_name).join(', ') || digital.platforms.join(', ') : (platformPages ? 'platform pages crawled, no known stack (verified absent)' : 'tech-revealing pages not crawled') },
+    { category: 'technology', complete: techDetected, partial: !techDetected && platformPages, investigated: techDetected || platformPages, ids: coreTech.map((t) => t.platform_name), note: techDetected ? coreTech.map((t) => t.platform_name).join(', ') || digital.platforms.join(', ') : (platformPages ? 'platform pages crawled, no known stack (verified absent)' : 'tech-revealing pages not crawled') },
     { category: 'social', complete: sig('social_media'), partial: false, investigated: fetched('home'), ids: sigIds('social_media'), note: sig('social_media') ? 'social profiles found' : (fetched('home') ? 'home crawled, no social links' : 'not investigated') },
     { category: 'jobs/careers', complete: fetched('jobs'), partial: sig('jobs_hiring'), investigated: fetched('jobs'), ids: pageIds('jobs').concat(sigIds('jobs_hiring')), note: fetched('jobs') ? 'jobs page fetched' : (sig('jobs_hiring') ? 'hiring signal only, page not crawled' : 'not investigated') },
   ];

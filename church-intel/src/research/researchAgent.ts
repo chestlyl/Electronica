@@ -274,7 +274,11 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   // Minimum-evidence coverage + digital-maturity evidence (diagnostic; feeds
   // honest confidence + the synthesis prompt — does not change score formulas).
   const digital = detectDigitalSignals(findings);
-  const techStack = detectTechStack(findings); // deterministic hostname mapping
+  // Tech stack from the church's OWN evidence (official domain + its linked
+  // destinations) + a website-builder fingerprint — so vendor/comparison pages
+  // and other same-name churches can't inject phantom platforms (Subsplash/Tithely),
+  // and the website platform (Squarespace/Wix/…) is captured even with no host link.
+  const techStack = detectTechStack(findings, officialHost);
   // Deterministic strategic-signal layer (evidence collection only). Sorted
   // website-first (live official site signals lead) inside detectStrategicSignals.
   const strategicSignals = detectStrategicSignals(findings);

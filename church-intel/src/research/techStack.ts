@@ -26,12 +26,33 @@ const TABLE: { host: RegExp; platform: string; category: PlatformCategory; confi
   { host: /(^|\.)flocknote\.com$/i, platform: 'Flocknote', category: 'Communication', confidence: 95 },
   { host: /(^|\.)mailchimp\.com$|(^|\.)mailchimpsites\.com$|(^|\.)list-manage\.com$/i, platform: 'Mailchimp', category: 'Email', confidence: 90 },
   { host: /(^|\.)squarespace\.com$|(^|\.)squarespace-cdn\.com$|(^|\.)sqsp\.net$/i, platform: 'Squarespace', category: 'Website', confidence: 90 },
-  { host: /(^|\.)wixsite\.com$|(^|\.)wix\.com$/i, platform: 'Wix', category: 'Website', confidence: 85 },
+  { host: /(^|\.)wixsite\.com$|(^|\.)wix\.com$|(^|\.)wixstatic\.com$/i, platform: 'Wix', category: 'Website', confidence: 85 },
   // extras (deterministic, useful — not in the required list)
   { host: /(^|\.)givelify\.com$/i, platform: 'Givelify', category: 'Giving', confidence: 95 },
   { host: /(^|\.)easytithe\.com$/i, platform: 'EasyTithe', category: 'Giving', confidence: 90 },
+  { host: /(^|\.)givebutter\.com$/i, platform: 'Givebutter', category: 'Giving', confidence: 90 },
   { host: /(^|\.)ccbchurch\.com$/i, platform: 'Church Community Builder', category: 'ChMS', confidence: 90 },
   { host: /(^|\.)wordpress\.(?:com|org)$/i, platform: 'WordPress', category: 'Website', confidence: 80 },
+  { host: /(^|\.)webflow\.io$|(^|\.)webflow\.com$/i, platform: 'Webflow', category: 'Website', confidence: 82 },
+  { host: /(^|\.)weebly\.com$/i, platform: 'Weebly', category: 'Website', confidence: 80 },
+  // streaming / media platforms (the church's OWN channels, gated to owned evidence)
+  { host: /(^|\.)youtube\.com$|(^|\.)youtu\.be$/i, platform: 'YouTube', category: 'Streaming', confidence: 80 },
+  { host: /(^|\.)vimeo\.com$/i, platform: 'Vimeo', category: 'Streaming', confidence: 80 },
+  { host: /(^|\.)resi\.io$|(^|\.)resi\.media$/i, platform: 'Resi', category: 'Streaming', confidence: 88 },
+  { host: /(^|\.)boxcast\.com$|(^|\.)boxcast\.tv$/i, platform: 'BoxCast', category: 'Streaming', confidence: 88 },
+  { host: /(^|\.)churchonlineplatform\.com$/i, platform: 'Church Online Platform', category: 'Streaming', confidence: 88 },
+];
+
+// Website builders leave a fingerprint in the served HTML/markup even when the
+// site is on the church's OWN domain (no platform host to match). Detected from
+// the official page text only.
+const WEBSITE_FINGERPRINTS: { platform: string; re: RegExp; confidence: number }[] = [
+  { platform: 'Squarespace', re: /squarespace|sqsp\.net|squarespace-cdn|static1\.squarespace|header-menu--folder-list|data-current-styles/i, confidence: 88 },
+  { platform: 'Wix', re: /\bwix\.com\b|wixstatic|wixsite|_wix|wix-warmup/i, confidence: 85 },
+  { platform: 'Webflow', re: /\.webflow\.io|data-wf-page|data-wf-site|webflow\.com/i, confidence: 82 },
+  { platform: 'WordPress', re: /wp-content|wp-includes|\/wp-json\b|\bwordpress\b/i, confidence: 80 },
+  { platform: 'Weebly', re: /\bweebly\b|editmysite/i, confidence: 78 },
+  { platform: 'Wordpress (Divi/Elementor)', re: /et_pb_|elementor-/i, confidence: 72 },
 ];
 
 function hostOf(url: string): string {
@@ -70,13 +91,43 @@ function candidateUrls(findings: SourceFinding[]): string[] {
   return out;
 }
 
+/** A finding is the church's OWN evidence: its official domain, or a page that
+ *  earned live_official_site. (When officialHost is unknown, everything counts.) */
+function isOwnedFinding(f: SourceFinding, officialHost: string): boolean {
+  if (!officialHost) return true;
+  const h = hostOf(f.url);
+  return h === officialHost || h.endsWith(`.${officialHost}`) || f.accessLevel === 'live_official_site';
+}
+
+/** Website builder fingerprint from the official page HTML/text (one platform). */
+function detectWebsitePlatform(ownedFindings: SourceFinding[]): PlatformHit | null {
+  const blob = ownedFindings
+    .filter((f) => f.fetched || f.accessLevel === 'live_official_site')
+    .map((f) => `${f.title ?? ''} ${f.text ?? ''}`)
+    .join('\n');
+  if (!blob.trim()) return null;
+  for (const fp of WEBSITE_FINGERPRINTS) {
+    if (fp.re.test(blob)) {
+      const evidence_url = ownedFindings.find((f) => f.fetched)?.url ?? ownedFindings[0]?.url ?? '';
+      return { platform_name: fp.platform, category: 'Website', confidence: fp.confidence, evidence_url };
+    }
+  }
+  return null;
+}
+
 /**
- * Detect the church's technology stack across all findings (hostname mapping
- * only). Deduped by platform; keeps the highest-confidence evidence URL.
+ * Detect the church's technology stack. When `officialHost` is supplied, the
+ * stack is built ONLY from the church's own evidence (its domain + the
+ * destinations its pages link to) — so third-party vendor/comparison pages and
+ * other same-name churches never inject phantom platforms. A website-builder
+ * fingerprint is read from the official page markup (catches Squarespace/Wix/etc.
+ * served from the church's own domain, which have no platform host to match).
+ * Deduped by platform; keeps the highest-confidence evidence URL.
  */
-export function detectTechStack(findings: SourceFinding[]): PlatformHit[] {
+export function detectTechStack(findings: SourceFinding[], officialHost = ''): PlatformHit[] {
+  const owned = officialHost ? findings.filter((f) => isOwnedFinding(f, officialHost)) : findings;
   const byName = new Map<string, PlatformHit>();
-  for (const url of candidateUrls(findings)) {
+  for (const url of candidateUrls(owned)) {
     const c = classifyPlatform(url);
     if (!c) continue;
     const evidence_url = /^https?:\/\//i.test(url) ? url : `https://${url}`;
@@ -84,6 +135,11 @@ export function detectTechStack(findings: SourceFinding[]): PlatformHit[] {
     if (!ex || c.confidence > ex.confidence) {
       byName.set(c.platform, { platform_name: c.platform, category: c.category, confidence: c.confidence, evidence_url });
     }
+  }
+  // Website platform fingerprint (only if no website platform matched by host).
+  if (![...byName.values()].some((h) => h.category === 'Website')) {
+    const site = detectWebsitePlatform(owned);
+    if (site) byName.set(site.platform_name, site);
   }
   return [...byName.values()].sort((a, b) => b.confidence - a.confidence || a.platform_name.localeCompare(b.platform_name));
 }

@@ -1,14 +1,23 @@
 import { type NextRequest } from 'next/server';
+import { demoResponse } from '@/lib/demo';
 
 /**
  * Server-side proxy to the CIP API. The browser talks to /api/cip/* and this
  * handler forwards to the CIP backend with the bearer key — so CIP_API_KEY is
  * NEVER exposed to the client. Config: CIP_API_BASE + CIP_API_KEY (.env.local).
+ *
+ * When CIP_DEMO=1, it serves rich seeded fixtures instead — a full, populated
+ * preview of the UI with no backend, Supabase, or keys required.
  */
 const API_BASE = (process.env.CIP_API_BASE ?? 'http://localhost:4100').replace(/\/+$/, '');
 const API_KEY = process.env.CIP_API_KEY ?? '';
+const DEMO = process.env.CIP_DEMO === '1';
 
 async function forward(req: NextRequest, path: string[]): Promise<Response> {
+  if (DEMO) {
+    const data = demoResponse(req.method, path, req.nextUrl.search);
+    if (data !== undefined) return Response.json(data);
+  }
   const url = `${API_BASE}/${path.join('/')}${req.nextUrl.search}`;
   const init: RequestInit = {
     method: req.method,

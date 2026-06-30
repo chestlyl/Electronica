@@ -28,9 +28,17 @@ export interface SaveDossierInput {
   sections: DossierSections;
 }
 
+export interface ListJobsFilter {
+  status?: string;
+  input_type?: string;
+  limit?: number;
+  offset?: number;
+}
+
 export interface CipStore {
   createJob(input: CreateJobInput): Promise<JobRecord>;
   getJob(id: string): Promise<JobRecord | null>;
+  listJobs(filter: ListJobsFilter): Promise<{ jobs: JobRecord[]; total: number }>;
   updateJob(id: string, patch: Partial<JobRecord>): Promise<JobRecord | null>;
   upsertChurch(input: UpsertChurchInput): Promise<ChurchRow>;
   getChurch(id: string): Promise<ChurchRow | null>;
@@ -68,6 +76,16 @@ export class InMemoryCipStore implements CipStore {
   async getJob(id: string): Promise<JobRecord | null> {
     const j = this.jobs.get(id);
     return j ? { ...j } : null;
+  }
+  async listJobs(filter: ListJobsFilter): Promise<{ jobs: JobRecord[]; total: number }> {
+    let rows = [...this.jobs.values()];
+    if (filter.status) rows = rows.filter((j) => j.status === filter.status);
+    if (filter.input_type) rows = rows.filter((j) => j.input_type === filter.input_type);
+    rows.sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
+    const total = rows.length;
+    const offset = filter.offset ?? 0;
+    const limit = filter.limit ?? 50;
+    return { jobs: rows.slice(offset, offset + limit).map((j) => ({ ...j })), total };
   }
   async updateJob(id: string, patch: Partial<JobRecord>): Promise<JobRecord | null> {
     const j = this.jobs.get(id);

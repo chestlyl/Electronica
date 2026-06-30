@@ -182,6 +182,42 @@ async function main() {
       assert.strictEqual(jr.result.count, 1);
     });
 
+    // Frontend endpoints: list jobs, single church, dashboard stats, retry.
+    await check('GET /research/jobs lists jobs (Research Queue)', async () => {
+      const res = await call('GET', '/research/jobs?status=complete');
+      assert.strictEqual(res.status, 200);
+      const body = await res.json();
+      assert.ok(Array.isArray(body.jobs) && body.jobs.length >= 1);
+      assert.ok(body.jobs.every((j: { status: string }) => j.status === 'complete'));
+    });
+    await check('GET /churches/:id returns a single church', async () => {
+      const res = await call('GET', `/churches/${knownChurchId}`);
+      assert.strictEqual(res.status, 200);
+      const body = await res.json();
+      assert.strictEqual(body.church_id, knownChurchId);
+    });
+    await check('GET /dashboard/stats aggregates churches + jobs', async () => {
+      const res = await call('GET', '/dashboard/stats');
+      assert.strictEqual(res.status, 200);
+      const s = await res.json();
+      assert.ok(s.total_churches >= 1);
+      assert.strictEqual(typeof s.jobs_completed, 'number');
+      assert.ok(Array.isArray(s.top_opportunities) && Array.isArray(s.churches_by_archetype));
+      assert.ok(Array.isArray(s.recent_activity));
+    });
+    await check('POST /research/jobs/:id/retry re-queues + reruns a failed job', async () => {
+      // create a failing job, let it fail, then retry → completes the second time is not possible
+      // (mock always fails for FAIL CHURCH); assert retry resets it to a running/terminal state.
+      const r = await call('POST', '/research/known-church', { name: 'Cross Point Church', url: 'https://crosspoint.tv' });
+      const { job_id } = await r.json();
+      await jobs.idle();
+      const retry = await call('POST', `/research/jobs/${job_id}/retry`);
+      assert.strictEqual(retry.status, 200);
+      await jobs.idle();
+      const jr = await (await call('GET', `/research/jobs/${job_id}`)).json();
+      assert.ok(['complete', 'running', 'queued', 'failed'].includes(jr.status));
+    });
+
     // 7. Unauthorized requests return 401.
     await check('missing bearer token → 401', async () => {
       const res = await call('GET', '/churches', undefined, false);

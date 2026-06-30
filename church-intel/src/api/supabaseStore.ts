@@ -76,6 +76,17 @@ export class SupabaseCipStore implements CipStore {
     if (error) throw error;
     return data ? jobFromRow(data) : null;
   }
+  async listJobs(filter: import('./store.js').ListJobsFilter): Promise<{ jobs: JobRecord[]; total: number }> {
+    let q = this.db.from('cip_research_jobs').select('*', { count: 'exact' });
+    if (filter.status) q = q.eq('status', filter.status);
+    if (filter.input_type) q = q.eq('input_type', filter.input_type);
+    q = q.order('created_at', { ascending: false });
+    const offset = filter.offset ?? 0;
+    q = q.range(offset, offset + (filter.limit ?? 50) - 1);
+    const { data, error, count } = await q;
+    if (error) throw error;
+    return { jobs: (data ?? []).map(jobFromRow), total: count ?? (data?.length ?? 0) };
+  }
   async updateJob(id: string, patch: Partial<JobRecord>): Promise<JobRecord | null> {
     const { job_id, ...rest } = patch; // never rewrite the id
     void job_id;

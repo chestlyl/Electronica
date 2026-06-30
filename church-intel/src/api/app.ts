@@ -93,9 +93,25 @@ export function createApp(deps: CreateAppDeps): CreatedApp {
     res.json({ job_id: job.job_id, status: job.status, message: 'Discovery job started' });
   }));
 
-  // 3. Poll job status.
+  // 3. List jobs (Research Queue).
+  app.get('/research/jobs', asyncHandler(async (req, res) => {
+    const q = req.query;
+    const { jobs: rows, total } = await deps.store.listJobs({
+      status: str(q.status), input_type: str(q.input_type), limit: num(q.limit) ?? 50, offset: num(q.offset) ?? 0,
+    });
+    res.json({ jobs: rows.map(toJobStatusResponse), total });
+  }));
+
+  // 3b. Poll a single job's status.
   app.get('/research/jobs/:id', asyncHandler(async (req, res) => {
     const job = await deps.store.getJob(req.params.id);
+    if (!job) return res.status(404).json({ error: 'job not found' });
+    res.json(toJobStatusResponse(job));
+  }));
+
+  // 3c. Retry a job (e.g. a failed one) from its original input.
+  app.post('/research/jobs/:id/retry', asyncHandler(async (req, res) => {
+    const job = await jobs.retry(req.params.id);
     if (!job) return res.status(404).json({ error: 'job not found' });
     res.json(toJobStatusResponse(job));
   }));
@@ -112,11 +128,47 @@ export function createApp(deps: CreateAppDeps): CreatedApp {
     res.json({ churches, total });
   }));
 
+  // 4b. A single church record.
+  app.get('/churches/:id', asyncHandler(async (req, res) => {
+    const church = await deps.store.getChurch(req.params.id);
+    if (!church) return res.status(404).json({ error: 'church not found' });
+    res.json(church);
+  }));
+
   // 5. Open a completed dossier.
   app.get('/churches/:id/dossier', asyncHandler(async (req, res) => {
     const dossier = await deps.store.getDossierByChurch(req.params.id);
     if (!dossier) return res.status(404).json({ error: 'dossier not found' });
     res.json(toDossierResponse(dossier));
+  }));
+
+  // 6. Dashboard aggregates.
+  app.get('/dashboard/stats', asyncHandler(async (_req, res) => {
+    const [{ churches, total }, jobsAll] = await Promise.all([
+      deps.store.listChurches({ limit: 100000 }),
+      deps.store.listJobs({ limit: 100000 }),
+    ]);
+    const byStatus = (s: string) => jobsAll.jobs.filter((j) => j.status === s).length;
+    const fits = churches.map((c) => c.engagement_fit).filter((v): v is number => typeof v === 'number');
+    const tally = (key: 'archetype' | 'state') => {
+      const m = new Map<string, number>();
+      for (const c of churches) { const k = (c[key] ?? 'Unknown') as string; m.set(k, (m.get(k) ?? 0) + 1); }
+      return [...m.entries()].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count);
+    };
+    const recent = [...churches].sort((a, b) => (b.last_researched_at ?? '').localeCompare(a.last_researched_at ?? ''));
+    res.json({
+      total_churches: total,
+      jobs_queued: byStatus('queued'),
+      jobs_running: byStatus('running'),
+      jobs_completed: byStatus('complete'),
+      jobs_failed: byStatus('failed'),
+      avg_engagement_fit: fits.length ? Math.round(fits.reduce((a, b) => a + b, 0) / fits.length) : null,
+      recent_dossiers: recent.slice(0, 8),
+      top_opportunities: [...churches].sort((a, b) => (b.engagement_fit ?? 0) - (a.engagement_fit ?? 0)).slice(0, 8),
+      churches_by_archetype: tally('archetype'),
+      churches_by_state: tally('state'),
+      recent_activity: jobsAll.jobs.slice(0, 12).map(toJobStatusResponse),
+    });
   }));
 
   // Catch-all error handler — a failed request must never crash the server.

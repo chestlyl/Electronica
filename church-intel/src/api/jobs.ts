@@ -35,6 +35,24 @@ export class JobManager {
     return { job };
   }
 
+  /** Re-run an existing job (e.g. a failed one) from its original input. */
+  async retry(jobId: string): Promise<JobRecord | null> {
+    const job = await this.store.getJob(jobId);
+    if (!job) return null;
+    const reset = await this.store.updateJob(jobId, {
+      status: 'queued', stage: 'queued', progress: 0, error: null, completed_at: null, started_at: null, result_payload: null,
+    });
+    if (job.input_type === 'known_church') {
+      const body = job.input_payload as KnownChurchInput;
+      let churchId = job.church_id;
+      if (!churchId) churchId = (await this.store.upsertChurch({ name: body.name, city: body.city ?? null, state: body.state ?? null, website: body.url ?? null })).church_id;
+      this.track(jobId, this.runKnownChurch(jobId, churchId, body));
+    } else {
+      this.track(jobId, this.runDiscovery(jobId, job.input_payload as DiscoveryInput));
+    }
+    return reset;
+  }
+
   /** Await all in-flight jobs (used by tests for determinism). */
   async idle(): Promise<void> {
     await Promise.all([...this.inflight.values()]);

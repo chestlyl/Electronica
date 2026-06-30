@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Executive / intelligence dark theme (Palantir / Linear direction). */
+  --bg: 9 10 12;          /* near-black */
+  --panel: 16 18 22;      /* sidebar / topbar */
+  --card: 20 23 28;       /* surfaces */
+  --border: 33 37 45;     /* hairlines */
+  --fg: 229 231 235;      /* primary text */
+  --muted: 138 146 158;   /* secondary text */
+  --accent: 76 194 255;   /* cyan-blue */
+  --success: 63 185 80;
+  --warn: 210 153 34;
+  --danger: 248 81 73;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+}
+
+/* Light mode tokens (toggle adds .light on <html>). */
+.light {
+  --bg: 248 249 251;
+  --panel: 255 255 255;
+  --card: 255 255 255;
+  --border: 226 229 234;
+  --fg: 17 20 24;
+  --muted: 100 108 120;
+  --accent: 14 118 200;
+  --success: 26 138 60;
+  --warn: 176 122 12;
+  --danger: 200 40 40;
+}
+
+* { border-color: rgb(var(--border)); }
+
+html, body {
+  background: rgb(var(--bg));
+  color: rgb(var(--fg));
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* thin, intelligence-grade scrollbars */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: rgb(var(--border)); border-radius: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+.tabular { font-variant-numeric: tabular-nums; }

@@ -25,6 +25,7 @@ export interface ChurchCandidate {
   state: string | null;
   website: string | null;        // may be null — the dossier pipeline resolves it
   address?: string | null;
+  phone?: string | null;         // some enumerators carry a phone (used by the gap guard)
   sources: string[];             // which enumeration providers surfaced it
 }
 
@@ -58,16 +59,41 @@ export interface ProspectEntry {
   access_level: string;
 }
 
+/** A candidate diverted before dossiering because it matched an existing church. */
+export interface ExclusionRecord {
+  name: string;
+  city: string | null;
+  state: string | null;
+  website: string | null;
+  reason: string;                // domain | name+geo | phone | alias | fuzzy+geo | …
+  confidence: number;            // 0..1
+  matched: string;               // the existing church it matched
+  matched_source: string | null; // where the existing church came from
+  detail: string;                // human-readable why
+}
+
 export interface ProspectBoard {
   area: AreaQuery;
   status: 'ok' | 'insufficient_candidates';
   note?: string;                 // why, when status != ok
   total_found: number;           // distinct candidates enumerated
   rejected: number;              // candidates hard-rejected by the quality gate
+  excluded: ExclusionRecord[];   // matched an existing church → NOT dossiered
+  ambiguous: ExclusionRecord[];  // fuzzy/uncertain match → needs review, NOT dossiered
   known_count: number;
   unknown_count: number;
   dossiered: number;             // how many we fully scored (bounded by limit)
   entries: ProspectEntry[];      // ranked by fit, desc
+}
+
+/** Verdict from an existing-church guard: exclude (confident) | review (ambiguous) | null (net-new). */
+export interface ExcludeVerdict {
+  decision: 'exclude' | 'review';
+  reason: string;
+  confidence: number;
+  matched: string;
+  matched_source?: string | null;
+  detail: string;
 }
 
 export interface ProspectDeps {
@@ -76,6 +102,10 @@ export interface ProspectDeps {
   buildDossier: (target: ResearchTarget) => Promise<DossierBuild>;
   limit?: number;                // default cost bound when AreaQuery.limit absent
   onProgress?: (msg: string) => void;
+  // Optional "do-not-research existing churches" guard. Runs AFTER the quality
+  // gate and BEFORE any dossier is built, so excluded/ambiguous churches never
+  // consume dossier budget.
+  excludeExisting?: (c: ChurchCandidate) => ExcludeVerdict | null;
 }
 
 // ── normalization for dedup / known-matching ─────────────────────────────────
@@ -240,14 +270,36 @@ export async function prospectArea(area: AreaQuery, deps: ProspectDeps): Promise
   if (hasPrimary && primaryAccepted === 0) {
     const note = `Google Places returned no usable candidates — failing closed rather than dossiering ${quality.length} search-directory-only candidate(s).`;
     log(`INSUFFICIENT QUALITY CANDIDATES: ${note}`);
-    return { area, status: 'insufficient_candidates', note, total_found: deduped.length, rejected, known_count: 0, unknown_count: 0, dossiered: 0, entries: [] };
+    return { area, status: 'insufficient_candidates', note, total_found: deduped.length, rejected, excluded: [], ambiguous: [], known_count: 0, unknown_count: 0, dossiered: 0, entries: [] };
   }
 
-  // 5) tag known vs unknown (on the quality survivors only)
+  // 4.5) EXISTING-CHURCH GUARD — divert churches we're already connected to
+  // BEFORE spending any dossier budget on them. Confident matches → excluded;
+  // fuzzy/uncertain matches → ambiguous (needs review). Neither is dossiered.
+  const excluded: ExclusionRecord[] = [];
+  const ambiguous: ExclusionRecord[] = [];
+  let eligible = quality;
+  if (deps.excludeExisting) {
+    eligible = [];
+    for (const c of quality) {
+      const v = deps.excludeExisting(c);
+      if (!v) { eligible.push(c); continue; }
+      const rec: ExclusionRecord = {
+        name: c.name, city: c.city, state: c.state, website: c.website,
+        reason: v.reason, confidence: v.confidence, matched: v.matched,
+        matched_source: v.matched_source ?? null, detail: v.detail,
+      };
+      if (v.decision === 'exclude') { excluded.push(rec); log(`exclude existing: ${c.name} — ${v.reason} (${v.detail})`); }
+      else { ambiguous.push(rec); log(`ambiguous (review): ${c.name} — ${v.detail}`); }
+    }
+    log(`${excluded.length} matched existing (excluded) · ${ambiguous.length} ambiguous (review) · ${eligible.length} net-new eligible — no dossier budget spent on the ${excluded.length + ambiguous.length} skipped`);
+  }
+
+  // 5) tag known vs unknown (on the net-new survivors only)
   const known = await deps.knownRoster();
-  const tagged = quality.map((c) => ({ c, known: isKnown(c, known) }));
+  const tagged = eligible.map((c) => ({ c, known: isKnown(c, known) }));
   const knownCount = tagged.filter((t) => t.known).length;
-  log(`${quality.length} candidates · ${quality.length - knownCount} unknown · ${knownCount} known`);
+  log(`${eligible.length} candidates · ${eligible.length - knownCount} unknown · ${knownCount} known`);
   // 6) prioritize unknowns into the cost budget, then dossier each
   const ordered = [...tagged.filter((t) => !t.known), ...tagged.filter((t) => t.known)];
   const limit = area.limit ?? deps.limit ?? 25;
@@ -259,7 +311,7 @@ export async function prospectArea(area: AreaQuery, deps: ProspectDeps): Promise
   }
   // 7) rank by Engagement Fit (desc); unknowns break ties first (they're the goal)
   entries.sort((a, z) => z.fit - a.fit || (Number(a.known) - Number(z.known)));
-  return { area, status: 'ok', total_found: deduped.length, rejected, known_count: knownCount, unknown_count: quality.length - knownCount, dossiered: entries.length, entries };
+  return { area, status: 'ok', total_found: deduped.length, rejected, excluded, ambiguous, known_count: knownCount, unknown_count: eligible.length - knownCount, dossiered: entries.length, entries };
 }
 
 /** Markdown prospecting board (ranked by Engagement Fit; unknowns flagged). */
@@ -273,15 +325,40 @@ export function renderProspectBoard(board: ProspectBoard): string {
     L.push(`> _${board.total_found} enumerated · ${board.rejected} rejected by the quality gate · 0 dossiered (failed closed)._`);
     return L.join('\n');
   }
-  L.push(`_${board.total_found} found · ${board.rejected} rejected (quality gate) · ${board.unknown_count} unknown / ${board.known_count} known · ${board.dossiered} scored · ranked by Engagement Fit_`);
+  const skipped = board.excluded.length + board.ambiguous.length;
+  L.push(`_${board.total_found} found · ${board.rejected} rejected (quality gate) · ${board.excluded.length} matched existing · ${board.ambiguous.length} ambiguous · ${board.unknown_count} unknown / ${board.known_count} known · ${board.dossiered} scored${skipped ? ` · ${skipped} skipped before any dossier spend` : ''} · ranked by Engagement Fit_`);
   L.push('');
-  L.push('| # | church | known? | fit | priority | entry point | archetype | AWA | dig | grw | cap | con | site |');
-  L.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|');
-  board.entries.forEach((e, i) => {
-    const loc = [e.city, e.state].filter(Boolean).join(', ');
-    L.push(`| ${i + 1} | ${e.name}${loc ? ` (${loc})` : ''} | ${e.known ? 'known' : '**NEW**'} | **${e.fit}** | ${e.priority} | ${e.entry_point} | ${e.archetype} | ${e.attendance ?? '—'} | ${e.scores.digital_maturity} | ${e.scores.growth_orientation} | ${e.scores.organizational_capacity} | ${e.scores.contactability} | ${e.website ?? '—'} |`);
-  });
+  L.push('## New prospects');
+  if (!board.entries.length) L.push('_No net-new prospects surfaced._');
+  else {
+    L.push('| # | church | known? | fit | priority | entry point | archetype | AWA | dig | grw | cap | con | site |');
+    L.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+    board.entries.forEach((e, i) => {
+      const loc = [e.city, e.state].filter(Boolean).join(', ');
+      L.push(`| ${i + 1} | ${e.name}${loc ? ` (${loc})` : ''} | ${e.known ? 'known' : '**NEW**'} | **${e.fit}** | ${e.priority} | ${e.entry_point} | ${e.archetype} | ${e.attendance ?? '—'} | ${e.scores.digital_maturity} | ${e.scores.growth_orientation} | ${e.scores.organizational_capacity} | ${e.scores.contactability} | ${e.website ?? '—'} |`);
+    });
+    L.push('');
+    L.push(`_dig=digital_maturity grw=growth_orientation cap=organizational_capacity con=contactability_`);
+  }
   L.push('');
-  L.push(`_dig=digital_maturity grw=growth_orientation cap=organizational_capacity con=contactability_`);
+  L.push(...renderExclusionAppendix('Matched Existing / Excluded', board.excluded, 'matched an existing connected church — skipped before any dossier spend'));
+  L.push('');
+  L.push(...renderExclusionAppendix('Ambiguous — needs review', board.ambiguous, 'fuzzy/uncertain match to an existing church — confirm before researching (not yet dossiered)'));
   return L.join('\n');
+}
+
+/** A "why was this filtered" appendix table (Matched Existing / Ambiguous). */
+export function renderExclusionAppendix(title: string, records: ExclusionRecord[], blurb: string): string[] {
+  const L: string[] = [`## ${title}`];
+  if (!records.length) { L.push(`_None._`); return L; }
+  L.push(`_${records.length} — ${blurb}._`);
+  L.push('');
+  L.push('| candidate | matched existing | reason | conf | why |');
+  L.push('|---|---|---|---|---|');
+  for (const r of [...records].sort((a, z) => z.confidence - a.confidence)) {
+    const loc = [r.city, r.state].filter(Boolean).join(', ');
+    const src = r.matched_source ? ` _(${r.matched_source})_` : '';
+    L.push(`| ${r.name}${loc ? ` (${loc})` : ''}${r.website ? ` · ${r.website}` : ''} | ${r.matched}${src} | ${r.reason} | ${Math.round(r.confidence * 100)}% | ${r.detail} |`);
+  }
+  return L;
 }

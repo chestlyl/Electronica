@@ -13,6 +13,7 @@ import { discoverWebsite } from './research/discovery.js';
 import { buildDossier, type DossierBuild, type ResearchTarget } from './research/researchAgent.js';
 import { prospectArea, renderProspectBoard } from './research/prospect.js';
 import { googlePlacesProvider, searchDirectoryProvider } from './research/prospectProviders.js';
+import { ExistingIndex, readExistingChurches, toExistingChurch, renderGapReport, type GapBoard } from './research/prospectGap.js';
 import { renderDossierMarkdown } from './research/dossierMarkdown.js';
 import { publishDossierToBase44 } from './base44/publish.js';
 import { assertBase44Configured, logBase44Target } from './base44/client.js';
@@ -291,6 +292,73 @@ program
       );
       const md = renderProspectBoard(board);
       if (opts.out) { const { writeFileSync } = await import('node:fs'); writeFileSync(opts.out, md); logger.info(`Wrote ${opts.out}`); } else console.log('\n' + md);
+    } finally {
+      await ctx.close();
+    }
+  });
+
+// ── prospect-gap ────────────────────────────────────────────────────────────
+program
+  .command('prospect-gap')
+  .description('Discover NEW churches across metros, excluding any we\'re already connected to (never spends dossier budget on existing churches)')
+  .requiredOption('--existing <path>', 'existing connected churches: .xlsx workbook, or .json/.csv list')
+  .requiredOption('--metros <list>', 'comma-separated metros, e.g. "Cleveland,Akron,Canton"')
+  .option('--state <state>', 'state abbreviation, e.g. OH')
+  .option('--denomination <denom>', 'optional denomination filter')
+  .option('--limit <n>', 'max NET-NEW churches to fully dossier across all metros (cost bound)', '250')
+  .option('--no-roster', 'do NOT also exclude churches already in the repository (spreadsheet-only)')
+  .option('-o, --out <path>', 'write the gap report markdown to this path')
+  .action(async (opts) => {
+    const ctx = createLiveContext();
+    try {
+      // 1) Read existing connected churches from the provided file.
+      const fromFile = readExistingChurches(opts.existing);
+      logger.info(`Existing churches from ${opts.existing}: ${fromFile.length}`);
+      // 2) Optionally merge the live repository roster (the authoritative existing set).
+      let roster: ReturnType<typeof toExistingChurch>[] = [];
+      if (opts.roster !== false) {
+        const rows = await ctx.store.listChurches({ limit: 100000 });
+        roster = rows.map((c) => toExistingChurch(
+          { name: c.name, url: c.website_original, city: c.city, state: c.state, phone: (c as { phone?: string | null }).phone ?? null },
+          'repository',
+        )).filter((c) => c.name);
+        logger.info(`Existing churches from repository: ${roster.length}`);
+      }
+      const index = new ExistingIndex([...fromFile, ...roster]);
+      logger.info(`Exclusion index: ${index.size} existing churches (domain + name+geo + phone + alias + fuzzy)`);
+
+      // 3) Run discovery per metro under a SHARED net-new dossier budget.
+      const metros = String(opts.metros).split(',').map((m) => m.trim()).filter(Boolean);
+      let remaining = opts.limit ? Number(opts.limit) : 250;
+      const boards: GapBoard[] = [];
+      for (const metro of metros) {
+        if (remaining <= 0) { logger.info(`Budget exhausted — skipping remaining metros starting at "${metro}".`); break; }
+        logger.info(`\n▶ ${metro}${opts.state ? `, ${opts.state}` : ''} — budget ${remaining} left`);
+        const board = await prospectArea(
+          { metro, state: opts.state ?? null, denomination: opts.denomination ?? null, limit: remaining },
+          {
+            enumerators: [googlePlacesProvider(), searchDirectoryProvider()],
+            knownRoster: async () => [], // roster already folded into the exclusion index
+            buildDossier: (target) => buildDossier(target, ctx),
+            limit: remaining,
+            excludeExisting: (c) => {
+              const m = index.match(c);
+              if (!m) return null;
+              return { decision: m.decision, reason: m.reason, confidence: m.confidence, matched: m.existing.name, matched_source: m.existing.source, detail: m.detail };
+            },
+            onProgress: (msg) => logger.info(`  [${metro}] ${msg}`),
+          },
+        );
+        boards.push({ metro, board });
+        remaining -= board.dossiered;
+      }
+
+      // 4) Combined report: net-new prospects + Matched/Excluded + Ambiguous appendices.
+      const md = renderGapReport(boards, {
+        existingCount: fromFile.length, rosterCount: roster.length, indexSize: index.size,
+        state: opts.state ?? null, source: opts.existing,
+      });
+      if (opts.out) { const { writeFileSync } = await import('node:fs'); writeFileSync(opts.out, md); logger.info(`\nWrote ${opts.out}`); } else console.log('\n' + md);
     } finally {
       await ctx.close();
     }

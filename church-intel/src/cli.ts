@@ -16,6 +16,11 @@ import { googlePlacesProvider, searchDirectoryProvider } from './research/prospe
 import { renderDossierMarkdown } from './research/dossierMarkdown.js';
 import { publishDossierToBase44 } from './base44/publish.js';
 import { assertBase44Configured, logBase44Target } from './base44/client.js';
+import { supabase } from './db/supabase.js';
+import { SupabaseCipStore } from './api/supabaseStore.js';
+import { RealPipelineRunner } from './api/pipeline.js';
+import { JobManager } from './api/jobs.js';
+import { researchBatch, parseChurchList } from './api/batch.js';
 import { extractAltName } from './agents/index.js';
 import { loadCalibrationSet, rowFromBuild, type CalibrationRow } from './research/calibrationSet.js';
 import { renderCalibrationReport } from './research/calibrationReport.js';
@@ -167,6 +172,60 @@ program
       logger.info(`  contacts ${c.contacts} · technology ${c.technologies} · signals ${c.signals} · coverage ${c.coverage} · scores ${c.scores} · raw evidence ${c.rawEvidence}`);
     } finally {
       await ctx.close();
+    }
+  });
+
+program
+  .command('cip-doctor')
+  .description('Verify the Supabase cip_* tables (frontend repository persistence) are reachable')
+  .action(async () => {
+    const db = supabase();
+    let ok = true;
+    for (const table of ['cip_research_jobs', 'cip_churches', 'cip_dossiers']) {
+      const { count, error } = await db.from(table).select('id', { count: 'exact', head: true });
+      if (error) { ok = false; logger.error(`  ✗ ${table}: ${error.message}`); }
+      else logger.info(`  ✓ ${table}: reachable (${count ?? 0} rows)`);
+    }
+    logger.info(ok ? '\ncip_* schema OK — the frontend repository can persist here.' : '\nMissing tables — apply supabase/migrations/0003_cip_api.sql.');
+    if (!ok) process.exitCode = 1;
+  });
+
+program
+  .command('cip-batch')
+  .description('Populate the repository (Supabase): batch-research a list of churches, or run market discovery')
+  .option('--file <path>', 'JSON or CSV of churches (columns: name, url, city, state)')
+  .option('--discover', 'run market discovery instead of a file')
+  .option('--metro <metro>', 'metro/region for --discover')
+  .option('--state <state>', 'state abbreviation')
+  .option('--limit <n>', 'max churches to fully research')
+  .option('--concurrency <n>', 'parallel research (default 2)')
+  .action(async (opts) => {
+    const store = new SupabaseCipStore();
+    const knownRoster = async () => (await store.listChurches({ limit: 100000 })).churches.map((c) => ({ name: c.name, website: c.website, city: c.city, state: c.state }));
+    const pipeline = new RealPipelineRunner({ knownRoster });
+    if (opts.discover) {
+      if (!opts.metro) throw new Error('--discover requires --metro');
+      const jobs = new JobManager(store, pipeline);
+      const { job } = await jobs.startDiscovery({ metro: opts.metro, state: opts.state ?? null, limit: opts.limit ? Number(opts.limit) : undefined, filters: { unknown_only: true } });
+      logger.info(`Discovery job ${job.job_id} running…`);
+      await jobs.idle();
+      const done = await store.getJob(job.job_id);
+      const count = (done?.result_payload as { count?: number } | null)?.count ?? 0;
+      logger.info(`Discovery ${done?.status}: ${count} church(es) persisted to the repository.`);
+    } else {
+      if (!opts.file) throw new Error('provide --file <churches.json|csv>, or --discover --metro <metro>');
+      const { readFileSync } = await import('node:fs');
+      const churches = parseChurchList(readFileSync(opts.file, 'utf8'), opts.file);
+      if (!churches.length) throw new Error('no churches parsed from the file (need a name column)');
+      logger.info(`Researching ${churches.length} church(es) → Supabase (concurrency ${opts.concurrency ?? 2})…`);
+      const results = await researchBatch(store, pipeline, churches, {
+        concurrency: opts.concurrency ? Number(opts.concurrency) : 2,
+        onProgress: (p) => logger.info(`  [${p.done}/${p.total}] ${p.name} → ${p.status}`),
+      });
+      const ok = results.filter((r) => r.status === 'complete').length;
+      const failed = results.filter((r) => r.status === 'failed');
+      logger.info(`\nDone: ${ok}/${results.length} complete, ${failed.length} failed.`);
+      for (const f of failed) logger.warn(`  ✗ ${f.name}: ${f.error ?? 'unknown'}`);
     }
   });
 

@@ -417,6 +417,66 @@ export function renderGapReport(boards: GapBoard[], meta: GapMeta): string {
   return L.join('\n');
 }
 
+// ── existing_church_relationships persistence (import-only exclusions) ─────────
+export interface RelationshipRow {
+  name: string;
+  normalized_name: string;
+  website: string | null;
+  domain: string | null;
+  city: string | null;
+  state: string | null;
+  phone: string | null;
+  source: string;
+  relationship_status: string;
+  notes: string | null;
+}
+
+/** Map a harvested ExistingChurch → an existing_church_relationships row. */
+export function toRelationshipRow(c: ExistingChurch, source: string, status = 'connected'): RelationshipRow {
+  return {
+    name: c.name,
+    normalized_name: normName(c.name),
+    website: c.website,
+    domain: domainOf(c.website) || null,
+    city: c.city,
+    state: c.state,
+    phone: c.phone,
+    source,
+    relationship_status: status,
+    notes: c.denomination ? `denomination/network: ${c.denomination}` : null,
+  };
+}
+
+/** Build de-duplicated relationship rows for a source (satisfies the unique identity index). */
+export function buildRelationshipRows(churches: ExistingChurch[], source: string, status = 'connected'): RelationshipRow[] {
+  const seen = new Set<string>();
+  const rows: RelationshipRow[] = [];
+  for (const c of churches) {
+    if (!c.name) continue;
+    const r = toRelationshipRow(c, source, status);
+    const k = `${r.normalized_name}|${r.state ?? ''}|${(r.domain ?? '').toLowerCase()}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    rows.push(r);
+  }
+  return rows;
+}
+
+/** Map a DB relationship row back to an ExistingChurch (for prospect-gap exclusions). */
+export function relationshipRowToExisting(r: Record<string, unknown>): ExistingChurch {
+  const name = String(r.name ?? '');
+  return {
+    name,
+    website: (r.website as string | null) ?? null,
+    city: (r.city as string | null) ?? null,
+    state: (r.state as string | null) ?? null,
+    phone: (r.phone as string | null) ?? null,
+    aliases: aliasesFor(name),
+    denomination: null,
+    source: (r.source as string | null) ?? 'relationship',
+  };
+}
+
 // Local copy of the appendix renderer (keeps prospectGap self-contained for the
 // combined report; identical shape to prospect.renderExclusionAppendix).
 function renderExclusionAppendixLocal(title: string, records: ExclusionRecord[], blurb: string): string[] {

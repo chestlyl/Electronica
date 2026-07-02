@@ -10,7 +10,8 @@
  */
 import assert from 'node:assert';
 import {
-  ExistingIndex, nameSimilarity, phoneKey, stateCode, type ExistingChurch,
+  ExistingIndex, nameSimilarity, phoneKey, stateCode,
+  buildRelationshipRows, toRelationshipRow, relationshipRowToExisting, type ExistingChurch,
 } from '../research/prospectGap.js';
 import { prospectArea, type ChurchCandidate, type ProspectProvider } from '../research/prospect.js';
 import type { DossierBuild } from '../research/researchAgent.js';
@@ -144,6 +145,33 @@ async function main() {
   await check('exclusion records carry the matched existing church + reason', () => {
     const oneCity = board.excluded.find((e) => e.name === 'One City Church');
     assert.ok(oneCity && oneCity.matched === 'One City Church' && oneCity.reason === 'domain');
+  });
+
+  // ── import-existing persistence mappers ──────────────────────────────────────
+  check('toRelationshipRow derives normalized_name + domain + connected status', () => {
+    const r = toRelationshipRow(ex({ name: 'One City Church', website: 'https://www.theonecity.org/give', state: 'TN', phone: '(615) 555-1000', denomination: 'ARC' }), 'connected_churches');
+    assert.strictEqual(r.domain, 'theonecity.org');
+    assert.strictEqual(r.normalized_name.length > 0, true);
+    assert.strictEqual(r.state, 'TN');
+    assert.strictEqual(r.source, 'connected_churches');
+    assert.strictEqual(r.relationship_status, 'connected');
+    assert.ok(r.notes?.includes('ARC'));
+  });
+  check('buildRelationshipRows dedupes by (normalized name, state, domain)', () => {
+    const rows = buildRelationshipRows([
+      ex({ name: 'Cross Point Church', website: 'https://crosspoint.tv', state: 'TN' }),
+      ex({ name: 'Cross Point Church', website: 'https://crosspoint.tv', state: 'TN' }), // dup
+      ex({ name: 'Redemption Church', state: 'AZ' }),
+      ex({ name: '' }), // dropped (no name)
+    ], 'connected_churches');
+    assert.strictEqual(rows.length, 2);
+  });
+  check('relationshipRowToExisting round-trips a DB row back into the matcher', () => {
+    const row = toRelationshipRow(ex({ name: 'Life.Church', website: 'https://life.church', city: 'Edmond', state: 'OK' }), 'connected_churches');
+    const back = relationshipRowToExisting(row as unknown as Record<string, unknown>);
+    const localIdx = new ExistingIndex([back]);
+    const m = localIdx.match({ name: 'Whatever', website: 'https://life.church' });
+    assert.ok(m && m.decision === 'exclude' && m.reason === 'domain');
   });
 
   console.log(failures ? `\nFAILED (${failures})` : '\nALL PASSED');

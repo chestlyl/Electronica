@@ -13,7 +13,7 @@ import { discoverWebsite } from './research/discovery.js';
 import { buildDossier, type DossierBuild, type ResearchTarget } from './research/researchAgent.js';
 import { prospectArea, renderProspectBoard } from './research/prospect.js';
 import { googlePlacesProvider, searchDirectoryProvider } from './research/prospectProviders.js';
-import { ExistingIndex, readExistingChurches, toExistingChurch, renderGapReport, type GapBoard } from './research/prospectGap.js';
+import { ExistingIndex, readExistingChurches, toExistingChurch, renderGapReport, buildRelationshipRows, relationshipRowToExisting, type GapBoard, type ExistingChurch } from './research/prospectGap.js';
 import { renderDossierMarkdown } from './research/dossierMarkdown.js';
 import { publishDossierToBase44 } from './base44/publish.js';
 import { assertBase44Configured, logBase44Target } from './base44/client.js';
@@ -297,25 +297,87 @@ program
     }
   });
 
+// ── import-existing ─────────────────────────────────────────────────────────
+program
+  .command('import-existing')
+  .description('Import existing connected churches into Supabase as prospect-gap exclusions (no research, no dossiers, no Claude tokens)')
+  .requiredOption('--file <path>', 'existing churches: .xlsx workbook, or .json/.csv list')
+  .option('--source <label>', 'source label stored on every row', 'connected_churches')
+  .option('--status <status>', 'relationship_status stored on every row', 'connected')
+  .option('--append', 'add to existing rows for this source instead of replacing them')
+  .option('--dry-run', 'parse + report counts, write nothing to Supabase')
+  .action(async (opts) => {
+    // 1) Read + extract (no research, no dossiers, no Claude).
+    const churches = readExistingChurches(opts.file);
+    const rows = buildRelationshipRows(churches, opts.source, opts.status);
+    const withSite = rows.filter((r) => r.domain).length;
+    const withPhone = rows.filter((r) => r.phone).length;
+    const withState = rows.filter((r) => r.state).length;
+    logger.info(`Parsed ${churches.length} existing churches from ${opts.file} → ${rows.length} unique relationship rows`);
+    logger.info(`  with domain: ${withSite} · with phone: ${withPhone} · with state: ${withState}`);
+    if (opts.dryRun) {
+      for (const r of rows.slice(0, 15)) logger.info(`  - ${r.name}${r.state ? ` (${r.state})` : ''}${r.domain ? ` · ${r.domain}` : ''}`);
+      logger.info(`\nDry run — nothing written. Remove --dry-run to insert into Supabase.`);
+      return;
+    }
+    if (!rows.length) { logger.warn('No rows to import.'); return; }
+    // 2) Persist to existing_church_relationships (replace this source unless --append).
+    const db = supabase();
+    if (!opts.append) {
+      const del = await db.from('existing_church_relationships').delete().eq('source', opts.source);
+      if (del.error) { logger.error(`Failed to clear source "${opts.source}": ${del.error.message}`); process.exitCode = 1; return; }
+    }
+    let inserted = 0;
+    for (let i = 0; i < rows.length; i += 500) {
+      const part = rows.slice(i, i + 500);
+      const { error } = await db.from('existing_church_relationships').insert(part);
+      if (error) {
+        logger.error(`Insert failed: ${error.message}`);
+        if (/relation .*existing_church_relationships.* does not exist/i.test(error.message))
+          logger.error('Apply supabase/migrations/0005_existing_relationships.sql first.');
+        process.exitCode = 1;
+        return;
+      }
+      inserted += part.length;
+    }
+    logger.info(`\nImported ${inserted} existing relationships (source="${opts.source}", status="${opts.status}"). prospect-gap will now exclude these.`);
+  });
+
 // ── prospect-gap ────────────────────────────────────────────────────────────
 program
   .command('prospect-gap')
   .description('Discover NEW churches across metros, excluding any we\'re already connected to (never spends dossier budget on existing churches)')
-  .requiredOption('--existing <path>', 'existing connected churches: .xlsx workbook, or .json/.csv list')
+  .option('--existing <path>', 'ALSO exclude churches from this file (.xlsx/.json/.csv), on top of the imported relationships table')
   .requiredOption('--metros <list>', 'comma-separated metros, e.g. "Cleveland,Akron,Canton"')
   .option('--state <state>', 'state abbreviation, e.g. OH')
   .option('--denomination <denom>', 'optional denomination filter')
   .option('--limit <n>', 'max NET-NEW churches to fully dossier across all metros (cost bound)', '250')
-  .option('--no-roster', 'do NOT also exclude churches already in the repository (spreadsheet-only)')
+  .option('--no-roster', 'do NOT also exclude churches already in the repository')
+  .option('--no-relationships', 'do NOT load exclusions from the existing_church_relationships table')
   .option('-o, --out <path>', 'write the gap report markdown to this path')
   .action(async (opts) => {
     const ctx = createLiveContext();
     try {
-      // 1) Read existing connected churches from the provided file.
-      const fromFile = readExistingChurches(opts.existing);
-      logger.info(`Existing churches from ${opts.existing}: ${fromFile.length}`);
-      // 2) Optionally merge the live repository roster (the authoritative existing set).
-      let roster: ReturnType<typeof toExistingChurch>[] = [];
+      const existing: ExistingChurch[] = [];
+      // 1) Imported relationships table (populated by `import-existing`) — the
+      //    primary exclusion source.
+      let relCount = 0;
+      if (opts.relationships !== false) {
+        try {
+          const { data, error } = await supabase().from('existing_church_relationships').select('name,website,city,state,phone,source').limit(100000);
+          if (error) logger.warn(`existing_church_relationships not read (${error.message}) — continuing without it`);
+          else { const rel = (data ?? []).map(relationshipRowToExisting); existing.push(...rel); relCount = rel.length; logger.info(`Existing churches from relationships table: ${relCount}`); }
+        } catch (e) { logger.warn(`Could not query relationships table (${(e as Error).message}) — continuing`); }
+      }
+      // 2) Optional --existing file (ad-hoc, on top of the table).
+      let fileCount = 0;
+      if (opts.existing) {
+        const fromFile = readExistingChurches(opts.existing);
+        existing.push(...fromFile); fileCount = fromFile.length;
+        logger.info(`Existing churches from ${opts.existing}: ${fileCount}`);
+      }
+      // 3) Optionally merge the live repository roster.
+      let roster: ExistingChurch[] = [];
       if (opts.roster !== false) {
         const rows = await ctx.store.listChurches({ limit: 100000 });
         roster = rows.map((c) => toExistingChurch(
@@ -324,7 +386,8 @@ program
         )).filter((c) => c.name);
         logger.info(`Existing churches from repository: ${roster.length}`);
       }
-      const index = new ExistingIndex([...fromFile, ...roster]);
+      existing.push(...roster);
+      const index = new ExistingIndex(existing);
       logger.info(`Exclusion index: ${index.size} existing churches (domain + name+geo + phone + alias + fuzzy)`);
 
       // 3) Run discovery per metro under a SHARED net-new dossier budget.
@@ -354,9 +417,11 @@ program
       }
 
       // 4) Combined report: net-new prospects + Matched/Excluded + Ambiguous appendices.
+      const sourceLabel = [relCount ? `${relCount} from relationships table` : '', fileCount ? `${fileCount} from ${opts.existing}` : '']
+        .filter(Boolean).join(' + ') || 'repository roster';
       const md = renderGapReport(boards, {
-        existingCount: fromFile.length, rosterCount: roster.length, indexSize: index.size,
-        state: opts.state ?? null, source: opts.existing,
+        existingCount: relCount + fileCount, rosterCount: roster.length, indexSize: index.size,
+        state: opts.state ?? null, source: sourceLabel,
       });
       if (opts.out) { const { writeFileSync } = await import('node:fs'); writeFileSync(opts.out, md); logger.info(`\nWrote ${opts.out}`); } else console.log('\n' + md);
     } finally {

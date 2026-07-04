@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { Download } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
-import { Card, Table, Th, Td, Badge, ScoreBar, Empty } from "@/components/ui";
+import { Card, Table, Th, Td, Badge, ScoreBar, Empty, Button } from "@/components/ui";
 import { fmtNum, fmtPct, timeAgo } from "@/lib/utils";
 import { listChurches, activeStatusTone, supabaseConfigured, isDemo } from "@/lib/db";
 import { RepoFilters } from "./filters";
@@ -15,9 +16,25 @@ export default async function RepositoryPage({
   const sp = await searchParams;
   const churches = await listChurches({ q: sp.q, state: sp.state, status: sp.status, limit: 200 });
 
+  const exportParams = new URLSearchParams();
+  if (sp.q) exportParams.set("q", sp.q);
+  if (sp.state) exportParams.set("state", sp.state);
+  if (sp.status) exportParams.set("status", sp.status);
+  const exportHref = `/api/churches/export${exportParams.toString() ? `?${exportParams}` : ""}`;
+
   return (
     <>
-      <PageHeader title="Church Repository" subtitle="Master database of researched churches" />
+      <PageHeader
+        title="Church Repository"
+        subtitle="Master database of researched churches"
+        action={
+          <a href={exportHref}>
+            <Button size="sm" variant="outline">
+              <Download className="h-3.5 w-3.5" /> Export CSV
+            </Button>
+          </a>
+        }
+      />
       <div className="space-y-4 p-6">
         <RepoFilters q={sp.q ?? ""} state={sp.state ?? ""} status={sp.status ?? ""} />
 

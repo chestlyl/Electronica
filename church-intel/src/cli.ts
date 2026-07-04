@@ -16,6 +16,7 @@ import { googlePlacesProvider, searchDirectoryProvider } from './research/prospe
 import { ExistingIndex, readExistingChurches, toExistingChurch, renderGapReport, buildRelationshipRows, relationshipRowToExisting, type GapBoard, type ExistingChurch } from './research/prospectGap.js';
 import { buildOutreachBatch, DEFAULT_LIMIT, DEFAULT_MIN_FIT, type OutreachEligibleChurch } from './research/outreachBatch.js';
 import { runNightly, renderNightlySummary, type NightlyStep, type StepResult } from './research/nightly.js';
+import { toCsv, parseChurchesImport, CHURCH_IO_COLS } from './tools/churchesIO.js';
 import { renderDossierMarkdown } from './research/dossierMarkdown.js';
 import { publishDossierToBase44 } from './base44/publish.js';
 import { assertBase44Configured, logBase44Target } from './base44/client.js';
@@ -464,6 +465,55 @@ async function generateTodaysBatch(opts: { date: string; limit: number; minFit: 
   }
   return { status: 'ok', detail: `${written} lead(s) drafted into outreach_leads for ${opts.date}`, metrics: { drafts: written } };
 }
+
+// ── export-churches ──────────────────────────────────────────────────────────
+program
+  .command('export-churches')
+  .description('Export the churches table to CSV or JSON (curated, human-editable columns)')
+  .option('-o, --out <path>', 'output file (defaults to stdout)')
+  .option('--format <fmt>', 'csv | json (inferred from --out extension, else csv)')
+  .option('--state <state>', 'filter by state')
+  .option('--status <status>', 'filter by active_status')
+  .option('--min-fit <n>', 'only churches with mmc_fit_score ≥ n')
+  .option('--limit <n>', 'max rows', '100000')
+  .action(async (opts) => {
+    const db = supabase();
+    let q = db.from('churches').select(CHURCH_IO_COLS.join(',')).order('mmc_fit_score', { ascending: false, nullsFirst: false }).limit(Number(opts.limit));
+    if (opts.state) q = q.eq('state', opts.state);
+    if (opts.status) q = q.eq('active_status', opts.status);
+    if (opts.minFit) q = q.gte('mmc_fit_score', Number(opts.minFit));
+    const { data, error } = await q;
+    if (error) { logger.error(`export failed: ${error.message}`); process.exitCode = 1; return; }
+    const rows = (data ?? []) as unknown as Record<string, unknown>[];
+    const fmt = opts.format ?? (opts.out?.endsWith('.json') ? 'json' : 'csv');
+    const output = fmt === 'json' ? JSON.stringify(rows, null, 2) : toCsv(rows);
+    if (opts.out) { const { writeFileSync } = await import('node:fs'); writeFileSync(opts.out, output); logger.info(`Exported ${rows.length} church(es) → ${opts.out}`); }
+    else console.log(output);
+  });
+
+// ── import-churches ──────────────────────────────────────────────────────────
+program
+  .command('import-churches')
+  .description('Upsert churches from a CSV/JSON file (idempotent; only provided columns are written)')
+  .requiredOption('--file <path>', 'CSV or JSON of churches')
+  .option('--dry-run', 'parse + report, write nothing')
+  .action(async (opts) => {
+    const { readFileSync } = await import('node:fs');
+    const rows = parseChurchesImport(readFileSync(opts.file, 'utf8'), opts.file);
+    logger.info(`Parsed ${rows.length} church row(s) from ${opts.file}`);
+    if (opts.dryRun) { for (const r of rows.slice(0, 15)) logger.info(`  - ${r.name ?? r.original_row_id}${r.state ? ` (${r.state})` : ''}`); logger.info('\nDry run — nothing written.'); return; }
+    if (!rows.length) { logger.warn('Nothing to import.'); return; }
+    const db = supabase();
+    let ok = 0; const fails: string[] = [];
+    // Per-row upsert so each row writes only the columns it provides (no null clobber).
+    for (const row of rows) {
+      const { error } = await db.from('churches').upsert(row, { onConflict: 'original_row_id' });
+      if (error) fails.push(`${row.original_row_id}: ${error.message}`); else ok++;
+    }
+    logger.info(`\nImported ${ok}/${rows.length} church(es).`);
+    for (const f of fails.slice(0, 10)) logger.warn(`  ✗ ${f}`);
+    if (fails.length) process.exitCode = 1;
+  });
 
 // ── outreach-batch ───────────────────────────────────────────────────────────
 program

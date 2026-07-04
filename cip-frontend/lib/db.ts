@@ -78,6 +78,18 @@ export interface ReviewRow {
   churches?: ChurchRef | null;
 }
 
+export interface ChurchContactRow {
+  id: string;
+  church_id: string;
+  email: string;
+  name: string | null;
+  role: string | null;
+  category: string;
+  source_url: string | null;
+  confidence: number | null;
+  selected_for_outreach: boolean;
+}
+
 export interface OutreachRow {
   id: string;
   church_id: string | null;
@@ -207,6 +219,29 @@ export async function getChurch(
   } catch (e) {
     console.error("getChurch:", (e as Error).message);
     return empty;
+  }
+}
+
+// ── Church contacts (all discovered emails; one selectable for outreach) ─────
+export async function listChurchContacts(churchId: string): Promise<ChurchContactRow[]> {
+  if (isDemo) return (await import("@/lib/demo-data")).demoChurchContacts(churchId);
+  if (!supabaseConfigured) return [];
+  try {
+    const db = supabaseAdmin();
+    const { data, error } = await db
+      .from("church_contacts")
+      .select("*")
+      .eq("church_id", churchId)
+      .order("selected_for_outreach", { ascending: false })
+      .order("confidence", { ascending: false, nullsFirst: false });
+    if (error) {
+      console.error("listChurchContacts:", error.message);
+      return [];
+    }
+    return (data ?? []) as unknown as ChurchContactRow[];
+  } catch (e) {
+    console.error("listChurchContacts:", (e as Error).message);
+    return [];
   }
 }
 

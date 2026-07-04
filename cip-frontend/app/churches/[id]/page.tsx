@@ -3,7 +3,8 @@ import { ExternalLink, ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { Card, Badge, Button, ScoreBar, Empty, Section, Table, Th, Td } from "@/components/ui";
 import { fmtNum, fmtPct } from "@/lib/utils";
-import { getChurch, activeStatusTone } from "@/lib/db";
+import { getChurch, listChurchContacts, activeStatusTone } from "@/lib/db";
+import { ContactPicker } from "./contact-picker";
 import type { ReactNode } from "react";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,7 @@ const SCORES = [
 export default async function ChurchDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { church: c, evidence, reviews } = await getChurch(id);
+  const contacts = c ? await listChurchContacts(c.id) : [];
 
   if (!c) {
     return (
@@ -130,6 +132,11 @@ export default async function ChurchDetailPage({ params }: { params: Promise<{ i
             />
           </Section>
         </div>
+
+        {/* Contact emails — all discovered, pick one for outreach */}
+        <Section title="Contact Emails">
+          <ContactPicker churchId={c.id} contacts={contacts} />
+        </Section>
 
         {/* Confidence scores */}
         <Section title="Confidence & Scores">

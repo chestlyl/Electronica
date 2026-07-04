@@ -17,6 +17,7 @@ import { ExistingIndex, readExistingChurches, toExistingChurch, renderGapReport,
 import { buildOutreachBatch, DEFAULT_LIMIT, DEFAULT_MIN_FIT, type OutreachEligibleChurch } from './research/outreachBatch.js';
 import { runNightly, renderNightlySummary, type NightlyStep, type StepResult } from './research/nightly.js';
 import { toCsv, parseChurchesImport, CHURCH_IO_COLS } from './tools/churchesIO.js';
+import { contactRowsFromBuild } from './research/churchContacts.js';
 import { renderDossierMarkdown } from './research/dossierMarkdown.js';
 import { publishDossierToBase44 } from './base44/publish.js';
 import { assertBase44Configured, logBase44Target } from './base44/client.js';
@@ -459,6 +460,17 @@ async function generateTodaysBatch(opts: { date: string; limit: number; minFit: 
   const drafts = buildOutreachBatch((churches ?? []) as OutreachEligibleChurch[], {
     batchDate: opts.date, limit: opts.limit, minFit: opts.minFit, excludeChurchIds: exclude,
   });
+  // Prefer the human-selected outreach email (church_contacts.selected_for_outreach)
+  // over the single churches.email_verified — the better address the user picked.
+  if (drafts.length) {
+    const ids = drafts.map((d) => d.church_id);
+    const sel = await db.from('church_contacts').select('church_id, email, name, role').eq('selected_for_outreach', true).in('church_id', ids);
+    const chosen = new Map((sel.data ?? []).map((r) => [r.church_id as string, r]));
+    for (const d of drafts) {
+      const s = chosen.get(d.church_id);
+      if (s?.email) { d.contact_email = s.email as string; if (s.name) d.contact_name = s.name as string; if (s.role) d.contact_role = s.role as string; }
+    }
+  }
   if (opts.dryRun) return { status: 'ok', detail: `${drafts.length} draft(s) would be written for ${opts.date} (dry-run)`, metrics: { drafts: drafts.length } };
   if (!drafts.length) return { status: 'ok', detail: `no new eligible churches for ${opts.date}`, metrics: { drafts: 0 } };
   let written = 0;
@@ -960,6 +972,34 @@ async function persistDossier(store: Store, churchId: string, build: DossierBuil
   await store.upsertDossier({ ...build.dossier, church_id: churchId });
   for (const c of build.conflicts) await store.addConflict({ ...c, church_id: churchId });
   await store.updateChurch(churchId, build.strategic);
+  await persistChurchContacts(churchId, build);
+}
+
+/**
+ * Persist EVERY discovered church/staff email into church_contacts (replace this
+ * church's rows). Preserves an existing selected_for_outreach choice by email.
+ * Best-effort: a missing table (migration not applied) is logged, not fatal.
+ */
+async function persistChurchContacts(churchId: string, build: DossierBuild): Promise<void> {
+  const rows = contactRowsFromBuild(build);
+  if (!rows.length) return;
+  try {
+    const db = supabase();
+    const prev = await db.from('church_contacts').select('email, selected_for_outreach').eq('church_id', churchId);
+    const wasSelected = new Set((prev.data ?? []).filter((r) => r.selected_for_outreach).map((r) => String(r.email).toLowerCase()));
+    await db.from('church_contacts').delete().eq('church_id', churchId);
+    const payload = rows.map((r) => ({ ...r, church_id: churchId, selected_for_outreach: wasSelected.has(r.email) }));
+    // If nothing was previously selected, pre-select the highest-confidence email.
+    if (!wasSelected.size && payload.length) {
+      const best = payload.reduce((a, b) => ((b.confidence ?? 0) > (a.confidence ?? 0) ? b : a));
+      best.selected_for_outreach = true;
+    }
+    const { error } = await db.from('church_contacts').insert(payload);
+    if (error) logger.warn(`church_contacts not written (${error.message})`);
+    else logger.info(`  church_contacts: ${payload.length} email(s) recorded`);
+  } catch (e) {
+    logger.warn(`church_contacts persist skipped: ${(e as Error).message}`);
+  }
 }
 
 async function createAdhocChurch(store: Store, target: ResearchTarget): Promise<string> {

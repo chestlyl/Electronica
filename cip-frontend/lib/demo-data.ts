@@ -1,4 +1,4 @@
-import type { ChurchRow, EvidenceRow, ReviewRow, OutreachRow, DashboardStats } from "@/lib/db";
+import type { ChurchRow, EvidenceRow, ReviewRow, OutreachRow, ChurchContactRow, DashboardStats } from "@/lib/db";
 
 /**
  * Seeded preview data — served when CIP_DEMO=1 so the whole UI can be explored
@@ -233,6 +233,28 @@ const evidenceFor: EvidenceRow[] = [
     checked_at: "2026-06-28T14:20:00Z",
   },
 ];
+
+export function demoChurchContacts(churchId: string): ChurchContactRow[] {
+  const base = [
+    { email: "hollis@theonecity.org", name: "Hollis Thomas", role: "Lead Pastor", category: "person", confidence: 90, selected: true },
+    { email: "business@theonecity.org", name: "Main office", role: null, category: "church", confidence: 82, selected: false },
+    { email: "pastor@theonecity.org", name: null, role: "Lead Pastor", category: "role", confidence: 74, selected: false },
+    { email: "worship@theonecity.org", name: "Worship Dept", role: "Worship", category: "role", confidence: 68, selected: false },
+    { email: "kids@theonecity.org", name: "Kids Ministry", role: "Kids", category: "role", confidence: 61, selected: false },
+    { email: "hello@theonecity.org", name: null, role: null, category: "unassigned", confidence: 40, selected: false },
+  ];
+  return base.map((c, i) => ({
+    id: `demo-contact-${i}`,
+    church_id: churchId,
+    email: c.email,
+    name: c.name,
+    role: c.role,
+    category: c.category,
+    source_url: "https://theonecity.org/staff",
+    confidence: c.confidence,
+    selected_for_outreach: c.selected,
+  }));
+}
 
 export function demoChurchDetail(id: string): {
   church: ChurchRow | null;

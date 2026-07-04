@@ -52,13 +52,17 @@ export interface PipelineRunner {
 export interface RealPipelineRunnerOptions {
   /** Known roster for dedup (unknown-only discovery). Wired to the CIP repository. */
   knownRoster?: () => Promise<KnownChurch[]>;
+  /** 'lite' skips the Claude synthesis (0 tokens) — deterministic tech/attendance/staff/contacts. */
+  depth?: 'full' | 'lite';
 }
 
 /** Production runner — real Anthropic + resilient crawler + the existing agent. */
 export class RealPipelineRunner implements PipelineRunner {
   private knownRoster: () => Promise<KnownChurch[]>;
+  private depth: 'full' | 'lite';
   constructor(opts: RealPipelineRunnerOptions = {}) {
     this.knownRoster = opts.knownRoster ?? (async () => []);
+    this.depth = opts.depth ?? 'full';
   }
 
   async runKnownChurch(input: KnownChurchInput, onStage: StageEmitter): Promise<KnownChurchOutput> {
@@ -68,7 +72,7 @@ export class RealPipelineRunner implements PipelineRunner {
       await onStage('discovery', 10);
       const target: ResearchTarget = {
         name: input.name, city: input.city ?? null, state: input.state ?? null,
-        originalWebsite: input.url ?? null, alternateName: null, mode: 'known_church',
+        originalWebsite: input.url ?? null, alternateName: null, mode: 'known_church', depth: this.depth,
       };
       await onStage('extraction', 35);
       const build = await buildDossier(target, { llm, research });
@@ -92,7 +96,7 @@ export class RealPipelineRunner implements PipelineRunner {
         {
           enumerators: [googlePlacesProvider(), searchDirectoryProvider()],
           knownRoster: this.knownRoster,
-          buildDossier: (t) => buildDossier(t, { llm, research }),
+          buildDossier: (t) => buildDossier({ ...t, depth: this.depth }, { llm, research }),
           limit: input.limit ?? config.prospect.maxDossiers,
         },
       );

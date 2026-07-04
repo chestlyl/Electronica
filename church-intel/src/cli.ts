@@ -142,11 +142,12 @@ program
   .requiredOption('--name <name>', 'church name')
   .option('--city <city>', 'city')
   .option('--state <state>', 'state')
+  .option('--lite', 'lite/contact-focus: skip the Claude synthesis (0 tokens) — tech/attendance/staff/contacts only')
   .option('-o, --out <path>', 'write the dossier markdown to this path')
   .action(async (opts) => {
     const ctx = createLiveContext();
     try {
-      const target: ResearchTarget = { name: opts.name, city: opts.city ?? null, state: opts.state ?? null, originalWebsite: opts.url, alternateName: null };
+      const target: ResearchTarget = { name: opts.name, city: opts.city ?? null, state: opts.state ?? null, originalWebsite: opts.url, alternateName: null, depth: opts.lite ? 'lite' : 'full' };
       const build = await buildDossier(target, ctx);
       await emitDossier(target, build, opts.out);
     } finally {
@@ -203,10 +204,12 @@ program
   .option('--state <state>', 'state abbreviation')
   .option('--limit <n>', 'max churches to fully research')
   .option('--concurrency <n>', 'parallel research (default 2)')
+  .option('--lite', 'lite/contact-focus enrichment: skip the Claude synthesis (0 tokens) for breadth')
   .action(async (opts) => {
     const store = new SupabaseCipStore();
     const knownRoster = async () => (await store.listChurches({ limit: 100000 })).churches.map((c) => ({ name: c.name, website: c.website, city: c.city, state: c.state }));
-    const pipeline = new RealPipelineRunner({ knownRoster });
+    const pipeline = new RealPipelineRunner({ knownRoster, depth: opts.lite ? 'lite' : 'full' });
+    if (opts.lite) logger.info('Lite mode: skipping Claude synthesis (0 tokens/church) — tech/attendance/staff/contacts only.');
     if (opts.discover) {
       if (!opts.metro) throw new Error('--discover requires --metro');
       const jobs = new JobManager(store, pipeline);
@@ -242,20 +245,22 @@ program
   .option('--city <city>', 'city (ad-hoc)')
   .option('--state <state>', 'state (ad-hoc)')
   .option('--save', 'persist the dossier even in ad-hoc mode')
+  .option('--lite', 'lite/contact-focus: skip the Claude synthesis (0 tokens) — tech/attendance/staff/contacts only')
   .option('-o, --out <path>', 'write the dossier markdown to this path')
   .action(async (opts) => {
     const ctx = createLiveContext();
     try {
       let target: ResearchTarget;
       let churchId: string | null = null;
+      const depth: 'full' | 'lite' = opts.lite ? 'lite' : 'full';
       if (opts.id) {
         churchId = await resolveId(ctx.store, opts.id);
         const c = await ctx.store.getChurch(churchId);
         if (!c) throw new Error(`church ${churchId} not found`);
-        target = { name: c.name ?? '', city: c.city, state: c.state, originalWebsite: c.website_original, alternateName: extractAltName(c.notes), mode: c.website_original ? 'known_church' : 'market_discovery' };
+        target = { name: c.name ?? '', city: c.city, state: c.state, originalWebsite: c.website_original, alternateName: extractAltName(c.notes), mode: c.website_original ? 'known_church' : 'market_discovery', depth };
       } else {
         if (!opts.url || !opts.name) throw new Error('Provide --id, or --url and --name for ad-hoc mode (known-church research requires an official website URL)');
-        target = { name: opts.name, city: opts.city ?? null, state: opts.state ?? null, originalWebsite: opts.url, alternateName: null, mode: 'known_church' };
+        target = { name: opts.name, city: opts.city ?? null, state: opts.state ?? null, originalWebsite: opts.url, alternateName: null, mode: 'known_church', depth };
       }
       const build = await buildDossier(target, ctx);
       await emitDossier(target, build, opts.out);
@@ -543,9 +548,11 @@ program
   .option('--discover-limit <n>', 'max net-new churches to dossier during discovery')
   .option('--batch-size <n>', "size of Today's 300 batch", String(DEFAULT_LIMIT))
   .option('--min-fit <n>', 'minimum MMC fit for outreach eligibility', String(DEFAULT_MIN_FIT))
+  .option('--lite', 'lite/contact-focus discovery: skip the Claude synthesis (0 tokens) for breadth')
   .option('--dry-run', 'run every step in plan-only mode; write nothing')
   .action(async (opts) => {
     const date = todayIso();
+    const depth: 'full' | 'lite' = opts.lite ? 'lite' : 'full';
     const steps: NightlyStep[] = [];
 
     // 1) Discover new prospects (only when metros are provided).
@@ -565,7 +572,7 @@ program
               {
                 enumerators: [googlePlacesProvider(), searchDirectoryProvider()],
                 knownRoster: async () => (await ctx.store.listChurches({ limit: 100000 })).map((c) => ({ name: c.name, website: c.website_original, city: c.city, state: c.state })),
-                buildDossier: (t) => buildDossier(t, ctx),
+                buildDossier: (t) => buildDossier({ ...t, depth }, ctx),
                 limit: config.prospect.maxDossiers,
                 onProgress: (m) => logger.info(`    [${metro}] ${m}`),
               },

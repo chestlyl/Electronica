@@ -23,6 +23,7 @@ import { computeContaminationSources, enforceContamination, filterContaminatedFi
 import { normalizedCounts, type RawEvidence, type NormalizedEvidence, type Interpretation } from './evidenceModel.js';
 import { computeCoverage, scoreConfidence, contactabilityConfidence, computeSourceCoverage, sourceCoverageSummary, type CoverageRow, type ScoreConfidence, type SourceCoverageRow } from './coverage.js';
 import { dossierSynthesisPrompt, type DossierSynthesis } from '../claude/dossierPrompt.js';
+import { computeLiteFit, liteSynthesis } from './liteFit.js';
 import { logger } from '../lib/logger.js';
 import type { LlmProvider } from '../claude/client.js';
 import type { LinkDiagnostic, ResearchProvider } from './types.js';
@@ -41,6 +42,8 @@ export interface ResearchTarget {
   alternateName: string | null;
   /** known_church anchors on originalWebsite; market_discovery searches. */
   mode?: 'known_church' | 'market_discovery';
+  /** 'lite' skips the Claude synthesis (0 tokens): deterministic tech/attendance/staff/contacts + a deterministic fit proxy. */
+  depth?: 'full' | 'lite';
 }
 
 export interface ResearchDeps {
@@ -94,6 +97,10 @@ export interface DossierBuild {
   /** Strategic Recommendation Engine (Phase 2) — deterministic, report-only. */
   recommendations: RecommendationEngineResult;
   scoreConfidence: Record<string, ScoreConfidence>;
+  /** True when this was a lite (contact-focus) run — the Claude synthesis was skipped. */
+  lite: boolean;
+  /** Deterministic outreach-fit proxy (0..100); used as engagement fit in lite mode. */
+  liteFit: number;
   tokens: number;
   cost: number;
 }
@@ -286,17 +293,23 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
   const coverage = computeCoverage(findings, crawl.links, facts, digital);
   const sourceCoverage = computeSourceCoverage(findings, digital);
 
-  const { data: synthesis, usage } = await deps.llm.extractJson<DossierSynthesis>({
-    system: dossierSynthesisPrompt.system,
-    user: dossierSynthesisPrompt.user({
-      name: target.name, city: target.city, state: target.state,
-      officialSite: identity.officialSite, officialCrawled, renderedDomUsed: crawl.renderedDomUsed,
-      findings, conflicts, contamination, facts, digital: digitalEvidenceSummary(digital),
-      sourceCoverage: sourceCoverageSummary(sourceCoverage),
-    }),
-    schema: dossierSynthesisPrompt.schema,
-    maxTokens: 2200,
-  });
+  // LITE MODE — skip the pipeline's only Claude call. The synthesis becomes a
+  // deterministic stub, so enrichment relies entirely on the (free) extractors:
+  // tech stack, reported-attendance lookup + inference, staff/leadership, contacts.
+  const lite = target.depth === 'lite';
+  const { data: synthesis, usage } = lite
+    ? { data: liteSynthesis(), usage: { inputTokens: 0, outputTokens: 0, costEstimate: 0 } }
+    : await deps.llm.extractJson<DossierSynthesis>({
+        system: dossierSynthesisPrompt.system,
+        user: dossierSynthesisPrompt.user({
+          name: target.name, city: target.city, state: target.state,
+          officialSite: identity.officialSite, officialCrawled, renderedDomUsed: crawl.renderedDomUsed,
+          findings, conflicts, contamination, facts, digital: digitalEvidenceSummary(digital),
+          sourceCoverage: sourceCoverageSummary(sourceCoverage),
+        }),
+        schema: dossierSynthesisPrompt.schema,
+        maxTokens: 2200,
+      });
 
   // Size fallback: the staff_count synthesis estimate is now applied in the
   // INTERPRETATION layer (interpretation.staff_count), not folded into facts —
@@ -408,6 +421,18 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     dimensionCounts: strategicDimensionCounts, technologyStack: techStack, sizeRelative, accessLevel,
   });
 
+  // LITE MODE — with no LLM-scored inputs, use a deterministic outreach-fit proxy
+  // (attendance + contactable + tech + staff) as the engagement fit, so lite-
+  // enriched churches still rank sensibly for outreach.
+  const liteFit = computeLiteFit({
+    attendance: interpretation.attendance_estimate.value,
+    hasEmail: !!interpretation.office_email.value,
+    staffCount: leadership.length || (facts.staff_count?.value as number | null) || null,
+    techCount: techStack.length,
+    active: !/clos|inactiv|defunct|merged/i.test(String(interpretation.archetype.value ?? '')),
+  });
+  if (lite && recommendations.engagement_fit) recommendations.engagement_fit.value = liteFit;
+
   // Defensive secondary pass: contaminated findings were already excluded
   // upstream (before extraction), so this normally removes nothing. It guards the
   // normalized/interpretation layer against any contaminated row that reached it
@@ -471,6 +496,7 @@ export async function buildDossier(target: ResearchTarget, deps: ResearchDeps): 
     conflicts, contamination, contaminationSources, synthesis, facts, leadership, dossier, strategic,
     fieldEstimates, officialSite, accessLevel, officialCrawled, crawl, coverage, sourceCoverage, digital, techStack,
     strategicSignals, strategicDimensionCounts, raw, normalized, interpretation, coverageReport, strategicScores, sizeRelative, recommendations, scoreConfidence: scoreConf,
+    lite, liteFit,
     tokens: usage.inputTokens + usage.outputTokens,
     cost: usage.costEstimate,
   };

@@ -2,15 +2,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Search, ListChecks, Building2, FileText, Settings, Activity } from 'lucide-react';
+import { LayoutDashboard, ListChecks, Building2, Send, Settings, Activity } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 const NAV = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-  { href: '/research', label: 'Research', icon: Search },
-  { href: '/queue', label: 'Research Queue', icon: ListChecks },
   { href: '/repository', label: 'Church Repository', icon: Building2 },
-  { href: '/dossiers', label: 'Dossiers', icon: FileText },
+  { href: '/review', label: 'Review Queue', icon: ListChecks },
+  { href: '/outreach', label: 'Outreach', icon: Send },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 

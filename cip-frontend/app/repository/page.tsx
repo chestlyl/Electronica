@@ -1,58 +1,78 @@
-'use client';
-import { useState } from 'react';
-import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
-import { PageHeader } from '@/components/app-shell';
-import { Card, Table, Th, Td, Input, Badge, ScoreBar, Spinner, Empty, priorityTone } from '@/components/ui';
-import { fmtNum, fmtPct, timeAgo } from '@/lib/utils';
+import Link from "next/link";
+import { PageHeader } from "@/components/app-shell";
+import { Card, Table, Th, Td, Badge, ScoreBar, Empty } from "@/components/ui";
+import { fmtNum, fmtPct, timeAgo } from "@/lib/utils";
+import { listChurches, activeStatusTone, supabaseConfigured } from "@/lib/db";
+import { RepoFilters } from "./filters";
 
-export default function RepositoryPage() {
-  const [filters, setFilters] = useState({ q: '', state: '', archetype: '', priority: '' });
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['churches', filters],
-    queryFn: () => api.churches({ ...filters, limit: 200 }),
-  });
+export const dynamic = "force-dynamic";
+
+export default async function RepositoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; state?: string; status?: string }>;
+}) {
+  const sp = await searchParams;
+  const churches = await listChurches({ q: sp.q, state: sp.state, status: sp.status, limit: 200 });
 
   return (
     <>
       <PageHeader title="Church Repository" subtitle="Master database of researched churches" />
       <div className="space-y-4 p-6">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Input placeholder="Search name…" value={filters.q} onChange={(e) => setFilters({ ...filters, q: e.target.value })} />
-          <Input placeholder="State (e.g. TN)" value={filters.state} onChange={(e) => setFilters({ ...filters, state: e.target.value })} />
-          <Input placeholder="Archetype" value={filters.archetype} onChange={(e) => setFilters({ ...filters, archetype: e.target.value })} />
-          <Input placeholder="Priority" value={filters.priority} onChange={(e) => setFilters({ ...filters, priority: e.target.value })} />
-        </div>
+        <RepoFilters q={sp.q ?? ""} state={sp.state ?? ""} status={sp.status ?? ""} />
 
         <Card>
-          {isLoading ? <Spinner /> : error ? <Empty>Could not load — is the CIP API running?</Empty> : !data?.churches.length ? <Empty>No churches match.</Empty> : (
+          {!supabaseConfigured ? (
+            <Empty>Supabase not configured — set env vars in cip-frontend/.env.local.</Empty>
+          ) : !churches.length ? (
+            <Empty>No churches match these filters.</Empty>
+          ) : (
             <>
-              <div className="flex items-center justify-between px-4 py-2 text-xs text-muted">
-                <span>{fmtNum(data.total)} churches</span>
-              </div>
+              <div className="px-4 py-2 text-xs text-muted">{fmtNum(churches.length)} churches</div>
               <Table>
-                <thead><tr>
-                  <Th>Church</Th><Th>Location</Th><Th>Attendance</Th><Th>Archetype</Th><Th className="w-40">Fit</Th><Th>Coverage</Th><Th>Updated</Th>
-                </tr></thead>
+                <thead>
+                  <tr>
+                    <Th>Church</Th>
+                    <Th>Location</Th>
+                    <Th>Status</Th>
+                    <Th>Denomination</Th>
+                    <Th>Attendance</Th>
+                    <Th className="w-40">MMC Fit</Th>
+                    <Th>Verified</Th>
+                    <Th>Updated</Th>
+                  </tr>
+                </thead>
                 <tbody>
-                  {data.churches.map((c) => (
-                    <tr key={c.church_id} className="group hover:bg-border/20">
+                  {churches.map((c) => (
+                    <tr key={c.id} className="group hover:bg-border/20">
                       <Td>
-                        <Link href={`/churches/${c.church_id}`} className="font-medium text-fg group-hover:text-accent">{c.name ?? 'Unknown'}</Link>
-                        {c.priority ? <Badge tone={priorityTone(c.priority)} className="ml-2">{c.priority}</Badge> : null}
+                        <Link href={`/churches/${c.id}`} className="font-medium text-fg group-hover:text-accent">
+                          {c.name ?? "Unknown"}
+                        </Link>
+                        {c.network_affiliation ? (
+                          <span className="ml-2 text-xs text-muted">{c.network_affiliation}</span>
+                        ) : null}
                       </Td>
-                      <Td className="text-muted">{[c.city, c.state].filter(Boolean).join(', ') || '—'}</Td>
-                      <Td className="tabular">{fmtNum(c.awa)}</Td>
-                      <Td className="text-muted">{c.archetype ?? '—'}</Td>
+                      <Td className="text-muted">{[c.city, c.state].filter(Boolean).join(", ") || "—"}</Td>
+                      <Td>
+                        {c.active_status ? (
+                          <Badge tone={activeStatusTone(c.active_status)}>{c.active_status}</Badge>
+                        ) : (
+                          <span className="text-xs text-muted">—</span>
+                        )}
+                      </Td>
+                      <Td className="text-muted">{c.denomination ?? "—"}</Td>
+                      <Td className="tabular">{fmtNum(c.attendance_estimate)}</Td>
                       <Td>
                         <div className="flex items-center gap-2">
-                          <ScoreBar value={c.engagement_fit} className="w-24" />
-                          <span className="w-7 text-right text-xs tabular">{c.engagement_fit ?? '—'}</span>
+                          <ScoreBar value={c.mmc_fit_score} className="w-24" />
+                          <span className="w-8 text-right text-xs tabular">
+                            {c.mmc_fit_score == null ? "—" : Math.round(c.mmc_fit_score)}
+                          </span>
                         </div>
                       </Td>
-                      <Td className="tabular text-muted">{fmtPct(c.coverage_percent)}</Td>
-                      <Td className="text-xs text-muted">{timeAgo(c.last_researched_at)}</Td>
+                      <Td className="tabular text-muted">{fmtPct(c.verification_score)}</Td>
+                      <Td className="text-xs text-muted">{timeAgo(c.last_checked_at)}</Td>
                     </tr>
                   ))}
                 </tbody>

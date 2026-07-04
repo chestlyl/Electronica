@@ -6,9 +6,15 @@ import { supabaseAdmin, supabaseConfigured } from "@/utils/supabase/admin";
  * if Supabase is unconfigured or a query errors, it returns a safe empty result
  * so pages render an empty state instead of crashing. Import only from Server
  * Components / server actions.
+ *
+ * Preview mode: when CIP_DEMO=1, all reads return rich seeded fixtures (see
+ * lib/demo-data.ts) so the entire UI can be explored with no Supabase or keys.
  */
 
 export { supabaseConfigured };
+
+/** Preview mode — serve seeded data instead of querying Supabase. */
+export const isDemo = process.env.CIP_DEMO === "1";
 
 export interface ChurchRow {
   id: string;
@@ -105,6 +111,7 @@ export const OUTREACH_FIT_THRESHOLD = 60;
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   const empty: DashboardStats = { total: 0, enriched: 0, reviewPending: 0, outreachReady: 0 };
+  if (isDemo) return (await import("@/lib/demo-data")).demoStats;
   if (!supabaseConfigured) return empty;
   try {
     const db = supabaseAdmin();
@@ -135,6 +142,16 @@ export interface ChurchFilters {
   limit?: number;
 }
 export async function listChurches(f: ChurchFilters = {}): Promise<ChurchRow[]> {
+  if (isDemo) {
+    const { demoChurches } = await import("@/lib/demo-data");
+    const q = f.q?.toLowerCase();
+    return demoChurches.filter(
+      (c) =>
+        (!q || (c.name ?? "").toLowerCase().includes(q)) &&
+        (!f.state || (c.state ?? "").toLowerCase() === f.state.toLowerCase()) &&
+        (!f.status || c.active_status === f.status),
+    );
+  }
   if (!supabaseConfigured) return [];
   try {
     const db = supabaseAdmin();
@@ -162,6 +179,7 @@ export async function getChurch(
   id: string,
 ): Promise<{ church: ChurchRow | null; evidence: EvidenceRow[]; reviews: ReviewRow[] }> {
   const empty = { church: null, evidence: [] as EvidenceRow[], reviews: [] as ReviewRow[] };
+  if (isDemo) return (await import("@/lib/demo-data")).demoChurchDetail(id);
   if (!supabaseConfigured) return empty;
   try {
     const db = supabaseAdmin();
@@ -194,6 +212,10 @@ export async function getChurch(
 
 // ── Review queue ─────────────────────────────────────────────────────────────
 export async function listReviewQueue(status = "pending"): Promise<ReviewRow[]> {
+  if (isDemo) {
+    const { demoReviews } = await import("@/lib/demo-data");
+    return demoReviews.filter((r) => r.review_status === status);
+  }
   if (!supabaseConfigured) return [];
   try {
     const db = supabaseAdmin();
@@ -216,6 +238,10 @@ export async function listReviewQueue(status = "pending"): Promise<ReviewRow[]> 
 
 // ── Outreach ─────────────────────────────────────────────────────────────────
 export async function getLatestOutreachBatch(): Promise<{ batchDate: string | null; leads: OutreachRow[] }> {
+  if (isDemo) {
+    const { demoOutreach, demoOutreachDate } = await import("@/lib/demo-data");
+    return { batchDate: demoOutreachDate, leads: demoOutreach };
+  }
   if (!supabaseConfigured) return { batchDate: null, leads: [] };
   try {
     const db = supabaseAdmin();

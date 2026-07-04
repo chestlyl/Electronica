@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/app-shell";
 import { Card, Table, Th, Td, Badge, Empty } from "@/components/ui";
 import { fmtNum, fmtPct } from "@/lib/utils";
-import { listReviewQueue, supabaseConfigured } from "@/lib/db";
+import { listReviewQueue, supabaseConfigured, isDemo } from "@/lib/db";
 import { ReviewActions } from "./review-actions";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export default async function ReviewPage() {
       />
       <div className="space-y-4 p-6">
         <Card>
-          {!supabaseConfigured ? (
+          {!supabaseConfigured && !isDemo ? (
             <Empty>Supabase not configured — set env vars in cip-frontend/.env.local.</Empty>
           ) : !items.length ? (
             <Empty>Nothing to review — the queue is clear. 🎉</Empty>

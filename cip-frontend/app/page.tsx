@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Building2, Sparkles, ListChecks, Send, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { Card } from "@/components/ui";
-import { getDashboardStats, supabaseConfigured, OUTREACH_FIT_THRESHOLD } from "@/lib/db";
+import { getDashboardStats, supabaseConfigured, isDemo, OUTREACH_FIT_THRESHOLD } from "@/lib/db";
+import { Badge } from "@/components/ui";
 import { fmtNum } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -18,9 +19,13 @@ export default async function DashboardPage() {
   const stats = await getDashboardStats();
   return (
     <>
-      <PageHeader title="Dashboard" subtitle="Church Intelligence Platform overview" />
+      <PageHeader
+        title="Dashboard"
+        subtitle="Church Intelligence Platform overview"
+        action={isDemo ? <Badge tone="accent">Preview data</Badge> : undefined}
+      />
       <div className="space-y-6 p-6">
-        {!supabaseConfigured && <ConfigBanner />}
+        {!supabaseConfigured && !isDemo && <ConfigBanner />}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {CARDS.map((c) => {
             const Icon = c.icon;

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/app-shell";
 import { Card, Table, Th, Td, Badge, ScoreBar, Empty } from "@/components/ui";
 import { fmtNum, fmtPct, timeAgo } from "@/lib/utils";
-import { listChurches, activeStatusTone, supabaseConfigured } from "@/lib/db";
+import { listChurches, activeStatusTone, supabaseConfigured, isDemo } from "@/lib/db";
 import { RepoFilters } from "./filters";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,7 @@ export default async function RepositoryPage({
         <RepoFilters q={sp.q ?? ""} state={sp.state ?? ""} status={sp.status ?? ""} />
 
         <Card>
-          {!supabaseConfigured ? (
+          {!supabaseConfigured && !isDemo ? (
             <Empty>Supabase not configured — set env vars in cip-frontend/.env.local.</Empty>
           ) : !churches.length ? (
             <Empty>No churches match these filters.</Empty>

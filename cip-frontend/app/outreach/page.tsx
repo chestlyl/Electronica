@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/app-shell";
 import { Card, Badge, Empty } from "@/components/ui";
 import { fmtNum } from "@/lib/utils";
-import { getLatestOutreachBatch, approvalTone, hubspotTone, supabaseConfigured } from "@/lib/db";
+import { getLatestOutreachBatch, approvalTone, hubspotTone, supabaseConfigured, isDemo } from "@/lib/db";
 import { OutreachActions } from "./outreach-actions";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +24,7 @@ export default async function OutreachPage() {
         action={<Badge tone="accent">{fmtNum(leads.length)} leads</Badge>}
       />
       <div className="space-y-4 p-6">
-        {!supabaseConfigured ? (
+        {!supabaseConfigured && !isDemo ? (
           <Card>
             <Empty>Supabase not configured — set env vars in cip-frontend/.env.local.</Empty>
           </Card>

@@ -14,6 +14,8 @@ import { buildDossier, type DossierBuild, type ResearchTarget } from './research
 import { prospectArea, renderProspectBoard } from './research/prospect.js';
 import { googlePlacesProvider, searchDirectoryProvider } from './research/prospectProviders.js';
 import { ExistingIndex, readExistingChurches, toExistingChurch, renderGapReport, buildRelationshipRows, relationshipRowToExisting, type GapBoard, type ExistingChurch } from './research/prospectGap.js';
+import { buildOutreachBatch, DEFAULT_LIMIT, DEFAULT_MIN_FIT, type OutreachEligibleChurch } from './research/outreachBatch.js';
+import { runNightly, renderNightlySummary, type NightlyStep, type StepResult } from './research/nightly.js';
 import { renderDossierMarkdown } from './research/dossierMarkdown.js';
 import { publishDossierToBase44 } from './base44/publish.js';
 import { assertBase44Configured, logBase44Target } from './base44/client.js';
@@ -427,6 +429,126 @@ program
     } finally {
       await ctx.close();
     }
+  });
+
+// ── shared: generate + persist "Today's 300" into outreach_leads ─────────────
+const todayIso = (): string => new Date().toISOString().slice(0, 10);
+async function generateTodaysBatch(opts: { date: string; limit: number; minFit: number; dryRun: boolean }): Promise<StepResult> {
+  const db = supabase();
+  // Eligible churches: verified email + fit ≥ threshold (active status filtered in the pure builder).
+  const { data: churches, error } = await db
+    .from('churches')
+    .select('id, name, city, state, email_verified, lead_pastor, mmc_fit_score, active_status')
+    .not('email_verified', 'is', null)
+    .gte('mmc_fit_score', opts.minFit)
+    .limit(5000);
+  if (error) {
+    if (/relation .*outreach_leads.* does not exist|relation .*churches.* does not exist/i.test(error.message))
+      return { status: 'failed', detail: `${error.message} — apply the migrations first (0006_outreach.sql).` };
+    return { status: 'failed', detail: error.message };
+  }
+  // Skip churches already in today's batch (idempotent re-runs).
+  const existing = await db.from('outreach_leads').select('church_id').eq('batch_date', opts.date);
+  const exclude = new Set((existing.data ?? []).map((r) => r.church_id as string));
+  const drafts = buildOutreachBatch((churches ?? []) as OutreachEligibleChurch[], {
+    batchDate: opts.date, limit: opts.limit, minFit: opts.minFit, excludeChurchIds: exclude,
+  });
+  if (opts.dryRun) return { status: 'ok', detail: `${drafts.length} draft(s) would be written for ${opts.date} (dry-run)`, metrics: { drafts: drafts.length } };
+  if (!drafts.length) return { status: 'ok', detail: `no new eligible churches for ${opts.date}`, metrics: { drafts: 0 } };
+  let written = 0;
+  for (let i = 0; i < drafts.length; i += 500) {
+    const part = drafts.slice(i, i + 500);
+    const { error: insErr } = await db.from('outreach_leads').upsert(part, { onConflict: 'church_id,batch_date' });
+    if (insErr) return { status: 'failed', detail: `insert failed after ${written}: ${insErr.message}` };
+    written += part.length;
+  }
+  return { status: 'ok', detail: `${written} lead(s) drafted into outreach_leads for ${opts.date}`, metrics: { drafts: written } };
+}
+
+// ── outreach-batch ───────────────────────────────────────────────────────────
+program
+  .command('outreach-batch')
+  .description("Generate \"Today's 300\": rank outreach-eligible churches and draft leads into outreach_leads (no send)")
+  .option('--limit <n>', 'max leads in the batch', String(DEFAULT_LIMIT))
+  .option('--min-fit <n>', 'minimum MMC fit score', String(DEFAULT_MIN_FIT))
+  .option('--date <yyyy-mm-dd>', 'batch date (defaults to today)')
+  .option('--dry-run', 'compute the batch and report counts, write nothing')
+  .action(async (opts) => {
+    const res = await generateTodaysBatch({
+      date: opts.date ?? todayIso(),
+      limit: opts.limit ? Number(opts.limit) : DEFAULT_LIMIT,
+      minFit: opts.minFit ? Number(opts.minFit) : DEFAULT_MIN_FIT,
+      dryRun: !!opts.dryRun,
+    });
+    logger.info(`outreach-batch: ${res.status} — ${res.detail}`);
+    if (res.status === 'failed') process.exitCode = 1;
+  });
+
+// ── nightly ──────────────────────────────────────────────────────────────────
+program
+  .command('nightly')
+  .description('Unattended overnight run: discover new prospects → generate Today\'s 300 → HubSpot sync (stub). Prepares work for morning approval; nothing is sent.')
+  .option('--metros <list>', 'comma-separated metros for discovery (skips discovery if omitted)')
+  .option('--state <state>', 'state abbreviation for discovery')
+  .option('--discover-limit <n>', 'max net-new churches to dossier during discovery')
+  .option('--batch-size <n>', "size of Today's 300 batch", String(DEFAULT_LIMIT))
+  .option('--min-fit <n>', 'minimum MMC fit for outreach eligibility', String(DEFAULT_MIN_FIT))
+  .option('--dry-run', 'run every step in plan-only mode; write nothing')
+  .action(async (opts) => {
+    const date = todayIso();
+    const steps: NightlyStep[] = [];
+
+    // 1) Discover new prospects (only when metros are provided).
+    steps.push({
+      name: 'discover new prospects',
+      run: async ({ dryRun }): Promise<StepResult> => {
+        if (!opts.metros) return { status: 'skipped', detail: 'no --metros provided' };
+        const metros = String(opts.metros).split(',').map((m) => m.trim()).filter(Boolean);
+        if (dryRun) return { status: 'ok', detail: `would run prospect-gap discovery across ${metros.length} metro(s): ${metros.join(', ')}` };
+        // Discovery uses the live prospect flow; requires Google Places + network egress.
+        const ctx = createLiveContext();
+        try {
+          let found = 0;
+          for (const metro of metros) {
+            const board = await prospectArea(
+              { metro, state: opts.state ?? null, limit: opts.discoverLimit ? Number(opts.discoverLimit) : config.prospect.maxDossiers },
+              {
+                enumerators: [googlePlacesProvider(), searchDirectoryProvider()],
+                knownRoster: async () => (await ctx.store.listChurches({ limit: 100000 })).map((c) => ({ name: c.name, website: c.website_original, city: c.city, state: c.state })),
+                buildDossier: (t) => buildDossier(t, ctx),
+                limit: config.prospect.maxDossiers,
+                onProgress: (m) => logger.info(`    [${metro}] ${m}`),
+              },
+            );
+            found += board.entries.filter((e) => !e.known).length;
+          }
+          return { status: 'ok', detail: `discovery surfaced ${found} net-new prospect(s) across ${metros.length} metro(s)`, metrics: { net_new: found } };
+        } finally {
+          await ctx.close();
+        }
+      },
+    });
+
+    // 2) Generate Today's 300.
+    steps.push({
+      name: "generate Today's 300",
+      run: ({ dryRun }) => generateTodaysBatch({
+        date,
+        limit: opts.batchSize ? Number(opts.batchSize) : DEFAULT_LIMIT,
+        minFit: opts.minFit ? Number(opts.minFit) : DEFAULT_MIN_FIT,
+        dryRun,
+      }),
+    });
+
+    // 3) HubSpot sync — ON HOLD (CRM-only design agreed; build paused until scopes confirmed).
+    steps.push({
+      name: 'sync approved leads to HubSpot',
+      run: async (): Promise<StepResult> => ({ status: 'skipped', detail: 'HubSpot sync on hold — CRM sync not yet enabled (no send)' }),
+    });
+
+    const summary = await runNightly(steps, { startedAt: new Date().toISOString(), dryRun: !!opts.dryRun, log: (m) => logger.info(m) });
+    logger.info('\n' + renderNightlySummary(summary));
+    if (!summary.ok) process.exitCode = 1;
   });
 
 // ── research-calibrate ─────────────────────────────────────────────────────

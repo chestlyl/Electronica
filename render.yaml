@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: the-principles
+    runtime: node
+    plan: free
+    branch: claude/principles-ai-agent-cDANb
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false

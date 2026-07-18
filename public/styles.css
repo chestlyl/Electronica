@@ -1,0 +1,358 @@
+@font-face {
+  font-family: "Electronica";
+  src: url("/fonts/electronica_regular-webfont.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+:root {
+  --bg: #0b0b0b;
+  --surface: #111111;
+  --border: #1e1e1e;
+  --text: #e8e0d0;
+  --muted: #6a6258;
+  --gold: #c8a96e;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  border-bottom: 1px solid var(--border);
+  padding: 28px 40px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.wordmark {
+  font-family: "Electronica", "Cormorant Garamond", serif;
+  font-size: 30px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+nav {
+  display: flex;
+  gap: 8px;
+}
+
+.nav-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.nav-btn:hover {
+  color: var(--text);
+}
+
+.nav-btn.active {
+  color: var(--gold);
+  border-color: var(--border);
+}
+
+main {
+  flex: 1;
+  display: flex;
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+.section {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  padding: 36px 0;
+  width: 100%;
+}
+
+.section.active {
+  display: flex;
+}
+
+/* Advise */
+#advise {
+  height: calc(100vh - 132px);
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding-bottom: 24px;
+}
+
+.chat-empty {
+  color: var(--muted);
+  font-family: "Cormorant Garamond", serif;
+  font-size: 22px;
+  font-style: italic;
+  margin: auto;
+  text-align: center;
+}
+
+.msg {
+  max-width: 80%;
+  white-space: pre-wrap;
+}
+
+.msg.user {
+  align-self: flex-end;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 14px 18px;
+  border-radius: 2px;
+}
+
+.msg.assistant {
+  align-self: flex-start;
+}
+
+.msg.assistant .recommendation {
+  display: block;
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-left: 2px solid var(--gold);
+  background: rgba(200, 169, 110, 0.06);
+  color: var(--gold);
+}
+
+.msg.error {
+  align-self: center;
+  color: #c97a6e;
+  font-size: 14px;
+}
+
+.chat-form {
+  display: flex;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+
+textarea,
+input[type="text"] {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: "DM Sans", sans-serif;
+  font-size: 15px;
+  padding: 14px 16px;
+  resize: vertical;
+  border-radius: 2px;
+}
+
+textarea:focus,
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+button {
+  background: var(--gold);
+  border: none;
+  color: #0b0b0b;
+  font-family: "DM Sans", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0 24px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: opacity 0.2s;
+}
+
+button:hover {
+  opacity: 0.85;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.chat-form button {
+  align-self: stretch;
+}
+
+/* Library */
+.library-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.principle {
+  border-bottom: 1px solid var(--border);
+  padding: 20px 0;
+  cursor: pointer;
+}
+
+.principle-head {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.principle-num {
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+}
+
+.principle-name {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 24px;
+  color: var(--text);
+  flex: 1;
+}
+
+.principle-date {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.principle-body {
+  display: none;
+  padding-top: 18px;
+}
+
+.principle.open .principle-body {
+  display: block;
+}
+
+.principle-body .field {
+  margin-top: 14px;
+}
+
+.principle-body .field-label {
+  color: var(--gold);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.principle-body .field-text {
+  color: var(--text);
+}
+
+.principle-body .field.empty {
+  display: none;
+}
+
+/* Add */
+.add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.add-form label {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 14px;
+}
+
+.add-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.add-actions button {
+  padding: 12px 28px;
+}
+
+.add-status {
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--muted);
+  min-height: 20px;
+}
+
+.add-status.error {
+  color: #c97a6e;
+}
+
+.add-status.success {
+  color: var(--gold);
+}
+
+.preview {
+  margin-top: 24px;
+}
+
+.preview-card {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 26px;
+  border-radius: 2px;
+}
+
+.preview-card .preview-name {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 26px;
+  color: var(--gold);
+  margin-bottom: 16px;
+}
+
+.preview-card .field {
+  margin-top: 14px;
+}
+
+.preview-card .field-label {
+  color: var(--gold);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.preview-card .confirm-row {
+  margin-top: 24px;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+}

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Principles</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <div class="wordmark">The Principles</div>
+      <nav>
+        <button class="nav-btn active" data-section="advise">Advise</button>
+        <button class="nav-btn" data-section="library">Library</button>
+        <button class="nav-btn" data-section="add">Add Principle</button>
+      </nav>
+    </header>
+
+    <main>
+      <section id="advise" class="section active">
+        <div id="chat-messages" class="chat-messages">
+          <div class="chat-empty">
+            Bring a decision. The advisor reasons only through your principles.
+          </div>
+        </div>
+        <form id="chat-form" class="chat-form">
+          <textarea
+            id="chat-input"
+            rows="2"
+            placeholder="Describe the decision you are facing…"
+          ></textarea>
+          <button type="submit" id="chat-send">Send</button>
+        </form>
+      </section>
+
+      <section id="library" class="section">
+        <div id="library-list" class="library-list"></div>
+      </section>
+
+      <section id="add" class="section">
+        <div class="add-form">
+          <label for="add-name">Name <span class="muted">(optional)</span></label>
+          <input id="add-name" type="text" placeholder="Auto-generated if left blank" />
+
+          <label for="add-raw">Principle</label>
+          <textarea
+            id="add-raw"
+            rows="6"
+            placeholder="Write the principle in your own words…"
+          ></textarea>
+
+          <div class="add-actions">
+            <button id="btn-save" type="button">Save</button>
+            <button id="btn-stress" type="button" class="secondary">
+              Stress Test
+            </button>
+          </div>
+          <div id="add-status" class="add-status"></div>
+          <div id="preview" class="preview"></div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

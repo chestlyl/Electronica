@@ -37,7 +37,7 @@ describe('createInvitation', () => {
   const mockDb = {} as Parameters<typeof createInvitation>[0]['db'];
   const validBody = {
     email: 'new.member@example.invalid',
-    roleId: 'role-uuid',
+    roleId: '00000000-0000-0000-0000-000000000001',
   };
 
   it('throws PermissionDeniedError when user lacks invitations.create', async () => {

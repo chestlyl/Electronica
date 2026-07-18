@@ -1,4 +1,9 @@
 import 'dotenv/config';
+// Validate all required environment variables before starting the server.
+// This call will throw with a clear error message if any required variable is missing.
+import { getConfig } from './config.js';
+getConfig();
+
 import { serve } from '@hono/node-server';
 import { app } from './app.js';
 

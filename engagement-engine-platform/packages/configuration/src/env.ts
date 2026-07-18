@@ -8,6 +8,9 @@ const serverEnvSchema = z.object({
   DATABASE_URL: z.string().url(),
   API_URL: z.string().url().default('http://localhost:4000'),
   API_SECRET: z.string().min(1),
+  // Comma-separated list of allowed CORS origins.
+  // Required in production; defaults to localhost in development.
+  CORS_ALLOWED_ORIGINS: z.string().default('http://localhost:3000,http://localhost:3001'),
 });
 
 const publicEnvSchema = z.object({

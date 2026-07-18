@@ -1,0 +1,1 @@
+`@ee/validation` centralizes shared Zod schemas for the Engagement Engine domain so applications and services can validate tenant, people, household, campus, membership, and role payloads consistently from a single package.

@@ -1,0 +1,1 @@
+`@ee/database` wraps Supabase client creation for trusted server, browser, and authenticated user contexts so the platform has a single place to standardize database connectivity and future typed query helpers.

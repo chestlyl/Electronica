@@ -1,0 +1,1 @@
+`@ee/configuration` validates runtime environment variables for server and public applications so the platform fails fast with clear errors whenever required Supabase, database, or API settings are missing or malformed.

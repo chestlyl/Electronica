@@ -1,0 +1,38 @@
+# ── Dependencies ──────────────────────────────────────────────────────────
+node_modules/
+.pnpm-store/
+
+# ── Build outputs ─────────────────────────────────────────────────────────
+dist/
+.next/
+out/
+build/
+.expo/
+*.tsbuildinfo
+
+# ── Environment ───────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+
+# ── Supabase ──────────────────────────────────────────────────────────────
+supabase/.temp/
+supabase/.branches/
+supabase/functions/.deploy/
+
+# ── Test / coverage ───────────────────────────────────────────────────────
+coverage/
+.vitest/
+
+# ── OS / editor ───────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/settings.json
+*.swp
+
+# ── Turbo ─────────────────────────────────────────────────────────────────
+.turbo/

@@ -1,0 +1,1 @@
+`@ee/ui-web` is the shared home for future React web UI primitives, giving the platform a dedicated package boundary for reusable components while Layer 1 keeps the implementation intentionally minimal.

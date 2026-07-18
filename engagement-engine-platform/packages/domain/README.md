@@ -1,0 +1,1 @@
+`@ee/domain` provides shared TypeScript-only interfaces, permission models, and application error classes so every app and service can speak the same Engagement Engine domain language without introducing runtime coupling.

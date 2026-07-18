@@ -1,0 +1,1 @@
+`@ee/integrations` defines the secret-resolution abstraction for external system connections so integration records can store non-sensitive configuration while secrets remain referenced through environment or vault-backed providers.

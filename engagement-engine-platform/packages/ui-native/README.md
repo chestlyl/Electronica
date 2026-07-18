@@ -1,0 +1,1 @@
+`@ee/ui-native` reserves a shared package for future React Native component primitives so the mobile app can grow from a consistent design-system foundation without coupling early work to app-specific code.

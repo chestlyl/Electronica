@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "Engagement Engine",
+    "slug": "engagement-engine",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "engagement-engine",
+    "platforms": ["ios", "android"],
+    "newArchEnabled": true
+  }
+}

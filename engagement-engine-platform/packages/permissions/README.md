@@ -1,0 +1,1 @@
+`@ee/permissions` resolves effective scoped permissions from Supabase role assignments so services can answer authorization checks consistently across tenant-wide, campus-scoped, and ministry-scoped access rules.

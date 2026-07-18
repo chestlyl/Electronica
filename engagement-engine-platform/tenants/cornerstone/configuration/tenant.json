@@ -1,0 +1,13 @@
+{
+  "tenantSlug": "cornerstone-akron",
+  "displayName": "Cornerstone Church",
+  "location": {
+    "city": "Akron",
+    "state": "Ohio",
+    "country": "US"
+  },
+  "timezone": "America/New_York",
+  "currency": "USD",
+  "status": "pilot",
+  "notes": "First pilot tenant. All configuration here is non-sensitive metadata."
+}

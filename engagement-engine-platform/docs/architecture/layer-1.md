@@ -39,7 +39,7 @@ Authentication uses Supabase Auth. The JWT issued by Supabase contains the authe
 
 Resolution order in the API:
 
-1. Extract `Authorization: ****** from the request header.
+1. Extract the `Authorization: ****** header from the request.
 2. Validate the JWT against Supabase (via `client.auth.getUser()`).
 3. Look up the user's `tenant_memberships` for the requested tenant.
 4. Reject if no active membership exists.
@@ -90,12 +90,12 @@ Services live in the API application (`apps/api/src/routes/`) for Layer 1. They 
 
 | Boundary | Rule |
 |----------|------|
-| Client → API | ****** all business logic in API |
+| Client → API | Execute all business logic in API; never in client bundles |
 | API → Supabase (user operations) | User JWT client for RLS-governed reads |
 | API → Supabase (privileged writes) | Service-role client for audit inserts, constraint bypasses |
 | API → Worker | Internal message queue (future) |
 | API → Integrations | Via `@ee/integrations` secret provider |
-| Mobile → API | Same ****** pattern as web |
+| Mobile → API | Same JWT authentication pattern as web |
 | Supabase service key | Only in `apps/api` and `apps/worker`, never in Next.js client bundles |
 
 ---

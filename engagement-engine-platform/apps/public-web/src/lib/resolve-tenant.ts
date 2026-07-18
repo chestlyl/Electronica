@@ -48,7 +48,7 @@ export async function resolveTenantBySlug(slug: string): Promise<TenantInfo | nu
     .from('tenants')
     .select('id, name, slug, status')
     .eq('slug', slug)
-    .eq('status', 'active')
+    .in('status', ['active', 'pilot', 'trial'])
     .maybeSingle();
 
   return (data as TenantInfo | null) ?? null;

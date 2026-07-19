@@ -16,7 +16,7 @@
  */
 import { validateServerEnv, validatePublicEnv } from '@ee/configuration';
 import { createServerClient } from '@ee/database';
-import type { ServerEnv, PublicEnv } from '@ee/configuration';
+import type { ServerEnv } from '@ee/configuration';
 
 interface Config {
   nodeEnv: ServerEnv['NODE_ENV'];
@@ -42,7 +42,9 @@ export function getConfig(): Config {
       supabaseUrl: publicEnv.NEXT_PUBLIC_SUPABASE_URL,
       supabaseAnonKey: publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       supabaseServiceRoleKey: serverEnv.SUPABASE_SERVICE_ROLE_KEY,
-      corsAllowedOrigins: serverEnv.CORS_ALLOWED_ORIGINS.split(',').map((o: string) => o.trim()).filter(Boolean),
+      corsAllowedOrigins: serverEnv.CORS_ALLOWED_ORIGINS.split(',')
+        .map((o: string) => o.trim())
+        .filter(Boolean),
       isProduction: serverEnv.NODE_ENV === 'production',
     };
   }

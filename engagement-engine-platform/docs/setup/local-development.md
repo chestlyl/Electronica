@@ -70,6 +70,7 @@ supabase start
 ```
 
 This starts PostgreSQL, Auth, Storage, Studio, and Inbucket locally via Docker. When it finishes, it prints credentials including:
+
 - **API URL** → `NEXT_PUBLIC_SUPABASE_URL`
 - **anon key** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - **service_role key** → `SUPABASE_SERVICE_ROLE_KEY`
@@ -115,13 +116,13 @@ pnpm --filter @ee/platform-admin dev
 
 Default ports:
 
-| App | Port |
-|-----|------|
-| platform-admin | 3000 |
-| church-admin | 3001 |
-| public-web | 3002 |
-| member-web | 3003 |
-| api | 4000 |
+| App             | Port  |
+| --------------- | ----- |
+| platform-admin  | 3000  |
+| church-admin    | 3001  |
+| public-web      | 3002  |
+| member-web      | 3003  |
+| api             | 4000  |
 | Supabase Studio | 54323 |
 
 ---
@@ -193,10 +194,13 @@ supabase stop
 ## Troubleshooting
 
 ### Docker not running
+
 Supabase requires Docker. Ensure Docker Desktop is running before `supabase start`.
 
 ### Port conflicts
+
 If ports 54321–54324 are in use, stop the conflicting services or edit `supabase/config.toml`.
 
 ### Missing environment variables
+
 The API and worker will throw on startup if required variables are missing. Check `.env` against `.env.example`.

@@ -22,7 +22,9 @@ const publicEnvSchema = z.object({
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 export type PublicEnv = z.infer<typeof publicEnvSchema>;
 
-export function validateServerEnv(env: Record<string, string | undefined> = process.env): ServerEnv {
+export function validateServerEnv(
+  env: Record<string, string | undefined> = process.env,
+): ServerEnv {
   const result = serverEnvSchema.safeParse(env);
   if (!result.success) {
     const missing = result.error.issues.map((i) => i.path.join('.')).join(', ');

@@ -5,10 +5,7 @@ import { AppError } from '@ee/domain';
 
 export function errorHandler(err: Error, c: Context<{ Variables: AppVariables }>) {
   if (err instanceof AppError) {
-    return c.json(
-      { error: err.message, code: err.code },
-      err.statusCode as ContentfulStatusCode,
-    );
+    return c.json({ error: err.message, code: err.code }, err.statusCode as ContentfulStatusCode);
   }
 
   console.error('[api] unhandled error', err);

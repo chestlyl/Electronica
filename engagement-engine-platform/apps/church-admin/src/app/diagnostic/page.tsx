@@ -3,8 +3,8 @@ export default function DiagnosticPage() {
     <main>
       <h1>Church Admin — Diagnostic</h1>
       <p>
-        Current user, tenant, and permission information will appear here after
-        authentication is implemented in Layer 2.
+        Current user, tenant, and permission information will appear here after authentication is
+        implemented in Layer 2.
       </p>
       <ul>
         <li>

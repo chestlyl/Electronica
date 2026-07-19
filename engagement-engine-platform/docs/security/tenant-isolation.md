@@ -4,15 +4,15 @@
 
 Tenant isolation is enforced at multiple independent layers. A failure in one layer does not compromise the others.
 
-| Layer | Mechanism | Where enforced |
-|-------|-----------|----------------|
-| 1 | Row-Level Security policies | PostgreSQL |
-| 2 | `tenant_id` foreign keys on every table | PostgreSQL |
-| 3 | Same-tenant constraint checks (households, campus assignments) | PostgreSQL |
-| 4 | Server-side membership verification | `apps/api` middleware |
-| 5 | Permission resolution before data access | `@ee/permissions` |
-| 6 | Service-role key only in trusted server environments | Never in client bundles |
-| 7 | Automated cross-tenant read/write tests | `supabase/tests/` |
+| Layer | Mechanism                                                      | Where enforced          |
+| ----- | -------------------------------------------------------------- | ----------------------- |
+| 1     | Row-Level Security policies                                    | PostgreSQL              |
+| 2     | `tenant_id` foreign keys on every table                        | PostgreSQL              |
+| 3     | Same-tenant constraint checks (households, campus assignments) | PostgreSQL              |
+| 4     | Server-side membership verification                            | `apps/api` middleware   |
+| 5     | Permission resolution before data access                       | `@ee/permissions`       |
+| 6     | Service-role key only in trusted server environments           | Never in client bundles |
+| 7     | Automated cross-tenant read/write tests                        | `supabase/tests/`       |
 
 ---
 
@@ -68,6 +68,7 @@ A forged `tenantId` in the URL path is rejected at step 2 because the membership
 ## Service-role restrictions
 
 The Supabase service-role key:
+
 - Is only held by `apps/api` and `apps/worker`.
 - Is read from `process.env.SUPABASE_SERVICE_ROLE_KEY` — a server-only variable.
 - Is never prefixed `NEXT_PUBLIC_` or `EXPO_PUBLIC_`.
@@ -100,10 +101,10 @@ Unit tests in `apps/api/src/tests/` verify:
 
 ## Known limitations (Layer 1)
 
-| Limitation | Mitigation plan |
-|------------|----------------|
+| Limitation                                      | Mitigation plan                                               |
+| ----------------------------------------------- | ------------------------------------------------------------- |
 | pgTAP tests require a running Supabase instance | Documented in setup guide; CI will run against local Supabase |
-| Invitation token delivery not implemented | Token hash stored; delivery via email provider in Layer 2 |
-| MFA not enforced | Architecture supports it; enforcement added in Layer 2 |
-| Audit metadata is not schema-validated | Zod schema for metadata planned in Layer 2 |
-| No rate limiting on API routes | Will be added with Layer 2 hardening |
+| Invitation token delivery not implemented       | Token hash stored; delivery via email provider in Layer 2     |
+| MFA not enforced                                | Architecture supports it; enforcement added in Layer 2        |
+| Audit metadata is not schema-validated          | Zod schema for metadata planned in Layer 2                    |
+| No rate limiting on API routes                  | Will be added with Layer 2 hardening                          |

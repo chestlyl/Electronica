@@ -34,7 +34,10 @@ export class ScopeDeniedError extends AppError {
 }
 
 export class ValidationFailedError extends AppError {
-  constructor(message: string, public readonly details?: unknown) {
+  constructor(
+    message: string,
+    public readonly details?: unknown,
+  ) {
     super(message, 'VALIDATION_FAILED', 400);
   }
 }

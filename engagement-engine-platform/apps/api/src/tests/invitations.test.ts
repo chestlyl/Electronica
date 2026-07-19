@@ -67,11 +67,19 @@ describe('createInvitation', () => {
       }),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({
-        data: { id: invitationId, email: validBody.email, status: 'pending', expires_at: new Date().toISOString(), created_at: new Date().toISOString() },
+        data: {
+          id: invitationId,
+          email: validBody.email,
+          status: 'pending',
+          expires_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        },
         error: null,
       }),
     };
-    vi.mocked(createServiceClient).mockReturnValue(serviceClientMock as unknown as ReturnType<typeof createServiceClient>);
+    vi.mocked(createServiceClient).mockReturnValue(
+      serviceClientMock as unknown as ReturnType<typeof createServiceClient>,
+    );
 
     const result = await createInvitation(
       { db: mockDb, userId: 'admin', tenantId: 'tenant-1' },
@@ -99,11 +107,19 @@ describe('createInvitation', () => {
       insert: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({
-        data: { id: 'inv-002', email: validBody.email, status: 'pending', expires_at: new Date().toISOString(), created_at: new Date().toISOString() },
+        data: {
+          id: 'inv-002',
+          email: validBody.email,
+          status: 'pending',
+          expires_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        },
         error: null,
       }),
     };
-    vi.mocked(createServiceClient).mockReturnValue(serviceClientMock as unknown as ReturnType<typeof createServiceClient>);
+    vi.mocked(createServiceClient).mockReturnValue(
+      serviceClientMock as unknown as ReturnType<typeof createServiceClient>,
+    );
 
     const result = await createInvitation(
       { db: mockDb, userId: 'admin', tenantId: 'tenant-1' },
@@ -117,9 +133,9 @@ describe('createInvitation', () => {
 
 describe('acceptInvitation', () => {
   it('throws ValidationFailedError for missing token', async () => {
-    await expect(
-      acceptInvitation('user-1', 'user@example.invalid', { token: '' }),
-    ).rejects.toThrow(ValidationFailedError);
+    await expect(acceptInvitation('user-1', 'user@example.invalid', { token: '' })).rejects.toThrow(
+      ValidationFailedError,
+    );
   });
 
   it('rejects an invalid (not found) token', async () => {
@@ -129,7 +145,9 @@ describe('acceptInvitation', () => {
       eq: vi.fn().mockReturnThis(),
       maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
     };
-    vi.mocked(createServiceClient).mockReturnValue(serviceClientMock as unknown as ReturnType<typeof createServiceClient>);
+    vi.mocked(createServiceClient).mockReturnValue(
+      serviceClientMock as unknown as ReturnType<typeof createServiceClient>,
+    );
 
     await expect(
       acceptInvitation('user-1', 'user@example.invalid', { token: 'bad-token' }),
@@ -138,7 +156,7 @@ describe('acceptInvitation', () => {
 
   it('rejects an invitation for a different email (cross-tenant guard)', async () => {
     const rawToken = randomBytes(32).toString('hex');
-    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+    const _tokenHash = createHash('sha256').update(rawToken).digest('hex');
     const futureDate = new Date(Date.now() + 86400_000).toISOString();
 
     const serviceClientMock = {
@@ -159,7 +177,9 @@ describe('acceptInvitation', () => {
         error: null,
       }),
     };
-    vi.mocked(createServiceClient).mockReturnValue(serviceClientMock as unknown as ReturnType<typeof createServiceClient>);
+    vi.mocked(createServiceClient).mockReturnValue(
+      serviceClientMock as unknown as ReturnType<typeof createServiceClient>,
+    );
 
     await expect(
       acceptInvitation('user-1', 'attacker@example.invalid', { token: rawToken }),
@@ -179,7 +199,7 @@ describe('acceptInvitation', () => {
           id: 'inv-1',
           tenant_id: 'tenant-1',
           email: 'user@example.invalid',
-          status: 'accepted',  // already accepted
+          status: 'accepted', // already accepted
           expires_at: futureDate,
           role_id: 'role-1',
           campus_id: null,
@@ -188,7 +208,9 @@ describe('acceptInvitation', () => {
         error: null,
       }),
     };
-    vi.mocked(createServiceClient).mockReturnValue(serviceClientMock as unknown as ReturnType<typeof createServiceClient>);
+    vi.mocked(createServiceClient).mockReturnValue(
+      serviceClientMock as unknown as ReturnType<typeof createServiceClient>,
+    );
 
     await expect(
       acceptInvitation('user-1', 'user@example.invalid', { token: rawToken }),
@@ -209,7 +231,7 @@ describe('acceptInvitation', () => {
           tenant_id: 'tenant-1',
           email: 'user@example.invalid',
           status: 'pending',
-          expires_at: pastDate,  // expired
+          expires_at: pastDate, // expired
           role_id: 'role-1',
           campus_id: null,
           ministry_id: null,
@@ -217,7 +239,9 @@ describe('acceptInvitation', () => {
         error: null,
       }),
     };
-    vi.mocked(createServiceClient).mockReturnValue(serviceClientMock as unknown as ReturnType<typeof createServiceClient>);
+    vi.mocked(createServiceClient).mockReturnValue(
+      serviceClientMock as unknown as ReturnType<typeof createServiceClient>,
+    );
 
     await expect(
       acceptInvitation('user-1', 'user@example.invalid', { token: rawToken }),
@@ -253,14 +277,17 @@ describe('acceptInvitation', () => {
             data: table === 'invitations' ? invitationData : null,
             error: null,
           }),
-          insert: vi.fn((data: Record<string, unknown>) => {
+          insert: vi.fn((_data: Record<string, unknown>) => {
             insertCalls.push(table);
             if (table === 'tenant_memberships') {
-              return { select: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: membershipId }, error: null }) };
+              return {
+                select: vi.fn().mockReturnThis(),
+                single: vi.fn().mockResolvedValue({ data: { id: membershipId }, error: null }),
+              };
             }
             return { error: null };
           }),
-          update: vi.fn((data: Record<string, unknown>) => {
+          update: vi.fn((_data: Record<string, unknown>) => {
             updateCalls.push(table);
             return { eq: vi.fn().mockReturnThis() };
           }),
@@ -268,13 +295,13 @@ describe('acceptInvitation', () => {
         };
       }),
     };
-    vi.mocked(createServiceClient).mockReturnValue(serviceClientMock as unknown as ReturnType<typeof createServiceClient>);
-
-    const result = await acceptInvitation(
-      'user-1',
-      'new.member@example.invalid',
-      { token: rawToken },
+    vi.mocked(createServiceClient).mockReturnValue(
+      serviceClientMock as unknown as ReturnType<typeof createServiceClient>,
     );
+
+    const result = await acceptInvitation('user-1', 'new.member@example.invalid', {
+      token: rawToken,
+    });
 
     expect(result.tenantId).toBe('tenant-1');
     expect(result.roleId).toBe('member-role');

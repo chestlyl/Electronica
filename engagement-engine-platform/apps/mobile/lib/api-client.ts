@@ -18,11 +18,7 @@ export async function apiGet<T>(path: string, token: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function apiPost<T>(
-  path: string,
-  token: string,
-  body: unknown,
-): Promise<T> {
+export async function apiPost<T>(path: string, token: string, body: unknown): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     method: 'POST',
     headers: {

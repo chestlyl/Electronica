@@ -10,7 +10,11 @@ export const invitationsRouter = new Hono<{ Variables: AppVariables }>();
 invitationsRouter.use('/:tenantId/invitations*', requireAuth);
 invitationsRouter.use('/:tenantId/invitations*', requireTenantMembership);
 
-const inviteCreateLimiter = rateLimiter({ limit: 20, windowMs: 60_000, label: 'invitation.create' });
+const inviteCreateLimiter = rateLimiter({
+  limit: 20,
+  windowMs: 60_000,
+  label: 'invitation.create',
+});
 invitationsRouter.use('/:tenantId/invitations', inviteCreateLimiter);
 
 invitationsRouter.post('/:tenantId/invitations', async (c) => {

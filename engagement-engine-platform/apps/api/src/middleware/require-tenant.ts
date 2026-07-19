@@ -22,9 +22,7 @@ export async function requireTenantMembership(c: AppContext, next: Next) {
     .maybeSingle();
 
   if (!membership) {
-    throw new TenantMembershipRequiredError(
-      `No active membership in tenant ${tenantId}`,
-    );
+    throw new TenantMembershipRequiredError(`No active membership in tenant ${tenantId}`);
   }
 
   c.set('membership', membership);

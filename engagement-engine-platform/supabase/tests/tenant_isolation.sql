@@ -8,7 +8,7 @@ select plan(20);
 -- Test 1: Duplicate tenant slug is rejected
 select throws_ok(
   $$ insert into tenants (name, slug) values ('Dup Church', 'cornerstone-akron') $$,
-  'unique_violation',
+  '23505',
   null,
   'Duplicate tenant slug must be rejected'
 );
@@ -60,7 +60,7 @@ select is(
    join tenants t on t.id = p.tenant_id
    where t.slug = 'test-church'
      and p.id in (
-       select id from people pp
+       select pp.id from people pp
        join tenants tt on tt.id = pp.tenant_id
        where tt.slug = 'cornerstone-akron'
      )),
@@ -173,8 +173,8 @@ select is(
 -- Test 18: All permissions are seeded
 select is(
   (select count(*)::int from permissions),
-  20,
-  '20 permissions are seeded'
+  22,
+  '22 permissions are seeded'
 );
 
 -- Test 19: Campus slugs are unique within a tenant

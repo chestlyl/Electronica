@@ -5,7 +5,11 @@ export type CampusStatus = z.infer<typeof CampusStatusSchema>;
 
 export const CreateCampusSchema = z.object({
   name: z.string().min(1).max(255),
-  slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),
+  slug: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-z0-9-]+$/),
   timezone: z.string().optional(),
   status: CampusStatusSchema.default('active'),
   addressLine1: z.string().max(255).optional(),

@@ -26,8 +26,6 @@ describe('JobRegistry', () => {
 
   it('throws for unknown job', async () => {
     const reg = new JobRegistry();
-    await expect(reg.run('no-such-job')).rejects.toThrow(
-      'Job not found: no-such-job',
-    );
+    await expect(reg.run('no-such-job')).rejects.toThrow('Job not found: no-such-job');
   });
 });

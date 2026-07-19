@@ -1,9 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type {
-  EffectivePermissions,
-  PermissionKey,
-  ScopedPermission,
-} from '@ee/domain';
+import type { EffectivePermissions, PermissionKey, ScopedPermission } from '@ee/domain';
 
 export interface HasPermissionOptions {
   userId: string;
@@ -64,9 +60,7 @@ export async function getEffectivePermissions(
   const permissions: ScopedPermission[] = [];
 
   for (const assignment of assignments) {
-    const matchingPerms = rolePerms.filter(
-      (rp) => rp.role_id === assignment.role_id,
-    );
+    const matchingPerms = rolePerms.filter((rp) => rp.role_id === assignment.role_id);
     for (const rp of matchingPerms) {
       const perm = rp.permissions as unknown as { key: string } | null;
       if (perm?.key) {

@@ -14,7 +14,12 @@ householdsRouter.get('/:tenantId/households', async (c) => {
   const user = c.get('user');
   const db = c.get('supabaseClient');
 
-  const households = await listHouseholds({ db, userId: user.id, tenantId, requestId: c.get('requestId') });
+  const households = await listHouseholds({
+    db,
+    userId: user.id,
+    tenantId,
+    requestId: c.get('requestId'),
+  });
   return c.json({ households });
 });
 

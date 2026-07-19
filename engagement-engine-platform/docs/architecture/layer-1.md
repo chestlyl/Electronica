@@ -15,6 +15,7 @@ Cornerstone Church (Akron, Ohio, slug: `cornerstone-akron`) is the first pilot t
 The software treats Cornerstone identically to any other tenant. There is no hard-coded tenant name, no special-case routing for Cornerstone, and no feature specific to Cornerstone. If Cornerstone were replaced with any other church tomorrow, only the seed data would change.
 
 This matters because:
+
 - Developer habits form around the code they write first.
 - If the first tenant is hard-coded, the second tenant will expose every assumption.
 - Multi-tenancy must be proved by tests with two tenants (Cornerstone + Test Church) from the beginning.
@@ -59,6 +60,7 @@ A user with no role assignments has no permissions. There is no implicit grant.
 ### Scope preservation
 
 A role assignment may be:
+
 - **Tenant-wide**: `campus_id IS NULL AND ministry_id IS NULL`
 - **Campus-scoped**: `campus_id IS NOT NULL`
 - **Ministry-scoped**: `ministry_id IS NOT NULL`
@@ -88,15 +90,15 @@ Services live in the API application (`apps/api/src/routes/`) for Layer 1. They 
 
 ## API boundaries
 
-| Boundary | Rule |
-|----------|------|
-| Client → API | Execute all business logic in API; never in client bundles |
-| API → Supabase (user operations) | User JWT client for RLS-governed reads |
-| API → Supabase (privileged writes) | Service-role client for audit inserts, constraint bypasses |
-| API → Worker | Internal message queue (future) |
-| API → Integrations | Via `@ee/integrations` secret provider |
-| Mobile → API | Same JWT authentication pattern as web |
-| Supabase service key | Only in `apps/api` and `apps/worker`, never in Next.js client bundles |
+| Boundary                           | Rule                                                                  |
+| ---------------------------------- | --------------------------------------------------------------------- |
+| Client → API                       | Execute all business logic in API; never in client bundles            |
+| API → Supabase (user operations)   | User JWT client for RLS-governed reads                                |
+| API → Supabase (privileged writes) | Service-role client for audit inserts, constraint bypasses            |
+| API → Worker                       | Internal message queue (future)                                       |
+| API → Integrations                 | Via `@ee/integrations` secret provider                                |
+| Mobile → API                       | Same JWT authentication pattern as web                                |
+| Supabase service key               | Only in `apps/api` and `apps/worker`, never in Next.js client bundles |
 
 ---
 

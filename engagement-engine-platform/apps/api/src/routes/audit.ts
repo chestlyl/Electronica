@@ -28,9 +28,7 @@ auditRouter.get('/:tenantId/audit', async (c) => {
   const limit = Math.min(Number(c.req.query('limit') ?? 50), 200);
   const { data, error } = await db
     .from('audit_events')
-    .select(
-      'id, actor_user_id, actor_type, action, entity_type, entity_id, created_at',
-    )
+    .select('id, actor_user_id, actor_type, action, entity_type, entity_id, created_at')
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
     .limit(limit);

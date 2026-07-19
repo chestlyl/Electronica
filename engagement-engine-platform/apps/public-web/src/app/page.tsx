@@ -1,8 +1,5 @@
 import { headers } from 'next/headers';
-import {
-  resolveTenantByHostname,
-  resolveTenantBySlug,
-} from '../lib/resolve-tenant.js';
+import { resolveTenantByHostname, resolveTenantBySlug } from '../lib/resolve-tenant';
 
 export default async function PublicWebHome() {
   const headersList = await headers();

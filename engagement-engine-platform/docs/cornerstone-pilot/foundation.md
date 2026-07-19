@@ -10,15 +10,15 @@ Cornerstone's role is to validate the platform in a real church environment befo
 
 ## Initial tenant configuration
 
-| Field | Value |
-|-------|-------|
-| Name | Cornerstone Church |
-| Slug | `cornerstone-akron` |
+| Field                | Value                                  |
+| -------------------- | -------------------------------------- |
+| Name                 | Cornerstone Church                     |
+| Slug                 | `cornerstone-akron`                    |
 | Tenant ID (dev seed) | `11111111-1111-1111-1111-111111111111` |
-| Status | pilot |
-| Timezone | America/New_York |
-| Currency | USD |
-| Location | Akron, Ohio |
+| Status               | pilot                                  |
+| Timezone             | America/New_York                       |
+| Currency             | USD                                    |
+| Location             | Akron, Ohio                            |
 
 > **Note**: The fixed UUID above is for local development seed data only. Production Cornerstone will receive a randomly generated UUID on first creation.
 
@@ -26,14 +26,14 @@ Cornerstone's role is to validate the platform in a real church environment befo
 
 ## Initial campus placeholder
 
-| Field | Value |
-|-------|-------|
-| Name | Cornerstone Main Campus |
-| Slug | `main` |
+| Field                | Value                                  |
+| -------------------- | -------------------------------------- |
+| Name                 | Cornerstone Main Campus                |
+| Slug                 | `main`                                 |
 | Campus ID (dev seed) | `cc111111-1111-1111-1111-111111111111` |
-| Status | active |
-| Timezone | America/New_York |
-| City | Akron, OH |
+| Status               | active                                 |
+| Timezone             | America/New_York                       |
+| City                 | Akron, OH                              |
 
 This is a placeholder campus for seed data. Real address and service schedule data will be imported during the onboarding process.
 

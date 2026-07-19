@@ -111,7 +111,9 @@ describe('createPerson', () => {
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: insertedPerson, error: null }),
     };
-    vi.mocked(createServiceClient).mockReturnValue(serviceClientMock as unknown as ReturnType<typeof createServiceClient>);
+    vi.mocked(createServiceClient).mockReturnValue(
+      serviceClientMock as unknown as ReturnType<typeof createServiceClient>,
+    );
 
     const result = await createPerson(
       { db: mockDb, userId: 'admin-user', tenantId: 'tenant-1' },
@@ -132,7 +134,9 @@ describe('createPerson', () => {
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: insertedPerson, error: null }),
     };
-    vi.mocked(createServiceClient).mockReturnValue(serviceClientMock as unknown as ReturnType<typeof createServiceClient>);
+    vi.mocked(createServiceClient).mockReturnValue(
+      serviceClientMock as unknown as ReturnType<typeof createServiceClient>,
+    );
 
     const result = await createPerson(
       { db: mockDb, userId: 'campus-admin', tenantId: 'tenant-1' },

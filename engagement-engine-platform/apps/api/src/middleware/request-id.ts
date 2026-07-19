@@ -12,8 +12,7 @@ const REQUEST_ID_HEADER = 'X-Request-ID';
  */
 export async function requestIdMiddleware(c: Context, next: Next) {
   const incoming = c.req.header(REQUEST_ID_HEADER);
-  const requestId =
-    incoming && /^[\w\-]{1,128}$/.test(incoming) ? incoming : randomUUID();
+  const requestId = incoming && /^[\w\-]{1,128}$/.test(incoming) ? incoming : randomUUID();
 
   c.set('requestId', requestId);
   c.header(REQUEST_ID_HEADER, requestId);

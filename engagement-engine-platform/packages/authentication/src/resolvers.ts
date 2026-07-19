@@ -1,8 +1,5 @@
 import type { SupabaseClient, User } from '@supabase/supabase-js';
-import {
-  AuthenticationRequiredError,
-  TenantMembershipRequiredError,
-} from '@ee/domain';
+import { AuthenticationRequiredError, TenantMembershipRequiredError } from '@ee/domain';
 import type { TenantMembership } from '@ee/domain';
 
 export async function requireUser(client: SupabaseClient): Promise<User> {

@@ -59,8 +59,9 @@ insert into auth.users (
   false, now(), now(), '', ''
 ) on conflict (id) do nothing;
 
-insert into auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+insert into auth.identities (provider_id, id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
 values (
+  'aa000001-0000-0000-0000-000000000001',
   'aa000001-0000-0000-0000-000000000001'::uuid,
   'aa000001-0000-0000-0000-000000000001'::uuid,
   '{"sub":"aa000001-0000-0000-0000-000000000001","email":"cs.admin@example.invalid"}',
@@ -85,8 +86,9 @@ insert into auth.users (
   false, now(), now(), '', ''
 ) on conflict (id) do nothing;
 
-insert into auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+insert into auth.identities (provider_id, id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
 values (
+  'aa000002-0000-0000-0000-000000000002',
   'aa000002-0000-0000-0000-000000000002'::uuid,
   'aa000002-0000-0000-0000-000000000002'::uuid,
   '{"sub":"aa000002-0000-0000-0000-000000000002","email":"cs.member@example.invalid"}',
@@ -111,8 +113,9 @@ insert into auth.users (
   false, now(), now(), '', ''
 ) on conflict (id) do nothing;
 
-insert into auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+insert into auth.identities (provider_id, id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
 values (
+  'aa000003-0000-0000-0000-000000000003',
   'aa000003-0000-0000-0000-000000000003'::uuid,
   'aa000003-0000-0000-0000-000000000003'::uuid,
   '{"sub":"aa000003-0000-0000-0000-000000000003","email":"cs.campus-a-admin@example.invalid"}',
@@ -137,8 +140,9 @@ insert into auth.users (
   false, now(), now(), '', ''
 ) on conflict (id) do nothing;
 
-insert into auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+insert into auth.identities (provider_id, id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
 values (
+  'aa000004-0000-0000-0000-000000000004',
   'aa000004-0000-0000-0000-000000000004'::uuid,
   'aa000004-0000-0000-0000-000000000004'::uuid,
   '{"sub":"aa000004-0000-0000-0000-000000000004","email":"cs.campus-b-user@example.invalid"}',
@@ -163,8 +167,9 @@ insert into auth.users (
   false, now(), now(), '', ''
 ) on conflict (id) do nothing;
 
-insert into auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+insert into auth.identities (provider_id, id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
 values (
+  'aa000005-0000-0000-0000-000000000005',
   'aa000005-0000-0000-0000-000000000005'::uuid,
   'aa000005-0000-0000-0000-000000000005'::uuid,
   '{"sub":"aa000005-0000-0000-0000-000000000005","email":"cs.ministry-leader@example.invalid"}',
@@ -189,8 +194,9 @@ insert into auth.users (
   false, now(), now(), '', ''
 ) on conflict (id) do nothing;
 
-insert into auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+insert into auth.identities (provider_id, id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
 values (
+  'aa000006-0000-0000-0000-000000000006',
   'aa000006-0000-0000-0000-000000000006'::uuid,
   'aa000006-0000-0000-0000-000000000006'::uuid,
   '{"sub":"aa000006-0000-0000-0000-000000000006","email":"cs.suspended@example.invalid"}',
@@ -215,8 +221,9 @@ insert into auth.users (
   false, now(), now(), '', ''
 ) on conflict (id) do nothing;
 
-insert into auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+insert into auth.identities (provider_id, id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
 values (
+  'bb000001-0000-0000-0000-000000000001',
   'bb000001-0000-0000-0000-000000000001'::uuid,
   'bb000001-0000-0000-0000-000000000001'::uuid,
   '{"sub":"bb000001-0000-0000-0000-000000000001","email":"tc.admin@example.invalid"}',
@@ -241,8 +248,9 @@ insert into auth.users (
   false, now(), now(), '', ''
 ) on conflict (id) do nothing;
 
-insert into auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+insert into auth.identities (provider_id, id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
 values (
+  'bb000002-0000-0000-0000-000000000002',
   'bb000002-0000-0000-0000-000000000002'::uuid,
   'bb000002-0000-0000-0000-000000000002'::uuid,
   '{"sub":"bb000002-0000-0000-0000-000000000002","email":"tc.member@example.invalid"}',
@@ -267,8 +275,9 @@ insert into auth.users (
   false, now(), now(), '', ''
 ) on conflict (id) do nothing;
 
-insert into auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+insert into auth.identities (provider_id, id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
 values (
+  'cc000001-0000-0000-0000-000000000001',
   'cc000001-0000-0000-0000-000000000001'::uuid,
   'cc000001-0000-0000-0000-000000000001'::uuid,
   '{"sub":"cc000001-0000-0000-0000-000000000001","email":"platform.admin@example.invalid"}',
@@ -440,17 +449,17 @@ on conflict (user_id) do nothing;
 
 -- Cornerstone tenant_memberships
 insert into tenant_memberships (id, tenant_id, user_id, status, joined_at) values
-  ('tm100001-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111',
+  ('ab100001-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111',
    'aa000001-0000-0000-0000-000000000001', 'active', now()),
-  ('tm100002-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111',
+  ('ab100002-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111',
    'aa000002-0000-0000-0000-000000000002', 'active', now()),
-  ('tm100003-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111',
+  ('ab100003-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111',
    'aa000003-0000-0000-0000-000000000003', 'active', now()),
-  ('tm100004-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111',
+  ('ab100004-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111',
    'aa000004-0000-0000-0000-000000000004', 'active', now()),
-  ('tm100005-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111',
+  ('ab100005-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111',
    'aa000005-0000-0000-0000-000000000005', 'active', now()),
-  ('tm100006-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111',
+  ('ab100006-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111',
    'aa000006-0000-0000-0000-000000000006', 'suspended', now())
 on conflict (tenant_id, user_id) do nothing;
 
@@ -459,7 +468,7 @@ on conflict (tenant_id, user_id) do nothing;
 insert into role_assignments (tenant_id, membership_id, role_id, campus_id, ministry_id)
 values (
   '11111111-1111-1111-1111-111111111111',
-  'tm100001-0000-0000-0000-000000000001',
+  'ab100001-0000-0000-0000-000000000001',
   'ce111111-1111-1111-1111-111111111111',
   null, null
 ) on conflict do nothing;
@@ -468,7 +477,7 @@ values (
 insert into role_assignments (tenant_id, membership_id, role_id, campus_id, ministry_id)
 values (
   '11111111-1111-1111-1111-111111111111',
-  'tm100002-0000-0000-0000-000000000002',
+  'ab100002-0000-0000-0000-000000000002',
   'ce222222-2222-2222-2222-222222222222',
   null, null
 ) on conflict do nothing;
@@ -477,7 +486,7 @@ values (
 insert into role_assignments (tenant_id, membership_id, role_id, campus_id, ministry_id)
 values (
   '11111111-1111-1111-1111-111111111111',
-  'tm100003-0000-0000-0000-000000000003',
+  'ab100003-0000-0000-0000-000000000003',
   'ce333333-3333-3333-3333-333333333333',
   'cc111111-1111-1111-1111-111111111111',
   null
@@ -487,7 +496,7 @@ values (
 insert into role_assignments (tenant_id, membership_id, role_id, campus_id, ministry_id)
 values (
   '11111111-1111-1111-1111-111111111111',
-  'tm100004-0000-0000-0000-000000000004',
+  'ab100004-0000-0000-0000-000000000004',
   'ce333333-3333-3333-3333-333333333333',
   'cc222222-2222-2222-2222-222222222222',
   null
@@ -497,7 +506,7 @@ values (
 insert into role_assignments (tenant_id, membership_id, role_id, campus_id, ministry_id)
 values (
   '11111111-1111-1111-1111-111111111111',
-  'tm100005-0000-0000-0000-000000000005',
+  'ab100005-0000-0000-0000-000000000005',
   'ce333333-3333-3333-3333-333333333333',
   null,
   'cd222222-2222-2222-2222-222222222222'
@@ -507,7 +516,7 @@ values (
 insert into role_assignments (tenant_id, membership_id, role_id, campus_id, ministry_id)
 values (
   '11111111-1111-1111-1111-111111111111',
-  'tm100006-0000-0000-0000-000000000006',
+  'ab100006-0000-0000-0000-000000000006',
   'ce222222-2222-2222-2222-222222222222',
   null, null
 ) on conflict do nothing;
@@ -601,19 +610,19 @@ values
 on conflict (user_id) do nothing;
 
 insert into tenant_memberships (id, tenant_id, user_id, status, joined_at) values
-  ('tm200001-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222',
+  ('ab200001-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222',
    'bb000001-0000-0000-0000-000000000001', 'active', now()),
-  ('tm200002-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222',
+  ('ab200002-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222',
    'bb000002-0000-0000-0000-000000000002', 'active', now())
 on conflict (tenant_id, user_id) do nothing;
 
 insert into role_assignments (tenant_id, membership_id, role_id, campus_id, ministry_id)
 values
   ('22222222-2222-2222-2222-222222222222',
-   'tm200001-0000-0000-0000-000000000001', 'de111111-1111-1111-1111-111111111111',
+   'ab200001-0000-0000-0000-000000000001', 'de111111-1111-1111-1111-111111111111',
    null, null),
   ('22222222-2222-2222-2222-222222222222',
-   'tm200002-0000-0000-0000-000000000002', 'de222222-2222-2222-2222-222222222222',
+   'ab200002-0000-0000-0000-000000000002', 'de222222-2222-2222-2222-222222222222',
    null, null)
 on conflict do nothing;
 

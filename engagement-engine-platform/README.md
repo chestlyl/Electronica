@@ -87,25 +87,25 @@ See [`docs/setup/local-development.md`](docs/setup/local-development.md) for com
 
 ## Development commands
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start all apps in parallel |
-| `pnpm build` | Build all apps and packages |
-| `pnpm typecheck` | TypeScript type-check all |
-| `pnpm lint` | Lint all |
-| `pnpm format` | Format all with Prettier |
-| `pnpm test` | Run all unit tests |
+| Command          | Description                 |
+| ---------------- | --------------------------- |
+| `pnpm dev`       | Start all apps in parallel  |
+| `pnpm build`     | Build all apps and packages |
+| `pnpm typecheck` | TypeScript type-check all   |
+| `pnpm lint`      | Lint all                    |
+| `pnpm format`    | Format all with Prettier    |
+| `pnpm test`      | Run all unit tests          |
 
 ---
 
 ## Supabase commands
 
-| Command | Description |
-|---------|-------------|
-| `supabase start` | Start local Supabase stack |
+| Command             | Description                             |
+| ------------------- | --------------------------------------- |
+| `supabase start`    | Start local Supabase stack              |
 | `supabase db reset` | Reset database and apply all migrations |
-| `supabase test db` | Run pgTAP database tests |
-| `supabase stop` | Stop local Supabase stack |
+| `supabase test db`  | Run pgTAP database tests                |
+| `supabase stop`     | Stop local Supabase stack               |
 
 ---
 

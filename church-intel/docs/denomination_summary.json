@@ -1,0 +1,2637 @@
+{
+  "title": "Connected Churches — Denomination Summary",
+  "generated_at": "2026-07-19T04:02:53.839Z",
+  "denomination_summaries": {
+    "Assembly of God": {
+      "denomination": "Assembly of God",
+      "website": "https://ag.org",
+      "total_churches": 12986,
+      "total_attendance": 1993370,
+      "churches_over_500": 865,
+      "headquarters": "Springfield, MO",
+      "multisite_churches": 186,
+      "annual_conference": "July 31-Aug 4, 2023 — Columbus, OH",
+      "conference_url": "https://generalcouncil.ag.org",
+      "notes": [
+        "The largest church has ~46,000 attendees",
+        "The 100th largest church has ~1,900 attendees",
+        "Top 100 Churches account for ~460,000 people",
+        "Over 300 Women Lead/Co-Lead Pastors",
+        "9 churches have campuses in other countries"
+      ],
+      "attendance_breakdown": []
+    },
+    "Foursquare": {
+      "denomination": "Foursquare",
+      "website": "https://www.foursquare.org",
+      "total_churches": 1510,
+      "churches_over_500": 5,
+      "headquarters": "Los Angeles, CA (decentralized)",
+      "annual_conference": "May 29-June 1, 2023 — Anaheim, CA (100th year as a denomination)",
+      "conference_url": "https://www.foursquare.org/connection/",
+      "attendance_breakdown": [
+        {
+          "attendance_range": "Less than 100",
+          "churches": 708,
+          "pct_of_churches": 46
+        },
+        {
+          "attendance_range": "100-499",
+          "churches": 319,
+          "pct_of_churches": 21
+        },
+        {
+          "attendance_range": "500-999",
+          "churches": 37,
+          "pct_of_churches": 2
+        },
+        {
+          "attendance_range": "1,000-2,999",
+          "churches": 33,
+          "pct_of_churches": 2
+        },
+        {
+          "attendance_range": "3,000-4,999",
+          "churches": 16,
+          "pct_of_churches": 1
+        },
+        {
+          "attendance_range": "5,000+",
+          "churches": 0,
+          "pct_of_churches": null
+        },
+        {
+          "attendance_range": "Unknown",
+          "churches": 397,
+          "pct_of_churches": 26
+        }
+      ]
+    },
+    "Southern Baptist": {
+      "denomination": "Southern Baptist Convention (SBC)",
+      "website": "https://www.sbc.net",
+      "total_churches": 47290,
+      "churches_over_500": 1490,
+      "headquarters": "Nashville, TN (decentralized)",
+      "annual_conference": "June 13-14, 2023 — New Orleans, LA",
+      "upcoming_conferences": [
+        "June 11-12, 2024 — Indianapolis, IN",
+        "June 10-11, 2025 — Dallas, TX",
+        "June 9-10, 2026 — Orlando, FL",
+        "June 8-9, 2027 — Salt Lake City, UT",
+        "June 13-14, 2028 — Indianapolis, IN"
+      ],
+      "conference_url": "https://sbcannualmeeting.net/future-locations/",
+      "notes": [
+        "10% of SBC Pastors are at churches 250+, accounting for ~4,200 churches (8% of total)"
+      ],
+      "attendance_breakdown": [
+        {
+          "attendance_range": "1-49",
+          "churches": 18000,
+          "pct_of_churches": 37.7
+        },
+        {
+          "attendance_range": "50-99",
+          "churches": 13000,
+          "pct_of_churches": 28.7
+        },
+        {
+          "attendance_range": "100-249",
+          "churches": 12000,
+          "pct_of_churches": 22.3
+        },
+        {
+          "attendance_range": "250-499",
+          "churches": 2800,
+          "pct_of_churches": 7.1
+        },
+        {
+          "attendance_range": "500-999",
+          "churches": 1000,
+          "pct_of_churches": 2.7
+        },
+        {
+          "attendance_range": "1,000+",
+          "churches": 490,
+          "pct_of_churches": 1.6
+        }
+      ]
+    },
+    "ECO": {
+      "denomination": "ECO: A Covenant Order of Evangelical Presbyterians",
+      "website": "https://eco-pres.org",
+      "total_churches": 401,
+      "total_senior_leadership": 450,
+      "total_staff": 3026,
+      "churches_with_20_plus_staff": 26,
+      "states": 39,
+      "headquarters": "Santa Barbara, CA (decentralized)",
+      "annual_conference": "Jan 30-Feb 1, 2023 — Newport Beach, CA",
+      "conference_url": "https://www.econationalgathering.org",
+      "notes": [
+        "Data from September 2019",
+        "John Ortberg was once affiliated"
+      ]
+    },
+    "Vineyard": {
+      "denomination": "Vineyard USA",
+      "website": "https://vineyardusa.org",
+      "total_churches": 572,
+      "data_as_of": "End of 2020 (2020-2021 annual report)",
+      "headquarters": null,
+      "annual_conference": "August 2023 — Estes Park, CO",
+      "conference_url": "https://vineyardusa.org/events/",
+      "attendance_breakdown": [
+        {
+          "attendance_range": "Up to 50 attendees",
+          "pct_of_churches": 0.29,
+          "pct_of_attendance": 0.74
+        },
+        {
+          "attendance_range": "51-100 attendees",
+          "pct_of_churches": 0.23,
+          "pct_of_attendance": 0.12
+        },
+        {
+          "attendance_range": "101-200 attendees",
+          "pct_of_churches": 0.21,
+          "pct_of_attendance": 0.06
+        },
+        {
+          "attendance_range": "201-400 attendees",
+          "pct_of_churches": 0.14,
+          "pct_of_attendance": 0.04
+        },
+        {
+          "attendance_range": "401-1000 attendees",
+          "pct_of_churches": 0.08,
+          "pct_of_attendance": 0.03
+        },
+        {
+          "attendance_range": "1001+ attendees",
+          "pct_of_churches": 0.05,
+          "pct_of_attendance": 0.01
+        }
+      ],
+      "racial_composition": [
+        "White: 74%",
+        "Hispanic/Latino: 12%",
+        "Black/African American: 6%",
+        "Multiethnic: 4%",
+        "Asian/Asian American/South Asian: 3%",
+        "Native American/Pacific Islander: 1%"
+      ]
+    },
+    "ARC Network": {
+      "denomination": "Association of Related Churches (ARC)",
+      "website": "https://www.arcchurches.com",
+      "headquarters": "Birmingham, AL",
+      "annual_conference": "Usually April — Birmingham, AL (and worldwide)",
+      "conference_url": "https://brushfire.com/arc/arc-conference-2023/532139",
+      "notes": [
+        "Church planting network; attendance/church count not listed in source data"
+      ]
+    },
+    "Covenant": {
+      "denomination": "Evangelical Covenant Church",
+      "website": "https://covchurch.org",
+      "total_churches": 821,
+      "headquarters": "Chicago, IL",
+      "annual_conference": "Usually January — Jacksonville, FL",
+      "conference_url": "https://covchurch.org/midwinter/"
+    },
+    "EV Free": {
+      "denomination": "Evangelical Free Church of America (EFCA)",
+      "website": "https://www.efca.org",
+      "total_churches": 1600,
+      "headquarters": "Minneapolis, MN",
+      "annual_conference": "June 20-23, 2023 — Fullerton Free Church, Fullerton, CA",
+      "conference_url": "https://efcaone.com"
+    },
+    "Open Bible": {
+      "denomination": "Open Bible Churches",
+      "website": "https://www.openbible.org",
+      "total_churches": 300,
+      "headquarters": "Des Moines, IA",
+      "annual_conference": "Every other year"
+    },
+    "Nazarene": {
+      "denomination": "Church of the Nazarene",
+      "website": "https://nazarene.org",
+      "total_churches": 5100,
+      "total_districts": 78,
+      "headquarters": "Lenexa, KS",
+      "annual_conference": "June 9-13, 2023 — Indianapolis, IN",
+      "conference_url": "https://ga2023.nazarene.org"
+    },
+    "Christian Missionary Alliance": {
+      "denomination": "Christian & Missionary Alliance (CMA)",
+      "website": "https://cmalliance.org",
+      "total_churches_usa": 2158,
+      "global_countries": 80,
+      "global_churches": 24500,
+      "headquarters": "Reynoldsburg, OH",
+      "annual_conference": "Jan 8-12, 2023 — Columbus, OH",
+      "conference_url": "https://cmalliance.org/converge/"
+    }
+  },
+  "all_denominations_overview": [
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anglicanism – 110 million people 29 Denominations",
+      "Denomination": "Anglican Church in North America – 0.13 million",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anglicanism – 110 million people 29 Denominations",
+      "Denomination": "Anglican Church of Canada – 0.4 million",
+      "Website": "http://www.anglican.ca",
+      "Count": 1,
+      "Offices": 39,
+      "Description": "Dioceses",
+      "Churches": 230,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anglicanism – 110 million people 29 Denominations",
+      "Denomination": "Anglican Communion of North America",
+      "Website": "www.theacna.org",
+      "Count": 1,
+      "Location": "Ambridge, PA",
+      "Churches": 735,
+      "Membership": 100000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anglicanism – 110 million people 29 Denominations",
+      "Denomination": "Church in the Province of the West Indies – 0.8 million",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anglicanism – 110 million people 29 Denominations",
+      "Denomination": "Episcopal Church in the United States – 1.7 million",
+      "Website": "www.episcopalchurch.org",
+      "Count": 1,
+      "Location": "New York, NY",
+      "Churches": 7095,
+      "Membership": 2154572,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anglicanism – 110 million people 29 Denominations",
+      "Denomination": "Evangelical Anglican Church in America",
+      "Website": "www.eaca.org",
+      "Count": 1,
+      "Location": "Albuquerque, NM",
+      "Membership": 5000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anglicanism – 110 million people 29 Denominations",
+      "Denomination": "International Communion of the Charismatic Episcopal Church",
+      "Website": "www.iccec.org",
+      "Count": 1,
+      "Location": "Malverne, NY",
+      "Churches": 117,
+      "Membership": "Unknown",
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anglicanism – 110 million people 29 Denominations",
+      "Denomination": "Reformed Episcopal Church",
+      "Website": "www.rechurch.org",
+      "Count": 1,
+      "Location": "Blue Bell, PA",
+      "Churches": 152,
+      "Membership": 10000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anglicanism – 110 million people 29 Denominations",
+      "Denomination": "Traditional Anglican Communion – 0.4 million",
+      "Website": "http://traditionalanglicanchurch.com",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Alliance of Baptist Churches",
+      "Website": "www.allianceofbaptists.org",
+      "Count": 1,
+      "Location": "Washington, DC",
+      "Churches": 127,
+      "Membership": 65000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "American Baptist Association",
+      "Website": "www.abaptist.org",
+      "Count": 1,
+      "Location": "Texarkana, TX",
+      "Churches": 1867,
+      "Membership": 280987,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "American Baptist Churches USA – 1.2 million",
+      "Website": "https://www.abc-usa.org",
+      "Count": 1,
+      "Location": "King of Prussia, PA",
+      "Churches": 558,
+      "Membership": 1358351,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Association of Reformed Baptist Churches of America",
+      "Website": "www.arbca.org",
+      "Count": 1,
+      "Location": "Carlisle, PA",
+      "Churches": 69,
+      "Membership": "N/A",
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Baptist Bible Fellowship International – 1.2 million",
+      "Website": "https://www.bbfi.org",
+      "Count": 1,
+      "Location": "Springfield, MO",
+      "Churches": 3294,
+      "Membership": 525165,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Baptist General Association of Virginia – 0.6 million",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Baptist General Convention of Texas – 1.7 million",
+      "Website": "www.bgct.org",
+      "Count": 1,
+      "Location": "Dallas, TX",
+      "Churches": 5700,
+      "Membership": 2372733,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Baptist Missionary Association of America",
+      "Website": "www.bmaam.org",
+      "Count": 1,
+      "Location": "Little Rock, AR",
+      "Churches": 1306,
+      "Membership": 177463,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Brazilian Baptist Convention – 1.8 million",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Caribbean Baptist Fellowship",
+      "Website": "http://caribbeanbaptistfellowship.com",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Conservative Baptist Association of America – 0.2 million (NOW Venture)",
+      "Website": "https://venturechurches.org",
+      "Count": 1,
+      "Location": "Goodyear, AZ",
+      "Churches": 752,
+      "Membership": 200000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Converge – 0.2 million",
+      "Website": "https://converge.org",
+      "Count": 1,
+      "Location": "Orlando, FL",
+      "Churches": 1312,
+      "Membership": 140494,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Cooperative Baptist Fellowship – 0.8 million",
+      "Website": "https://cbf.net",
+      "Count": 1,
+      "Location": "Decatur, GA",
+      "Churches": 1800,
+      "Membership": "N/A",
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Duck River and Kindred Association",
+      "Website": "www.duckriverbaptistassociation.org",
+      "Count": 1,
+      "Location": "Tullahoma, TN",
+      "Churches": 99,
+      "Membership": 10188,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "General Association of General Baptists",
+      "Website": "www.generalbaptist.com",
+      "Count": 1,
+      "Location": "Poplar Bluff, MO",
+      "Churches": 698,
+      "Membership": 61500,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "General Association of Regular Baptist Churches",
+      "Website": "www.garbc.org",
+      "Count": 1,
+      "Location": "Schaumburg, IL",
+      "Churches": 1274,
+      "Membership": 157728,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Independent Baptist Fellowship International",
+      "Website": "www.ibfi-nbbi.org",
+      "Count": 1,
+      "Location": "Fort Worth, TX",
+      "Churches": "N/A",
+      "Membership": "N/A",
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Interstate and Foreign Landmark Missionary Baptist Association",
+      "Count": 1,
+      "Churches": 135,
+      "Membership": 14225,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Lott Carey Foreign Mission Convention – 1.1 million",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "National Association of Free Will Baptists – 0.2 million",
+      "Website": "www.nafwb.org",
+      "Count": 1,
+      "Location": "Antioch, TN",
+      "Churches": 2369,
+      "Membership": 185798,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "National Baptist Convention (Brazil) – 0.4 million",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "National Baptist Convention of America, Inc. – 3.1 million",
+      "Website": "https://nbcainc.com",
+      "Count": 1,
+      "Location": "Louisville, KY"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "National Baptist Convention, USA, Inc. – 8.4 million",
+      "Website": "https://www.nationalbaptist.com",
+      "Count": 1,
+      "Location": "Nashville, TN",
+      "Churches": 9000,
+      "Membership": 5000000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "National Missionary Baptist Convention of America – 3.1 million",
+      "Website": "https://www.nmbca.org",
+      "Count": 1,
+      "Location": "Dallas, TX",
+      "Churches": "N/A",
+      "Membership": 2000000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "National Primitive Baptist Convention of the U.S.A. – 1.0 million",
+      "Website": "http://www.npbcconvention.org",
+      "Count": 1,
+      "Location": "Miami, FL",
+      "Churches": 547,
+      "Membership": 53630,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "North American Baptist Conference",
+      "Website": "www.nabconference.org",
+      "Count": 1,
+      "Location": "Oakbrook Terrace, IL",
+      "Churches": 416,
+      "Membership": 64000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Old Regular Baptist Churches",
+      "Website": "www.pages.suddenlink.net/orb/orb/index.htm",
+      "Count": 1,
+      "Location": "No Headquarters",
+      "Churches": 326,
+      "Membership": 15218,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Original Freewill Baptist Convention",
+      "Website": "www.ofwb.org",
+      "Count": 1,
+      "Location": "Ayden, NC",
+      "Churches": 250,
+      "Membership": 40000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Primitive Baptists",
+      "Website": "www.primitivebaptist.org",
+      "Count": 1,
+      "Location": "No Headquarters",
+      "Churches": 1643,
+      "Membership": 49227,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Progressive National Baptist Convention – 1.5 million",
+      "Website": "https://www.pnbc.org",
+      "Count": 1,
+      "Location": "Washington, DC",
+      "Churches": 1800,
+      "Membership": 2500000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Seventh Day Baptists – 0.05 million",
+      "Website": "www.seventhdaybaptist.org",
+      "Count": 1,
+      "Location": "Janesville, WI",
+      "Churches": 96,
+      "Membership": 6200,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Southwide Baptist Fellowship",
+      "Website": "www.wayoflife.org",
+      "Count": 1,
+      "Location": "Pensacola, FL",
+      "Churches": 500,
+      "Membership": "100,00",
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Southern Baptist Convention – 13.7 million",
+      "Website": "http://sbc.net",
+      "Count": 1,
+      "Location": "Nashville, TN",
+      "we have": 53,
+      "Offices": 40,
+      "Description": "multiple names",
+      "Churches": 44696,
+      "Membership": 16266920,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Sovereign Grace Baptists",
+      "Website": "www.sovgrace.net",
+      "Count": 1,
+      "Location": "No headquarters",
+      "Churches": "N/A",
+      "Membership": 5000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Separate Baptists in Christ",
+      "Website": "www.separatebaptist.org",
+      "Count": 1,
+      "Location": "Mooresville, IN",
+      "Churches": 94,
+      "Membership": 8716,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "Union Baptists of Latin America",
+      "Website": "https://www.unionbetweenchristians.com/2020/12/union-of-baptists-in-latin-america-2020.html",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "United American Free Will Baptist Church",
+      "Website": "www.uafwbc.org",
+      "Count": 1,
+      "Location": "Lakeland, FL",
+      "Churches": 816,
+      "Membership": 50000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Baptist churches – 100 million 38 Denomintions",
+      "Denomination": "World Baptist Fellowship",
+      "Website": "www.wbfi.net",
+      "Count": 1,
+      "Location": "Arlington, TX",
+      "Churches": 998,
+      "Membership": "N/A",
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Denomination": "Brethren in Christ Church",
+      "Website": "www.bic-church.org",
+      "Count": 1,
+      "Location": "Grantham, PA",
+      "Churches": 232,
+      "Membership": 20739,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Denomination": "Church of the Brethren",
+      "Website": "www.brethren.org",
+      "Count": 1,
+      "Location": "Elgin, IL",
+      "Churches": 1069,
+      "Membership": 134844,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Denomination": "Church of the United Brethren in Christ",
+      "Website": "www.ub.org",
+      "Count": 1,
+      "Location": "Huntington, IN",
+      "Churches": 217,
+      "Membership": 22740,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Denomination": "Evangelical Congregational Church",
+      "Website": "www.eccenter.com",
+      "Count": 1,
+      "Location": "Myerstown, PA",
+      "Churches": 150,
+      "Membership": 19337,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Denomination": "Evangelical Covenant Church",
+      "Website": "www.covchurch.org",
+      "Count": 1,
+      "Location": "Chicago, IL",
+      "we have": 17,
+      "Offices": 11,
+      "Description": "regions",
+      "Churches": 821,
+      "Membership": 107379,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Denomination": "Fellowship of Grace Brethren Churches",
+      "Website": "www.fgbc.org",
+      "Count": 1,
+      "Location": "Winona Lake, IN",
+      "Churches": 260,
+      "Membership": 30371,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Denomination": "Old German Baptist Brethren",
+      "Website": "www.cob-net.org",
+      "Count": 1,
+      "Location": "Englewood, OH",
+      "Churches": 56,
+      "Membership": 6299,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Denomination": "Schwenkfelder Church",
+      "Website": "www.schwenkfelder.org",
+      "Count": 1,
+      "Location": "Pennsburg, PA",
+      "Churches": 6,
+      "Membership": 2800,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Denomination": "Brethren Church (Ashland)",
+      "Website": "www.brethrenchurch.org",
+      "Count": 1,
+      "Location": "Ashland, OH",
+      "Churches": 117,
+      "Membership": 10287,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Lutheranism – 70–90 million 35 Denominations",
+      "Denomination": "American Association of Lutheran Churches",
+      "Website": "www.taalc.org",
+      "Count": 1,
+      "Location": "Fort Wyane, IN",
+      "Churches": 70,
+      "Membership": 16000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Lutheranism – 70–90 million 35 Denominations",
+      "Denomination": "Apostolic Lutheran Church of America",
+      "Website": "www.apostoliclutheran.org",
+      "Count": 1,
+      "Location": "New Ipswich, NH",
+      "Churches": 60,
+      "Membership": 90000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Lutheranism – 70–90 million 35 Denominations",
+      "Denomination": "Association of Free Lutheran Congregations",
+      "Website": "www.aflc.org",
+      "Count": 1,
+      "Location": "Minneapolis, MN",
+      "Churches": 276,
+      "Membership": 44000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Lutheranism – 70–90 million 35 Denominations",
+      "Denomination": "Church of the Lutheran Brethren of America",
+      "Website": "www.clba.org",
+      "Count": 1,
+      "Location": "Fergus Falls, MN",
+      "Churches": 110,
+      "Membership": 14427,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Lutheranism – 70–90 million 35 Denominations",
+      "Denomination": "Church of the Lutheran Confession",
+      "Website": "www.clclutheran.org",
+      "Count": 1,
+      "Location": "Eau Claire, WI",
+      "Churches": 87,
+      "Membership": 8390,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Lutheranism – 70–90 million 35 Denominations",
+      "Denomination": "Evangelical Church of the Lutheran Confession in Brazil – 0.5 million",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Lutheranism – 70–90 million 35 Denominations",
+      "Denomination": "Evangelical Free Church of America – 0.4 million",
+      "Website": "www.efca.org",
+      "Count": 1,
+      "Location": "Minneapolis, MN",
+      "we have": 19,
+      "Offices": 17,
+      "Description": "districts",
+      "Churches": 1273,
+      "Membership": 336000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Lutheranism – 70–90 million 35 Denominations",
+      "Denomination": "Evangelical Lutheran Church in America – 3.1 million",
+      "Website": "www.elca.org",
+      "Count": 1,
+      "Location": "Chicago, IL",
+      "Churches": 10448,
+      "Membership": 4709956,
+      "Source": "Handbook of Denom's",
+      "Notes": "https://locator.lcms.org/district"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Lutheranism – 70–90 million 35 Denominations",
+      "Denomination": "Evangelical Lutheran Church of Brazil – 0.2 million",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Lutheranism – 70–90 million 35 Denominations",
+      "Denomination": "Evangelical Lutheran Synod",
+      "Website": "www.evangelicallutheransynod.org",
+      "Count": 1,
+      "Location": "Mankato, MN",
+      "Churches": 131,
+      "Membership": 19945,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Lutheranism – 70–90 million 35 Denominations",
+      "Denomination": "Latvian Evangelical Lutheran Church in America",
+      "Website": "www.dcdraudze.org",
+      "Count": 1,
+      "Location": "Kalamazoo, MI",
+      "Churches": 60,
+      "Membership": 12010,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Lutheranism – 70–90 million 35 Denominations",
+      "Denomination": "Lutheran Church–Missouri Synod – 1.8 million",
+      "Website": "http://www.lcms.org",
+      "Count": 1,
+      "Location": "St Louis, MO",
+      "Offices": 35,
+      "Churches": 6075,
+      "Membership": 2383084,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Lutheranism – 70–90 million 35 Denominations",
+      "Denomination": "Lutheran Congregations in Mission for Christ – 0.3 million",
+      "Website": "https://www.lcmc.net",
+      "Count": 1,
+      "Location": "Canton, MI"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Lutheranism – 70–90 million 35 Denominations",
+      "Denomination": "Wisconsin Evangelical Lutheran Synod – 0.3 million",
+      "Website": "https://www.wels.net",
+      "Count": 1,
+      "Location": "Waukesha, WI",
+      "Offices": 13,
+      "Churches": 1264,
+      "Membership": 394241,
+      "Source": "Handbook of Denom's",
+      "Notes": "https://wels.net/about-wels/history/numbers/"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Presbyterianism – 40 million (Calvinism 60-80 million)",
+      "Denomination": "American Waldensian Society",
+      "Website": "www.waldensian.org",
+      "Count": 1,
+      "Location": "Valdese, NC",
+      "Membership": 5000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Presbyterianism – 40 million (Calvinism 60-80 million)",
+      "Denomination": "Associate Reformed Presbyterian Church",
+      "Website": "www.arpsynod.org",
+      "Count": 1,
+      "Location": "Greenville, SC",
+      "Churches": 270,
+      "Membership": 35206,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Presbyterianism – 40 million (Calvinism 60-80 million)",
+      "Denomination": "Conservative Congregational Christian Conference",
+      "Website": "www.ccccusa.org",
+      "Count": 1,
+      "Location": "Lake Elmo, MN",
+      "Churches": 284,
+      "Membership": 41772,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Presbyterianism – 40 million (Calvinism 60-80 million)",
+      "Denomination": "Cumberland Presbyterian Church in America",
+      "Website": "www.cumberland.org/cpca",
+      "Count": 1,
+      "Location": "Huntsville, AL",
+      "Churches": 152,
+      "Membership": 15142,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Presbyterianism – 40 million (Calvinism 60-80 million)",
+      "Denomination": "ECO (recent split from PCUSA)",
+      "Website": "https://eco-pres.org",
+      "Count": 1,
+      "Location": "Santa Barbara, CA",
+      "we have": 28,
+      "Offices": 22,
+      "Description": "presbytery's",
+      "Churches": 401,
+      "Membership": "N/A",
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Presbyterianism – 40 million (Calvinism 60-80 million)",
+      "Denomination": "Evangelical Association of Reformed and Congregational Churches",
+      "Website": "www.evangelicalassociation.org",
+      "Count": 1,
+      "Location": "Lacey Spring, VA",
+      "Churches": 75,
+      "Membership": "N/A",
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Presbyterianism – 40 million (Calvinism 60-80 million)",
+      "Denomination": "Evangelical Presbyterian Church",
+      "Website": "www.epc.org",
+      "Count": 1,
+      "Location": "Livonia, MI",
+      "Churches": 207,
+      "Membership": 89190,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Presbyterianism – 40 million (Calvinism 60-80 million)",
+      "Denomination": "Korean Presbyterian Church in America",
+      "Website": "www.kapc.org",
+      "Count": 1,
+      "Location": "Los Angeles, CA",
+      "Churches": 300,
+      "Membership": 55100,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Presbyterianism – 40 million (Calvinism 60-80 million)",
+      "Denomination": "National Association of Congregational Christian Churches",
+      "Website": "www.naccc.org",
+      "Count": 1,
+      "Location": "Oak Creek, WI",
+      "Churches": 432,
+      "Membership": 70000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Presbyterianism – 40 million (Calvinism 60-80 million)",
+      "Denomination": "National Presbyterian Church in Mexico – 2.8 million",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Presbyterianism – 40 million (Calvinism 60-80 million)",
+      "Denomination": "Netherlands Reformed Congregations in North America",
+      "Website": "www.nrcrws.org",
+      "Count": 1,
+      "Location": "Grand Rapids, MI",
+      "Churches": 17,
+      "Membership": 5000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Presbyterianism – 40 million (Calvinism 60-80 million)",
+      "Denomination": "Orthodox Presbyterian Church",
+      "Website": "www.opc.org",
+      "Count": 1,
+      "Location": "Willow Grove, PA",
+      "Churches": 320,
+      "Membership": 28780,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Presbyterianism – 40 million (Calvinism 60-80 million)",
+      "Denomination": "Presbyterian Church (USA) – 1.2 million",
+      "Website": "https://pcusa.org",
+      "Count": 1,
+      "Location": "Louisville, KY",
+      "Offices": 16,
+      "Churches": 10820,
+      "Membership": 2941412,
+      "Source": "Handbook of Denom's",
+      "Notes": "https://www.pcusa.org/site_media/media/uploads/oga/pdf/mid_council_listing_planningcal_201819.pdf"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Presbyterianism – 40 million (Calvinism 60-80 million)",
+      "Denomination": "Presbyterian Church in America – 0.4 million",
+      "Website": "https://pcanet.org",
+      "Count": 1,
+      "Location": "Lawrenceville, GA",
+      "Offices": 88,
+      "Churches": 1593,
+      "Membership": 340736,
+      "Source": "Numerous Sources"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Presbyterianism – 40 million (Calvinism 60-80 million)",
+      "Denomination": "Presbyterian Church of Brazil – 0.7 million",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Presbyterianism – 40 million (Calvinism 60-80 million)",
+      "Denomination": "Reformed Presbyterian Church of North America",
+      "Website": "www.reformedpresbyterian.org",
+      "Count": 1,
+      "Location": "Pittsburgh, PA",
+      "Churches": 80,
+      "Membership": 6347,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Presbyterianism – 40 million (Calvinism 60-80 million)",
+      "Denomination": "United Church of Canada – 0.4 million",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Christian and Restorationist Churches (Stone-Campbell Tradition)",
+      "Denomination": "Christian Church (Disciples of Christ)",
+      "Website": "www.disciples.org",
+      "Count": 1,
+      "Location": "Indianaplois, IN",
+      "Churches": 3731,
+      "Membership": 689507,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Christian and Restorationist Churches (Stone-Campbell Tradition)",
+      "Denomination": "Independent Christian Churches and Churches of Christ",
+      "Website": "www.christian-church.org",
+      "Count": 1,
+      "Location": "Rapid City, SD",
+      "Churches": 5471,
+      "Membership": 1439253,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Christian and Restorationist Churches (Stone-Campbell Tradition)",
+      "Denomination": "Christian Congregation, Inc.",
+      "Website": "812 West Hemlock Street",
+      "Count": 1,
+      "Location": "LaFollette, TN",
+      "Churches": 1496,
+      "Membership": 122181,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Christian and Restorationist Churches (Stone-Campbell Tradition)",
+      "Denomination": "Churches of Christ",
+      "Website": "www.church-of-christ.org",
+      "Count": 1,
+      "Location": "Kosciusko, MS",
+      "Churches": 13000,
+      "Membership": 1639495,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Christian and Restorationist Churches (Stone-Campbell Tradition)",
+      "Denomination": "International Churches of Christ",
+      "Website": "www.icoc.org",
+      "Count": 1,
+      "Location": "Los Angeles, CA",
+      "Churches": 99,
+      "Membership": 79161,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Continental Reformed churches – 30 million (Calvinism 60-80 million)",
+      "Denomination": "Protestant Reformed Churches in America",
+      "Website": "www.prca.org (unofficial)",
+      "Count": 1,
+      "Location": "Grandville, MI",
+      "Churches": 29,
+      "Membership": 7630,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Continental Reformed churches – 30 million (Calvinism 60-80 million)",
+      "Denomination": "Christian Reformed Church in North America – 0.2 million",
+      "Website": "www.crcna.org",
+      "Count": 1,
+      "Location": "Grand Rapids, MI",
+      "Churches": 781,
+      "Membership": 185665,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Continental Reformed churches – 30 million (Calvinism 60-80 million)",
+      "Denomination": "Reformed Church in America",
+      "Website": "www.rca.org",
+      "Count": 1,
+      "Location": "New York, NY",
+      "Churches": 891,
+      "Membership": 264863,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Congregationalism – 5 million (Calvinism 60-80 million)",
+      "Denomination": "United Church of Christ – 0.8 million",
+      "Website": "www.ucc.org",
+      "Count": 1,
+      "Location": "Cleveland, OH",
+      "Churches": 5377,
+      "Membership": 1145281,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Methodism – 60–80 million",
+      "Denomination": "African Methodist Episcopal Church – 2.5 million",
+      "Website": "https://www.ame-church.com",
+      "Count": 1,
+      "Location": "Nashville, TN",
+      "Offices": 17,
+      "Churches": 7130,
+      "Membership": 1857186,
+      "Source": "Handbook of Denom's",
+      "Notes": "churches in the USA"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Methodism – 60–80 million",
+      "Denomination": "African Methodist Episcopal Zion Church – 1.4 million",
+      "Website": "https://amez.org",
+      "Count": 1,
+      "Location": "Charlotte, NC",
+      "Churches": 3337,
+      "Membership": 14000000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Methodism – 60–80 million",
+      "Denomination": "Christian Methodist Episcopal Church – 0.9 million",
+      "Website": "https://thecmechurch.org",
+      "Count": 1,
+      "Location": "Jackson, TN",
+      "Churches": 3500,
+      "Membership": 850000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Methodism – 60–80 million",
+      "Denomination": "Church of the Nazarene – 2 million",
+      "Website": "https://nazarene.org",
+      "Count": 1,
+      "Location": "Lenexa, KS",
+      "we have": 79,
+      "Offices": 78,
+      "Description": "districts",
+      "Churches": 4689,
+      "Membership": 645048,
+      "Source": "Handbook of Denom's",
+      "Notes": "in the US"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Methodism – 60–80 million",
+      "Denomination": "Evangelical Church of North America",
+      "Website": "www.theevangelicalchurch.com",
+      "Count": 1,
+      "Location": "Minneapolis, MN",
+      "Churches": 135,
+      "Membership": 15011
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Methodism – 60–80 million",
+      "Denomination": "Evangelical Methodist Church",
+      "Website": "www.emchurch.org",
+      "Count": 1,
+      "Location": "Indianapolis, IN",
+      "Churches": 108,
+      "Membership": 7348
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Methodism – 60–80 million",
+      "Denomination": "Free Methodist Church – 0.9 million",
+      "Website": "http://fmcusa.org",
+      "Count": 1,
+      "Location": "Indianapolis, IN",
+      "Churches": 979,
+      "Membership": 71171,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Methodism – 60–80 million",
+      "Denomination": "Congregational Methodist Church",
+      "Website": "www.congregationalmethodist.org",
+      "Count": 1,
+      "Location": "Florence, MS",
+      "Churches": 187,
+      "Membership": 14738
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Methodism – 60–80 million",
+      "Denomination": "Global Methodist Church – Just formed in May of 2022",
+      "Website": "https://globalmethodist.org",
+      "Count": 1,
+      "Location": "Fredericksburg, VA"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Methodism – 60–80 million",
+      "Denomination": "Methodist Church in Brazil – 0.2 million",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Methodism – 60–80 million",
+      "Denomination": "Southern Methodist Church",
+      "Website": "www.southernmethodistchurch.org",
+      "Count": 1,
+      "Location": "Orangeburg, SC",
+      "Churches": 101,
+      "Membership": 6000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Methodism – 60–80 million",
+      "Denomination": "Salvation Army",
+      "Website": "www.salvationarmy.org",
+      "Count": 1,
+      "Location": "Alexandria, VA",
+      "Churches": 1263,
+      "Membership": 495659
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Methodism – 60–80 million",
+      "Denomination": "United Methodist Church – 12 million",
+      "Website": "https://www.umc.org",
+      "Count": 1,
+      "Offices": 5,
+      "Churches": 34398,
+      "Membership": 7931733,
+      "Source": "Handbook of Denom's",
+      "Notes": "In the US"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Methodism – 60–80 million",
+      "Denomination": "Wesleyan Church – 0.4 million",
+      "Website": "https://www.wesleyan.org",
+      "Count": 1,
+      "Location": "Fishers, IN",
+      "Offices": 24,
+      "Churches": 1626,
+      "Membership": 138164,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Holiness Churches",
+      "Denomination": "Churches of Christ in Christian Union",
+      "Website": "www.cccuhq.org",
+      "Count": 1,
+      "Location": "Circleville, OH",
+      "Churches": 227,
+      "Membership": 11164,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Holiness Churches",
+      "Denomination": "Churches of God, General Conference",
+      "Website": "www.cggc.org",
+      "Count": 1,
+      "Location": "Findlay, OH"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Holiness Churches",
+      "Denomination": "New Apostolic Church of North America",
+      "Website": "www.nak.org",
+      "Count": 1,
+      "Location": "Chicago, IL",
+      "Churches": 314,
+      "Membership": 38778,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Adventism – 22.3 million",
+      "Denomination": "Seventh-day Adventist Church – 21.9 million",
+      "Website": "https://www.adventist.org",
+      "Count": 1,
+      "Location": "Silverspring, MD",
+      "Churches": 4958,
+      "Membership": 1004419,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Adventism – 22.3 million",
+      "Denomination": "Church of God (Seventh-Day) – 0.2 million",
+      "Website": "https://cog7.org",
+      "Count": 1,
+      "Location": "Denver, CO",
+      "Churches": 185,
+      "Membership": 11000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Adventism – 22.3 million",
+      "Denomination": "Advent Christian Church - 0.1 million",
+      "Website": "https://www.acgc.us",
+      "Count": 1,
+      "Location": "Salem, MA"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Adventism – 22.3 million",
+      "Denomination": "Seventh Day Adventist Reform Movement - 0.042 million",
+      "Website": "https://sdarm.org",
+      "Count": 1,
+      "Location": "Roanoke, VA"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Restorationism – 7 million",
+      "Denomination": "Christian churches and churches of Christ – 1.1 million",
+      "Website": "www.christian-church.org",
+      "Count": 1,
+      "Location": "Rapid City, SD",
+      "Churches": "N/A",
+      "Membership": "N/A",
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anabaptism – 4 million",
+      "Denomination": "Amish – 0.3 million",
+      "Website": "https://en.wikipedia.org/wiki/Amish_religious_practices",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anabaptism – 4 million",
+      "Denomination": "Beachy Amish Mennonite Churches",
+      "Website": "www.beachyam.org",
+      "Count": 1,
+      "Location": "Partridge, KS",
+      "Churches": 144,
+      "Membership": 10000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anabaptism – 4 million",
+      "Denomination": "Church Communities International",
+      "Website": "www.Churchcommunities.org",
+      "Count": 1,
+      "Location": "Rifton, NY",
+      "Churches": "N/A",
+      "Membership": 2000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anabaptism – 4 million",
+      "Denomination": "Church of God in Christ, Mennonite",
+      "Website": "www.cogicm.org",
+      "Count": 1,
+      "Location": "Moundridge, KS",
+      "Churches": 141,
+      "Membership": 14262,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anabaptism – 4 million",
+      "Denomination": "Conservative Mennonite Conference",
+      "Website": "www.cmcrosedale.org",
+      "Count": 1,
+      "Location": "Irwin, OH",
+      "Churches": 110,
+      "Membership": 11557,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anabaptism – 4 million",
+      "Denomination": "Fellowship of Evangelical Churches",
+      "Website": "www.fecministries.org",
+      "Count": 1,
+      "Location": "Fort Wayne, IN",
+      "Churches": 42,
+      "Membership": 6621,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anabaptism – 4 million",
+      "Denomination": "Hutterian Brethren",
+      "Website": "www.hutterites.org",
+      "Count": 1,
+      "Location": "Ste Agathe, MB"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anabaptism – 4 million",
+      "Denomination": "Hutterites – 0.05 million",
+      "Website": "https://en.wikipedia.org/wiki/Hutterites",
+      "Count": 1,
+      "Notes": " Western Canada and the upper Great Plains of the United States"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anabaptism – 4 million",
+      "Denomination": "Mennonites – 2.1 million",
+      "Count": 1,
+      "Location": "Elkhart, IN",
+      "Churches": 935,
+      "Membership": 109174,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anabaptism – 4 million",
+      "Denomination": "Missionary Church",
+      "Website": "www.mcusa.org",
+      "Count": 1,
+      "Location": "Fort Wayne, IN",
+      "Churches": 423,
+      "Membership": 43026,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anabaptism – 4 million",
+      "Denomination": "Old Order (Wisler) Mennonite Churches",
+      "Website": "www.mhsc.ca",
+      "Count": 1,
+      "Location": "Denver, PA",
+      "Churches": 47,
+      "Membership": 7100,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Anabaptism – 4 million",
+      "Denomination": "U.S. Mennonite Brethren",
+      "Website": "www.usmb.org",
+      "Count": 1,
+      "Location": "Hillsboro, KS",
+      "Churches": 201,
+      "Membership": 30000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Plymouth Brethren – 1 million",
+      "Denomination": "The Plymouth Brethren number around 1 million members",
+      "Website": "https://en.wikipedia.org/wiki/Plymouth_Brethren",
+      "Count": 1,
+      "Location": "Dubuque, IA",
+      "Churches": 1200,
+      "Membership": 86000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Hussites – 1 million",
+      "Denomination": "Moravians – 0.825 million",
+      "Website": "www.moravian.org",
+      "Count": 1,
+      "Location": "Bethlehem, PA",
+      "Churches": 160,
+      "Membership": 40341,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Hussites – 1 million",
+      "Denomination": "Unity of the Brethren – 0.035 million",
+      "Website": "http://unityofthebrethren.org",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Quakers – 0.4 million"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Friends (Quaker)",
+      "Denomination": "Evangelical Friends International",
+      "Website": "www.evangelicalfriends.org",
+      "Count": 1,
+      "Location": "Canton, OH",
+      "Churches": 288,
+      "Membership": 39913,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Friends (Quaker)",
+      "Denomination": "Friends General Conference",
+      "Website": "www.fgcquaker.org",
+      "Count": 1,
+      "Location": "Philadelphia, PA",
+      "Churches": 650,
+      "Membership": 34000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Friends (Quaker)",
+      "Denomination": "Friends United Meeting",
+      "Website": "www.fum.org",
+      "Count": 1,
+      "Location": "Richmond, IN",
+      "Churches": 472,
+      "Membership": 41184,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Fundamentalist and Bible Churches",
+      "Denomination": "Independent Fundamentalist Baptist Churches",
+      "Churches": 1400,
+      "Membership": 150000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Fundamentalist and Bible Churches",
+      "Denomination": "American Evangelical Christian Churches",
+      "Website": "www.aeccministries.com",
+      "Count": 1,
+      "Location": "Indianapolis, IN",
+      "Churches": 192,
+      "Membership": 17400,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Fundamentalist and Bible Churches",
+      "Denomination": "Berean Fundamental Church",
+      "Website": "www.bereanchurchfellowship.org",
+      "Count": 1,
+      "Location": "Kearney, NE",
+      "Churches": 55,
+      "Membership": 12000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Fundamentalist and Bible Churches",
+      "Denomination": "Bible Fellowship Church",
+      "Website": "www.mybfc.org",
+      "Count": 1,
+      "Location": "Whitehall, PA",
+      "Churches": 60,
+      "Membership": 7605,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Fundamentalist and Bible Churches",
+      "Denomination": "Bible Presbyterian Church",
+      "Website": "www.bpc.org",
+      "Count": 1,
+      "Location": "Charlotte, NC",
+      "Churches": 32,
+      "Membership": 10000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Fundamentalist and Bible Churches",
+      "Denomination": "Grace Gospel Fellowship",
+      "Website": "www.ggfusa.org",
+      "Count": 1,
+      "Location": "Grand Rapids, MI",
+      "Churches": 128,
+      "Membership": 60000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Protestantism – 900 million–1 billion",
+      "Description/Bio": "Fundamentalist and Bible Churches",
+      "Denomination": "IFCA International",
+      "Website": "www.ifca.org",
+      "Count": 1,
+      "Location": "Grandville, MI"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Assemblies of God – 67 million",
+      "Website": "https://worldagfellowship.org",
+      "Count": 1,
+      "Location": "Springfield, MO",
+      "Notes": "160 countries, we have the figures for all of these countries 370,000 churches globally, 69 million members"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Apostolic Church – 15 million"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Apostolic Faith Mission Church of God",
+      "Website": "806 Muscogee Road",
+      "Count": 1,
+      "Location": "Cantonment, FL",
+      "Churches": 18,
+      "Membership": 9120
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Apostolic World Christian Fellowship",
+      "Website": "www.awcf.org",
+      "Count": 1,
+      "Location": "Evansville, IN",
+      "Churches": 135,
+      "Membership": "N/A"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Association of Vineyard Churches – 0.3 million",
+      "Website": "https://www.vineyard.org",
+      "Count": 1,
+      "Location": "Stafford, TX",
+      "we have": 26,
+      "Offices": 8,
+      "Description": "regions",
+      "Churches": 529,
+      "Membership": 155000,
+      "Source": "Handbook of Denom's",
+      "Notes": "Globally"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Bible Way Church of Our Lord Jesus Christ World Wide, Inc.",
+      "Website": "www.biblewaychurch.org",
+      "Count": 1,
+      "Location": "Columbia, SC",
+      "Churches": 350,
+      "Membership": 300000
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Christian Congregation of Brazil – 2.8 million",
+      "Website": "https://en.wikipedia.org/wiki/Christian_Congregation_in_Brazil",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Church of God (Cleveland, Tennessee) - 6 million",
+      "Website": "https://churchofgod.org",
+      "Count": 1,
+      "Churches": 6666,
+      "Membership": 1067106,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Church of God in Christ - 6.5 million",
+      "Website": "https://www.cogic.org",
+      "Count": 1,
+      "Location": "Memphis, TN",
+      "Churches": 336,
+      "Membership": 32000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Church of God of Prophecy – 1.5 million",
+      "Website": "https://cogop.org",
+      "Count": 1,
+      "Location": "Cleveland, TN",
+      "Churches": 1858,
+      "Membership": 91106,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Church of Our Lord Jesus Christ of the Apostolic Faith",
+      "Website": "www.apostolic-faith.org",
+      "Count": 1,
+      "Location": "Philadelphia, PA",
+      "Churches": 450,
+      "Membership": 30000
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Church of the Living God (Christian Workers for Fellowship)",
+      "Count": 1,
+      "Location": "Cincinnati, OH",
+      "Churches": 120,
+      "Membership": 20000
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Congregational Holiness Church",
+      "Website": "www.ch.church.com",
+      "Count": 1,
+      "Location": "Griffin, GA",
+      "Churches": 250,
+      "Membership": 18000
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Elim Fellowship",
+      "Website": "www.elim.edu",
+      "Count": 1,
+      "Location": "Lima, NY",
+      "Churches": 100,
+      "Membership": 20000
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Fire Baptized Holiness Church of God",
+      "Website": "www.fbhchurch.org",
+      "Count": 1,
+      "Location": "Greenville, SC",
+      "Churches": 170,
+      "Membership": "N/A"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Full Gospel Fellowship of Churches and Ministries, International",
+      "Website": "www.fgfcmi.org",
+      "Count": 1,
+      "Location": "Dallas, TX",
+      "Churches": 1273,
+      "Membership": 432632
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "United Holy Church of America, Inc.",
+      "Website": "www.www.uhcoa.org",
+      "Count": 1,
+      "Location": "Durham, NC",
+      "Membership": 100000
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Foursquare Church Canada",
+      "Website": "https://www.foursquare.ca",
+      "Count": 1,
+      "Location": "Port Coquitlam, BC",
+      "Churches": 78,
+      "Universities": 1
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "God is Love Pentecostal Church – 0.8 million",
+      "Website": "https://en.wikipedia.org/wiki/God_is_Love_Pentecostal_Church",
+      "Count": 1,
+      "Notes": "Brazil HQ "
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Independent Assemblies Of God, International",
+      "Website": "www.iaogi.org",
+      "Count": 1,
+      "Location": "Laguana Hills, CA",
+      "Churches": "N/A",
+      "Membership": "N/A",
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "International Church of the Foursquare Gospel - 9 million",
+      "Website": "http://foursquare.org",
+      "Count": 1,
+      "Location": "Los Angles, CA",
+      "we have": 10,
+      "Offices": 6,
+      "Description": "districts",
+      "Churches": 1480,
+      "Universities": 2
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "International Circle of Faith – 11 million",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "International Fellowship of Christian Assemblies",
+      "Website": "www.ccna.org",
+      "Count": 1,
+      "Location": "Transfer, PA",
+      "Churches": 96,
+      "Membership": 7200
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "International Pentecostal Holiness Church – 4 million",
+      "Website": "https://iphc.org",
+      "Count": 1,
+      "Location": "Oklahoma City, OK",
+      "Offices": 24,
+      "Churches": 2010,
+      "Membership": 257758,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Open Bible Churches",
+      "Website": "www.openbible.org",
+      "Count": 1,
+      "Location": "Des Moines, IA",
+      "we have": 11,
+      "Offices": 5,
+      "Description": "regions",
+      "Churches": 302,
+      "Membership": 45000,
+      "Source": "Numerous Sources"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Pentecostal Assemblies of the World, Inc",
+      "Website": "www.pawinc.org",
+      "Count": 1,
+      "Location": "Indianapolis, IN",
+      "Churches": 1750,
+      "Membership": 1500000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Pentecostal Church of God",
+      "Website": "www.pcg.org",
+      "Count": 1,
+      "Location": "Joplin, MO",
+      "Churches": 1158,
+      "Membership": 90030,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Pentecostal Free Will Baptist Church, Inc",
+      "Website": "www.pfwb.org",
+      "Count": 1,
+      "Location": "Dunn, NC",
+      "Churches": 150,
+      "Membership": 28000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Universal Church of the Kingdom of God – 2 million",
+      "Website": "https://www.universal.org",
+      "Count": 1,
+      "Notes": "Brazil HQ "
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Pentecostalism – 280 million (Modern Protestantism 400-500 million)",
+      "Denomination": "United Pentecostal Church International",
+      "Website": "www.upci.org",
+      "Count": 1,
+      "Location": "Hazelwood, MO",
+      "Churches": 4358,
+      "Membership": 646304,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Christian Missionary Alliance-Canada",
+      "Denomination": "The Alliance Canada",
+      "Website": "https://www.cmacan.org/",
+      "Count": 1,
+      "Churches": 78,
+      "Pastors": 51,
+      "Membership": 64900,
+      "Source": "CMA Website"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Christian Missionary Alliance-United States",
+      "Denomination": "The Christian Missionary Alliance",
+      "Website": "http://www.cmalliance.org/",
+      "Count": 1,
+      "Location": "Reynoldsburg, OH",
+      "we have": 27,
+      "Offices": 25,
+      "Description": "districts",
+      "Churches": 2297,
+      "Pastors": 1868,
+      "Membership": 482449,
+      "Source": "CMA Website"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Denomination": "Apostolic Christian Churches of America",
+      "Website": "www.apostolicchristian.org",
+      "Count": 1,
+      "Location": "Peoria, IL",
+      "Churches": 84,
+      "Membership": 23980,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Denomination": "Apostolic Overcoming Holy Church of God, Inc.",
+      "Website": "www.aohchurch.com",
+      "Count": 1,
+      "Location": "Mobile, AL",
+      "Churches": 129,
+      "Membership": 10714,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Denomination": "Church of Christ (Holiness) U.S.A.",
+      "Website": "www.cochusa.com",
+      "Count": 1,
+      "Location": "Jackson, MS",
+      "Churches": 148,
+      "Membership": 11468,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Denomination": "Church of God (Holiness)",
+      "Website": "www.cogh.net",
+      "Count": 1,
+      "Location": "Overland Park, KS",
+      "Churches": 140,
+      "Membership": 8000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Denomination": "Assemblies of the Lord Jesus Christ",
+      "Website": "www.aljc.org",
+      "Count": 1,
+      "Location": "Memphis, TN",
+      "Churches": 413,
+      "Membership": "N/A",
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Messianic Judaism – 0.3 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Messianic Judaism has a membership of 0.3 million people",
+      "Website": "https://mjaa.org/messianic-movement/",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Nondenominational Christianity – 80–100 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Calvary Chapel – 25 million",
+      "Website": "https://calvarychapel.com",
+      "Count": 1,
+      "Churches": 1200,
+      "Membership": 500000,
+      "Source": "Numerous Sources",
+      "Notes": "Globally"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Nondenominational Christianity – 80–100 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Christian and Missionary Alliance – 6 million",
+      "Website": "http://awf.world",
+      "Count": 1,
+      "Location": "Brazil",
+      "Notes": "Intl HQ is Brazil"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "Nondenominational Christianity – 80–100 million (Modern Protestantism 400-500 million)",
+      "Denomination": "Church of God (Anderson, Indiana) – 1.2 million",
+      "Website": "http://jesusisthesubject.org",
+      "Count": 1,
+      "Location": "Anderson, IN",
+      "Churches": 2100,
+      "Membership": 252905,
+      "Source": "Handbook of Denom's",
+      "Universities": 4,
+      "Notes": "89 countries, 7,800 churches and 887,000 members"
+    },
+    {
+      "Movement(s)": "Pentecostalism – 280 million",
+      "Description/Bio": "New Apostolic Church – 10 million (Modern Protestantism 400-500 million)",
+      "Denomination": "The New Apostolic Church has around 10 million members",
+      "Website": "https://www.nac-usa.org",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Latin Church – 1.327 billion",
+      "Description/Bio": "Latin",
+      "Denomination": "Roman Catholic Church Council",
+      "Website": "www.vatican.va",
+      "Count": 1,
+      "Churches": 19081,
+      "Membership": 63400000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Latin Church – 1.327 billion",
+      "Description/Bio": "Canonically irregular groups",
+      "Denomination": "Society of Saint Pius X – 1 million",
+      "Website": "www.sspx.org",
+      "Count": 1,
+      "Location": "Platte City, MO",
+      "Churches": 103,
+      "Membership": 20000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Latin Church – 1.327 billion",
+      "Description/Bio": "Sedevacantists",
+      "Denomination": "Congregation of Mary Immaculate Queen"
+    },
+    {
+      "Movement(s)": "Latin Church – 1.327 billion",
+      "Description/Bio": "Independent Catholicism – 18 million",
+      "Denomination": "American Catholic Church in the United States",
+      "Website": "www.accus.us",
+      "Count": 1,
+      "Location": "Frederick, MD",
+      "Churches": 13,
+      "Membership": 5000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Latin Church – 1.327 billion",
+      "Description/Bio": "Independent Catholicism – 18 million",
+      "Denomination": "Apostolic Catholic Orthodox Church",
+      "Website": "www.apostoliccatholic.org",
+      "Count": 1,
+      "Location": "Houston, TX",
+      "Churches": 10,
+      "Membership": 8500,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Latin Church – 1.327 billion",
+      "Description/Bio": "Independent Catholicism – 18 million",
+      "Denomination": "Brazilian Catholic Apostolic Church – 0.56 million",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Latin Church – 1.327 billion",
+      "Description/Bio": "Independent Catholicism – 18 million",
+      "Denomination": "Ecumenical Catholic Church USA",
+      "Website": "www.ecc-usa.org",
+      "Count": 1,
+      "Location": "Dardenne Prairie, MO",
+      "Churches": 14,
+      "Membership": 5000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Latin Church – 1.327 billion",
+      "Description/Bio": "Independent Catholicism – 18 million",
+      "Denomination": "Ecumenical Catholic Communion",
+      "Website": "www.ecumenical-catholic-communion.org/",
+      "Count": 1,
+      "Location": "Aurora, CO",
+      "Churches": "N/A",
+      "Membership": "N/A",
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Latin Church – 1.327 billion",
+      "Description/Bio": "Independent Catholicism – 18 million",
+      "Denomination": "Mariavite Old Catholic Church, Province Of North America",
+      "Website": "www.mariavite.org",
+      "Count": 1,
+      "Location": "Wyandotte, MI",
+      "Churches": "N/A",
+      "Membership": "N/A",
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Latin Church – 1.327 billion",
+      "Description/Bio": "Independent Catholicism – 18 million",
+      "Denomination": "Old Catholic Church – 0.1 million (in communion with the Anglican Communion)",
+      "Website": "www.oldcatholic.org",
+      "Count": 1,
+      "Location": "DeForest, WI",
+      "Churches": "N/A",
+      "Membership": "N/A"
+    },
+    {
+      "Movement(s)": "Latin Church – 1.327 billion",
+      "Description/Bio": "Independent Catholicism – 18 million",
+      "Denomination": "Polish National Catholic Church – 0.03 million",
+      "Website": "www.pncc.org",
+      "Count": 1,
+      "Location": "Scranton, PA",
+      "Churches": 126,
+      "Membership": 60000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Latin Church – 1.327 billion",
+      "Description/Bio": "Independent Catholicism – 18 million",
+      "Denomination": "Reformed Catholic Church",
+      "Website": "www.reformedcatholicchurch.org",
+      "Count": 1,
+      "Location": "Columbus, OH",
+      "Churches": 100,
+      "Membership": 57000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Latin Church – 1.327 billion",
+      "Description/Bio": "Independent Catholicism – 18 million",
+      "Denomination": "Traditionalist Mexican-American Catholic Church – 2 million",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Eastern Orthodoxy – 220 million",
+      "Description/Bio": "Autocephalous churches – 168 million",
+      "Denomination": "Greek Orthodox Archdiocese of America",
+      "Website": "www.goarch.org",
+      "Count": 1,
+      "Location": "New York, NY",
+      "Churches": 560,
+      "Membership": 1500000
+    },
+    {
+      "Movement(s)": "Eastern Orthodoxy – 220 million",
+      "Description/Bio": "Churches in communion with the above Orthodox Churches but with disputed autocephaly – 19 million",
+      "Denomination": "Orthodox Church in America – 1 million",
+      "Count": 1
+    },
+    {
+      "Movement(s)": "Orthodoxy",
+      "Description/Bio": "Orthodox and Oriental Orthodox Churches",
+      "Denomination": "African Orthodox Church",
+      "Website": "netministries.org/see/churches.exe/ch26904",
+      "Count": 1,
+      "Location": "New York City, NY",
+      "Churches": 1,
+      "Membership": 5000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Orthodoxy",
+      "Description/Bio": "Orthodox and Oriental Orthodox Churches",
+      "Denomination": "Albanian Orthodox Archdiocese in America",
+      "Website": "www.orthodoxalbania.org",
+      "Count": 1,
+      "Location": "South Boston, MA",
+      "Churches": 1,
+      "Membership": 40000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Orthodoxy",
+      "Description/Bio": "Orthodox and Oriental Orthodox Churches",
+      "Denomination": "American Carpatho-Russian Orthodox Church",
+      "Website": "www.acrod.org",
+      "Count": 1,
+      "Location": "Johnstown, PA",
+      "Churches": 80,
+      "Membership": 12840,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Orthodoxy",
+      "Description/Bio": "Orthodox and Oriental Orthodox Churches",
+      "Denomination": "Antiochian Orthodox Christian Archdiocese of North America",
+      "Website": "www.antiochian.org",
+      "Count": 1,
+      "Location": "Englewood, NJ",
+      "Churches": 256,
+      "Membership": 430000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Orthodoxy",
+      "Description/Bio": "Orthodox and Oriental Orthodox Churches",
+      "Denomination": "Apostolic Catholic Assyrian Church Of The East, North American Diocese",
+      "Website": "www.cired.org",
+      "Count": 1,
+      "Location": "Chicago, IL",
+      "Churches": 19,
+      "Membership": 35118,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Orthodoxy",
+      "Description/Bio": "Orthodox and Oriental Orthodox Churches",
+      "Denomination": "Apostolic Episcopal Church",
+      "Website": "bertilpersson.com/",
+      "Count": 1,
+      "Location": "Queens, NY",
+      "Churches": 200,
+      "Membership": 12000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Orthodoxy",
+      "Description/Bio": "Orthodox and Oriental Orthodox Churches",
+      "Denomination": "Armenian Apostolic Church of America",
+      "Website": "www.armenianprelacy.org",
+      "Count": 1,
+      "Location": "New York, NY",
+      "Churches": 108,
+      "Membership": 1010000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Orthodoxy",
+      "Description/Bio": "Orthodox and Oriental Orthodox Churches",
+      "Denomination": "Coptic Orthodox Church",
+      "Website": "www.coptic.net",
+      "Count": 1,
+      "Location": "Cedar Grove, NJ",
+      "Churches": 100,
+      "Membership": 300000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Orthodoxy",
+      "Description/Bio": "Orthodox and Oriental Orthodox Churches",
+      "Denomination": "Holy Eastern Orthodox Catholic and Apostolic Church",
+      "Website": "www.theocacna.org",
+      "Count": 1,
+      "Location": "Cedar Point, NC",
+      "Churches": "N/A",
+      "Membership": "N/A",
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Orthodoxy",
+      "Description/Bio": "Orthodox and Oriental Orthodox Churches",
+      "Denomination": "Malankara Orthodox Syrian Church",
+      "Website": "http://malankaraorthodoxchurch.in/",
+      "Count": 1,
+      "Location": "Bellerose, NY",
+      "Churches": 154,
+      "Membership": 70000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Orthodoxy",
+      "Description/Bio": "Orthodox and Oriental Orthodox Churches",
+      "Denomination": "Mar Thoma Orthodox Syrian Church of India",
+      "Website": "www.marthomachurch.org",
+      "Count": 1,
+      "Location": "Merrick, NY",
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Orthodoxy",
+      "Description/Bio": "Orthodox and Oriental Orthodox Churches",
+      "Denomination": "Orthodox Church in America",
+      "Website": "www.oca.org",
+      "Count": 1,
+      "Location": "Syosset, NY",
+      "Churches": 725,
+      "Membership": 900000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Orthodoxy",
+      "Description/Bio": "Orthodox and Oriental Orthodox Churches",
+      "Denomination": "Romanian Orthodox Episcopate of America",
+      "Website": "www.roea.org",
+      "Count": 1,
+      "Location": "Jackson, MI",
+      "Churches": 64,
+      "Membership": 10635,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Orthodoxy",
+      "Description/Bio": "Orthodox and Oriental Orthodox Churches",
+      "Denomination": "Serbian Orthodox Church in the U.S.A.",
+      "Website": "www.serbianorthodoxchurch.org",
+      "Count": 1,
+      "Location": "Washington, DC",
+      "Churches": 68,
+      "Membership": 67000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Orthodoxy",
+      "Description/Bio": "Orthodox and Oriental Orthodox Churches",
+      "Denomination": "Syrian (Syriac) Orthodox Church of Antioch (Archdiocese of the Eastern United States)",
+      "Website": "www.syrianorthodoxchurch.org",
+      "Count": 1,
+      "Location": "Teaneck, NJ",
+      "Churches": 37,
+      "Membership": 32500,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Description/Bio": "Adventist and Sabbatarian (Hebraic) Churches",
+      "Denomination": "Advent Christian Church General Conference",
+      "Website": "www.adventchristian.org",
+      "Count": 1,
+      "Location": "Charlotte, NC",
+      "Churches": 294,
+      "Membership": 23629,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Description/Bio": "Adventist and Sabbatarian (Hebraic) Churches",
+      "Denomination": "Branch Davidians, General Association",
+      "Website": "www.the-branch.org/",
+      "Count": 1,
+      "Location": "Kingsland, TX",
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Description/Bio": "Adventist and Sabbatarian (Hebraic) Churches",
+      "Denomination": "Christadelphians",
+      "Count": 1,
+      "Location": "Elgin, IL",
+      "Churches": 170,
+      "Membership": 15000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Description/Bio": "Adventist and Sabbatarian (Hebraic) Churches",
+      "Denomination": "Church of God Seventh Day",
+      "Website": "www.cog7.org",
+      "Count": 1,
+      "Location": "Denver, CO",
+      "Churches": 185,
+      "Membership": 11000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Description/Bio": "Adventist and Sabbatarian (Hebraic) Churches",
+      "Denomination": "Church of God and Saints of Christ",
+      "Website": "www.cogasoc.net",
+      "Count": 1,
+      "Location": "Hagerstown, MD",
+      "Churches": 200,
+      "Membership": 40000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Description/Bio": "Adventist and Sabbatarian (Hebraic) Churches",
+      "Denomination": "Church of God General Conference",
+      "Website": "www.abc-coggc.org",
+      "Count": 1,
+      "Location": "Morrow, GA",
+      "Churches": 162,
+      "Membership": 7634,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Description/Bio": "Adventist and Sabbatarian (Hebraic) Churches",
+      "Denomination": "Grace Communion International",
+      "Website": "www.graceci.org",
+      "Count": 1,
+      "Location": "Pasadena, CA",
+      "Membership": 43000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Description/Bio": "Adventist and Sabbatarian (Hebraic) Churches",
+      "Denomination": "Philadelphia Church of God",
+      "Website": "www.pcog.org",
+      "Count": 1,
+      "Location": "Edmond, OK",
+      "Churches": 100,
+      "Membership": 5000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Description/Bio": "Adventist and Sabbatarian (Hebraic) Churches",
+      "Denomination": "United Church of God",
+      "Website": "www.ucg.org",
+      "Count": 1,
+      "Location": "Cincinatti, OH",
+      "Churches": 230,
+      "Membership": 15000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Networks, Community and New Paradigm Churches",
+      "Denomination": "ARC Network",
+      "Website": "https://www.arcchurches.com",
+      "Count": 1,
+      "Location": "Birmingham, AL",
+      "we have": 25,
+      "Churches": 1100
+    },
+    {
+      "Count": 222,
+      "we have": 295,
+      "Offices": 473,
+      "Churches": 283783,
+      "Pastors": 1919,
+      "Membership": 153641815,
+      "Universities": 7
+    },
+    {
+      "Offices": "# of District"
+    },
+    {
+      "Location": "USA HQ",
+      "Offices": "Regional",
+      "Churches": "# of",
+      "Pastors": "# of",
+      "Membership": "# of"
+    },
+    {
+      "Movement(s)": "Movement(s)",
+      "Description/Bio": "Description/Bio",
+      "Denomination": "Denomination",
+      "Website": "Website",
+      "Count": "Count",
+      "Location": "Location",
+      "Offices": "Offices",
+      "Description": "Description",
+      "Churches": "Churches",
+      "Pastors": "Pastors",
+      "Membership": "Membership",
+      "Universities": "Universities",
+      "Notes": "Notes"
+    },
+    {
+      "Movement(s)": "Networks, Community and New Paradigm Churches",
+      "Denomination": "Acts 29 Network",
+      "Website": "www.acts29network.org",
+      "Count": 1,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Networks, Community and New Paradigm Churches",
+      "Denomination": "Communion of Evangelical Episcopal Churches",
+      "Website": "www.theceec.org",
+      "Count": 1,
+      "Location": "Franklin, TN",
+      "Membership": 200000,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Networks, Community and New Paradigm Churches",
+      "Denomination": "Cowboy Church Network of North America",
+      "Website": "www.cowboycn.org",
+      "Count": 1,
+      "Location": "Midland, NC",
+      "Churches": 650,
+      "Membership": "N/A",
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Networks, Community and New Paradigm Churches",
+      "Denomination": "Emergent Village",
+      "Website": "www.emergentvillage.org",
+      "Count": 1,
+      "Location": "Minneapolis, MN",
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Networks, Community and New Paradigm Churches",
+      "Denomination": "International Council of Community Churches",
+      "Website": "www.icccusa.com",
+      "Count": 1,
+      "Location": "Frankfort, IL",
+      "Churches": 155,
+      "Membership": 73174,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Networks, Community and New Paradigm Churches",
+      "Denomination": "Universal Fellowship of Metropolitan Community Churches",
+      "Website": "www.mccchurch.org",
+      "Count": 1,
+      "Location": "Abilene, TX",
+      "Churches": 115,
+      "Membership": 15666,
+      "Source": "Handbook of Denom's"
+    },
+    {
+      "Movement(s)": "Judaism",
+      "Denomination": "Lubavitch World Headquarters",
+      "Website": "www.lubavitch.com",
+      "Count": 1,
+      "Location": "Brooklyn, NY",
+      "Source": "Handbook of Denom's"
+    }
+  ]
+}

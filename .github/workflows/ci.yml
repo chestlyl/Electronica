@@ -17,6 +17,8 @@ jobs:
   quality:
     name: Quality checks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -34,7 +36,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Formatting check
-        run: pnpm format --check
+        run: pnpm format:check
 
       - name: Lint
         run: pnpm lint
@@ -52,6 +54,8 @@ jobs:
   database:
     name: Database tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     services:
       postgres:
         image: public.ecr.aws/supabase/postgres:15.8.1.085
@@ -161,6 +165,8 @@ jobs:
   audit:
     name: Dependency audit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -187,6 +193,8 @@ jobs:
   expo:
     name: Expo validation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
